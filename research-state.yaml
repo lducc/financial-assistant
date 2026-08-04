@@ -1,0 +1,46 @@
+project:
+  title: "Ontology-Constrained Evidence Closure and Verified Pandas Compilation for Zero-Supervision Vietnamese Financial Table QA"
+  started: "2026-08-04"
+  phase: "phase_0"
+  status: "active"
+research_question: >-
+  Can accounting-ontology constraints and executable consistency checks improve
+  retrieval of a minimal sufficient evidence set and executable Pandas accuracy
+  over noisy Vietnamese financial OCR when organizer labels are unavailable?
+competition_constraints:
+  organizer_labels: "none"
+  model_policy: "open weights, released before 2026-06-01, <=14B parameters"
+  public_questions: 1012
+dataset:
+  source: "https://huggingface.co/datasets/AIGuruTinix/ViFinQA"
+  revision: "0450088ab22ec946f04f097586967ca405955b3b"
+  fetched_on: "2026-08-04"
+  expected_reports: 1973
+  expected_questions: 1012
+current_hypotheses:
+  - id: H1
+    statement: "Metadata-first filtering improves retrieval by removing near-duplicate reports before ranking."
+    status: untested
+  - id: H5
+    statement: "Accounting ontology constraints improve grounding without organizer labels."
+    status: untested
+  - id: H6
+    statement: "Typed IR compilation improves execution reliability over unrestricted Pandas generation."
+    status: untested
+  - id: H7
+    statement: "Unit-aware validation catches executable-but-wrong answers."
+    status: untested
+experiments:
+  next:
+    - E001
+    - E002
+    - E004
+  completed: []
+decisions:
+  - date: "2026-08-04"
+    decision: "Start with a deterministic audit and baseline; do not select or train an LLM until bottlenecks are measured."
+open_questions:
+  - "Is the literal HTML table order the organizer's required table position?"
+  - "How much of the apparent Vietnamese character corruption is source data rather than terminal rendering?"
+  - "Which questions require multiple tables, and can this be inferred safely without gold labels?"
+
