@@ -1,0 +1,29 @@
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+
+# Environments
+.venv/
+venv/
+ENV/
+env/
+
+# IDE / Editor config
+.vscode/
+.idea/
+.gemini/
+antigravity-ide/
+.agents/
+
+# Project generated outputs
+output/*
+!output/.gitkeep
+*.zip
+*.jsonl
+llm_cache.jsonl
+
+# System files
+Thumbs.db
+.DS_Store

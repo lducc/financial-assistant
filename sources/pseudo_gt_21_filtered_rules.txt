@@ -1,0 +1,366 @@
+1. Cấu trúc pseudo-GT
+Trên 1.012 câu:
+Thuộc tính	Phân bố
+Tổng docs được chọn	2.744
+Trung bình docs/query	2,71
+1 doc	440 câu
+2 docs	182 câu
+3 docs	109 câu
+4 docs	117 câu
+Trên 4 docs	164 câu
+Một ticker, một năm	440 câu
+Một ticker, nhiều năm	281 câu
+Nhiều ticker, một năm	215 câu
+Nhiều ticker, nhiều năm	75 câu
+
+
+Scope được parse:
+Scope trong câu hỏi	Số câu
+separate	364
+consolidated	13
+unknown	635
+
+
+Trong 635 câu không ghi scope rõ:
+1.921 document atoms được chọn là consolidated;
+41 atoms dùng tài liệu không ghi scope;
+gần như không chọn separate.
+Đây là bằng chứng khá mạnh cho default:
+scope không rõ → consolidated
+2. Rule mạnh nhất rút ra được
+Rule A — Một document cho mỗi (ticker, year)
+Pseudo-GT đang gần như dùng:
+\[
+\text{Relevant docs}
+=
+\text{Tickers được nhắc tới}
+\times
+\text{Các năm được yêu cầu}
+\]Có 1.010/1.012 câu mà số document được chọn đúng bằng số atom kỳ vọng từ tích Descartes này.
+Ví dụ:
+Tickers = [GVR, PRT, DCM, DPM]
+Years   = [2020, 2021]
+Sinh 8 docs:
+GVR-2020, GVR-2021
+PRT-2020, PRT-2021
+DCM-2020, DCM-2021
+DPM-2020, DPM-2021
+Rule baseline đề xuất:
+for ticker in inferred_tickers:
+    for year in required_years:
+        select_exact_report(ticker, year, scope)
+Không nên chỉ lấy năm đầu tiên hoặc chỉ lấy một doc top-1 cho câu multi-year.
+Rule B — Scope ưu tiên rõ ràng
+Thứ tự:
+“công ty mẹ”, “ngân hàng mẹ”, “báo cáo riêng”
+    → separate
+
+“hợp nhất”, “báo cáo tài chính hợp nhất”
+    → consolidated
+
+không có chỉ dẫn scope
+    → consolidated
+Tuy nhiên phải gán scope ở cấp (ticker, year), không chỉ toàn câu. Ví dụ câu 952:
+báo cáo công ty mẹ các năm 2022, 2023 và báo cáo hợp nhất các năm 2024, 2025
+
+GT đúng về logic phải là:
+DTK-2022-separate
+DTK-2023-separate
+DTK-2024-consolidated/aggregated
+DTK-2025-consolidated/aggregated
+Parser hiện tại gán toàn câu là separate, nên đây là lỗi cần sửa.
+Rule C — Giữ tài liệu không ghi scope nếu corpus chỉ có loại đó
+Có 45 document atoms không mang hậu tố separate hoặc consolidated, tập trung ở:
+Ticker	Số atoms
+FTS	19
+HND	17
+EVF	8
+MBS	1
+
+
+Rule:
+Nếu exact ticker/year chỉ có một report “unspecified”
+→ dùng report đó, kể cả câu có từ “công ty mẹ”.
+Không nên loại FTS/HND/EVF/MBS chỉ vì filename không thể hiện scope.
+Rule D — Mỗi atom chỉ nên giữ một report
+Với mỗi (ticker, year, scope):
+Chọn đúng ticker và đúng năm.
+Chọn exact scope.
+Nếu không có exact scope, chọn unspecified.
+Chỉ dùng opposite scope khi có evidence bảng xác nhận.
+Nếu có nhiều phiên bản cùng atom, rerank bằng table evidence.
+Không nên gửi đồng thời riêng và hợp nhất “cho an toàn”, vì Precision giảm nhanh.
+3. Lỗi lớn nhất: fallback AAA/ABB/ACB
+Có 29 câu không nhận diện được ticker trực tiếp. Khi đó pipeline cũ rơi về các document đứng đầu theo thứ tự catalog:
+AAA
+ABB
+ACB
+Đây không phải tín hiệu ngữ nghĩa mà là lỗi fallback.
+Một số ví dụ chắc chắn sai:
+ID	Doanh nghiệp trong câu	Pseudo-GT sai
+114	Đầu tư Dịch vụ Hoàng Huy	AAA, ACB
+188	Điện lực Gelex	AAA, ABB
+199	Thủy điện Đa Nhim	AAA, ACB
+212	Nông nghiệp Quốc tế HAGL	AAA, ACB
+221	Tập đoàn C.E.O	AAA, ACB
+248	Thủy sản Minh Phú	AAA, ABB
+349	Kỹ nghệ gỗ Trường Thành	AAA, ABB
+407	Thế Giới Di Động	AAA
+586	Cảng Hàng không Việt Nam	AAA
+652	Xi Măng Vicem Hà Tiên	AAA
+687	Vàng bạc Đá quý Phú Nhuận	AAA, ACB
+718	Bluemarq Group	AAA, ACB
+722	Tập đoàn Đại Dương	AAA, ABB
+985	Tập đoàn F.I.T	AAA
+
+
+Các mapping đúng đã tồn tại trong code_stock.csv, ví dụ:
+HHS → Đầu tư Dịch vụ Hoàng Huy
+GEE → Điện lực Gelex
+DNH → Thủy điện Đa Nhim
+HNG → Nông nghiệp Quốc tế HAGL
+CEO → Tập đoàn C.E.O
+MPC → Thủy sản Minh Phú
+TTF → Kỹ nghệ gỗ Trường Thành
+MWG → Thế Giới Di Động
+ACV → Cảng Hàng không Việt Nam
+HT1 → Xi Măng Vicem Hà Tiên
+PNJ → Vàng bạc Đá quý Phú Nhuận
+DXG → Bluemarq Group
+OGC → Tập đoàn Đại Dương
+FIT → Tập đoàn F.I.T
+Chỉ sửa 29 câu fallback này có thể cải thiện macro score tối đa khoảng:
+\[
+29/1012 \approx 0,0287
+\]Không thể đảm bảo tăng đủ 2,87 điểm phần trăm vì không biết gold từng câu, nhưng đây là nhóm lỗi chắc chắn cần xử lý trước.
+Rule bắt buộc
+if not inferred_tickers:
+    return unresolved
+Tuyệt đối không làm:
+if not inferred_tickers:
+    return first_two_catalog_documents
+4. Entity resolution nên làm thế nào?
+Thứ tự ưu tiên:
+Cấp 1 — Ticker trong ngoặc
+CTCP Vietjet (VJC) → VJC
+Độ tin cậy cao nhất.
+Cấp 2 — Ticker viết hoa có word boundary
+(?<![A-Z0-9])VJC(?![A-Z0-9])
+Không match ticker bằng substring tự do.
+Cấp 3 — Tên công ty đầy đủ
+Chuẩn hóa:
+lowercase;
+bỏ dấu;
+chuẩn hóa khoảng trắng;
+bỏ dấu câu;
+đồng nhất CTCP, Công ty CP, Công ty Cổ phần;
+đồng nhất TMCP, Ngân hàng TMCP;
+đồng nhất Tổng CTCP, Tổng Công ty Cổ phần.
+Cấp 4 — Tên lõi sau khi bỏ legal prefix
+Ví dụ:
+Công ty Cổ phần Đầu tư Dịch vụ Hoàng Huy
+→ đầu tư dịch vụ hoàng huy
+→ HHS
+Các prefix có thể bỏ:
+công ty cổ phần
+ctcp
+công ty cp
+tổng công ty cổ phần
+tổng ctcp
+ngân hàng thương mại cổ phần
+ngân hàng tmcp
+tập đoàn
+công ty mẹ
+Không bỏ phần tên phân biệt doanh nghiệp.
+Cấp 5 — Alias thủ công
+Nên bổ sung alias phổ biến:
+{
+    "hoang huy": "HHS",
+    "dien luc gelex": "GEE",
+    "da nhim ham thuan da mi": "DNH",
+    "nong nghiep quoc te hoang anh gia lai": "HNG",
+    "ceo group": "CEO",
+    "thuy san minh phu": "MPC",
+    "go truong thanh": "TTF",
+    "the gioi di dong": "MWG",
+    "dam phu my": "DPM",
+    "dam ca mau": "DCM",
+    "san bay viet nam": "ACV",
+    "vicem ha tien": "HT1",
+    "phu nhuan jewelry": "PNJ",
+    "bluemarq": "DXG",
+    "dai duong": "OGC",
+    "fit group": "FIT",
+    "bac a": "BAB",
+    "quoc dan": "NVB",
+    "sai gon cong thuong": "SGB"
+}
+5. Phải nhận diện tất cả doanh nghiệp, không dừng ở alias đầu tiên
+Pseudo-GT còn các trường hợp nhận thiếu entity.
+Ví dụ ID 508 nhắc:
+OCB, ACB, STB
+nhưng pseudo-GT chỉ có:
+OCB, ACB
+ID 949 nhắc:
+ACB, MBB, EIB, BID
+nhưng pseudo-GT chỉ có:
+ACB
+Nguyên nhân thường là một số doanh nghiệp được viết ticker, một số được viết tên đầy đủ.
+Rule:
+tickers = union(
+    parenthesized_tickers,
+    explicit_ticker_tokens,
+    exact_company_matches,
+    core_name_matches,
+    manual_alias_matches,
+)
+Không dùng logic:
+if parenthesized_tickers or alias_found:
+    return immediately
+Phải quét hết câu rồi mới deduplicate.
+6. Năm: rule nên dùng
+Danh sách năm
+“các năm 2015, 2019 và 2022”
+→ [2015, 2019, 2022]
+Khoảng năm
+“giai đoạn 2021–2024”
+→ [2021, 2022, 2023, 2024]
+So sánh hai năm
+“năm 2023 so với 2022”
+→ [2022, 2023]
+Từng ticker nhân với từng năm
+Nếu câu hỏi yêu cầu nhiều công ty và nhiều năm:
+atoms = product(tickers, years)
+Câu không có năm
+Có một trường hợp ID 412 không có năm rõ ràng. Pipeline đang chọn báo cáo 2015 vì fallback của precision core. Đây không phải rule đáng tin.
+Rule đúng:
+Không có năm:
+1. tìm năm trong context/evidence;
+2. nếu không có → unresolved;
+3. không mặc định 2015 hoặc năm mới nhất.
+7. Cẩn thận với “năm được nhắc” và “report thực sự cần”
+Rule Cartesian product đang cho Recall cao, nhưng có thể thừa doc.
+Ví dụ:
+Tăng trưởng tài sản phái sinh năm 2022 so với năm 2021.
+
+Có hai khả năng:
+Dùng report 2021 và report 2022;
+chỉ dùng report 2022 vì bảng năm 2022 chứa cột so sánh 2021.
+Vì scorer chấm relevant docs theo annotation của BTC, không thể kết luận chỉ từ câu hỏi. Với baseline an toàn hiện tại, nên giữ cả hai năm vì kết quả balanced đã được leaderboard xác nhận khá tốt.
+Tối ưu Precision chỉ nên thực hiện khi table retrieval chứng minh:
+một bảng trong report 2022 chứa đủ operand 2022 và 2021
+Khi đó có thể thử submission probe bỏ report 2021.
+8. Đừng branch theo ID
+Dữ liệu có cấu trúc độ khó theo vùng ID khá rõ:
+Khoảng ID	Docs/query trung bình
+1–100	1,00
+101–200	1,05
+201–300	1,04
+301–400	2,98
+401–500	5,73
+501–600	4,38
+601–700	1,69
+701–800	1,60
+801–900	3,75
+901–1000	3,74
+
+
+Nhưng không nên viết rule kiểu id >= 360. Rule tổng quát phải dựa trên:
+số doanh nghiệp được nhắc;
+số năm;
+scope;
+cấu trúc so sánh/tổng hợp.
+ID chỉ nên dùng để phân tầng phân tích.
+9. Rule engine đề xuất
+def route_docs(question, catalog, aliases):
+    entities = extract_all_entities(question, aliases)
+
+    if not entities:
+        return [], "unresolved_entity"
+
+    year_clauses = extract_year_clauses(question)
+    scope_clauses = extract_scope_clauses(question)
+
+    atoms = build_atoms(
+        entities=entities,
+        years=year_clauses,
+        scopes=scope_clauses,
+        default_scope="consolidated",
+    )
+
+    selected = []
+
+    for atom in atoms:
+        candidates = exact_ticker_year(catalog, atom.ticker, atom.year)
+
+        doc = choose_in_order(
+            exact_scope(candidates, atom.scope),
+            unspecified_scope(candidates),
+            opposite_scope(candidates),
+        )
+
+        if doc:
+            selected.append(doc)
+        else:
+            record_unresolved_atom(atom)
+
+    return deduplicate(selected), "ok"
+Hàm build_atoms phải hỗ trợ mixed scope:
+[
+    ("DTK", 2022, "separate"),
+    ("DTK", 2023, "separate"),
+    ("DTK", 2024, "consolidated"),
+    ("DTK", 2025, "consolidated"),
+]
+10. Invariant để bắt lỗi trước submission
+Mỗi query phải qua các check:
+assert no_unknown_catalog_fallback
+assert every_doc_ticker in inferred_tickers
+assert every_doc_year in required_years
+assert no_duplicate_docs
+assert one_doc_per_atom
+Cảnh báo, không assert cứng:
+if question_scope == "separate" and doc_scope == "consolidated":
+    warn()
+
+if question_scope == "unknown" and doc_scope == "separate":
+    warn()
+
+if len(inferred_tickers) == 0:
+    unresolved()
+
+if company_names_detected > len(inferred_tickers):
+    warn_entity_under_detection()
+Đặc biệt:
+if selected_ticker in {"AAA", "ABB", "ACB"} \
+   and selected_ticker not explicitly_supported:
+    warn_catalog_order_fallback()
+11. Bộ rule nên ưu tiên triển khai
+Theo tác động dự kiến:
+Xóa fallback catalog AAA/ABB/ACB.
+Xây entity resolver từ toàn bộ code_stock.csv.
+Quét tất cả entity trong câu, không return sớm.
+Tạo Cartesian product ticker × năm.
+Scope explicit: mẹ → riêng; hợp nhất → hợp nhất.
+Scope unknown → hợp nhất.
+Hỗ trợ scope theo từng clause/năm.
+Cho phép FTS/HND/EVF/MBS dùng report unspecified.
+Một doc trên mỗi atom.
+Dùng table evidence để xử lý nhiều phiên bản cùng ticker/year.
+12. Kết luận phản biện
+021_docs_balanced chứng minh ba rule có giá trị cao:
+extract đủ ticker
+× extract đủ năm
+× chọn scope phù hợp
+Nhưng score 0,9158 không có nghĩa từng record trong đó đáng tin 91,58%. BTC chỉ trả aggregate score, nên ta không biết chính xác TP/FP/FN từng câu.
+Phần pseudo-GT đáng tin nhất là:
+quy luật scope;
+full coverage nhiều ticker/nhiều năm;
+exact ticker-year routing;
+ưu tiên một doc mỗi atom.
+Phần không nên học trực tiếp:
+mọi record chứa fallback AAA/ABB/ACB;
+câu không có năm;
+câu mixed-scope;
+câu có nhiều công ty nhưng parser chỉ nhận một phần;
+lựa chọn opposite scope khi exact scope không tồn tại.
