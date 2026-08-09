@@ -4,6 +4,7 @@ import csv
 from dataclasses import dataclass
 from html import unescape
 from html.parser import HTMLParser
+from functools import lru_cache
 from pathlib import Path
 import re
 
@@ -122,8 +123,14 @@ def extract_rows_at_line(report_text: str, start_line: int) -> list[list[str]]:
     raise KeyError(f"No HTML table begins at source line {start_line}")
 
 
+@lru_cache(maxsize=256)
+def cached_report_text(path_text: str) -> str:
+    """Reuse immutable OCR text across multiple evidence tables."""
+    return Path(path_text).read_text(encoding="utf-8")
+
+
 def materialize(report_path: Path, start_line: int, table_id: str, csv_path: Path) -> None:
-    rows = extract_rows_at_line(report_path.read_text(encoding="utf-8"), start_line)
+    rows = extract_rows_at_line(cached_report_text(str(report_path)), start_line)
     if not rows:
         raise ValueError(f"Table {table_id} is empty")
     width = max(len(row) for row in rows)
