@@ -1,34 +1,37 @@
 #!/usr/bin/env python3
-"""Fail-fast structural validator for a ViFinQA submission directory or ZIP."""
-
-from __future__ import annotations
+"""Static, organizer-aware validator for ViFinQA submission packages."""
 
 import argparse
 import json
-from pathlib import Path
+import math
+from pathlib import Path, PurePosixPath
 import re
-import sys
+import shutil
 import tempfile
 import zipfile
 
 
 VARIABLE_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
+TABLE_ID_RE = re.compile(r"^(.+)\|([1-9]\d*)$")
+CONSTANT_QUERY_RE = re.compile(r"^\s*(?:result\s*=\s*)?[-+]?(?:\d+(?:\.\d*)?|\.\d+)\s*$")
 REQUIRED = {"id", "question", "answer", "relevant_docs", "relevant_tables", "evidence", "pandas_query"}
 
 
-def validate(root: Path, expected_ids: set[int] | None) -> list[str]:
-    errors: list[str] = []
+def load_ids(path: Path, field: str) -> set:
+    return {json.loads(line)[field] for line in path.read_text(encoding="utf-8").splitlines() if line.strip()}
+
+
+def validate(root: Path, expected_ids: set[int] | None = None, catalog_ids: set[str] | None = None) -> list[str]:
     json_files = list(root.glob("*.json"))
     if len(json_files) != 1:
         return [f"Expected exactly one top-level JSON file, found {len(json_files)}"]
     try:
         rows = json.loads(json_files[0].read_text(encoding="utf-8"))
-    except json.JSONDecodeError as exc:
-        return [f"Invalid JSON: {exc}"]
+    except json.JSONDecodeError as error:
+        return [f"Invalid JSON: {error}"]
     if not isinstance(rows, list):
         return ["Submission JSON must contain a list"]
-
-    seen_ids: set[int] = set()
+    errors, seen_ids = [], set()
     for index, row in enumerate(rows):
         prefix = f"record {index}"
         if not isinstance(row, dict):
@@ -39,54 +42,86 @@ def validate(root: Path, expected_ids: set[int] | None) -> list[str]:
             errors.append(f"{prefix}: missing keys {sorted(missing)}")
             continue
         identifier = row["id"]
-        if not isinstance(identifier, int) or identifier in seen_ids:
-            errors.append(f"{prefix}: ID must be a unique integer")
+        if not isinstance(identifier, int) or isinstance(identifier, bool) or identifier in seen_ids:
+            errors.append(f"{prefix}: id must be a unique integer")
         seen_ids.add(identifier)
-        if not isinstance(row["answer"], (int, float)) or isinstance(row["answer"], bool):
-            errors.append(f"{prefix}: answer must be numeric")
-        if not isinstance(row["relevant_docs"], list) or not all(isinstance(v, str) for v in row["relevant_docs"]):
-            errors.append(f"{prefix}: relevant_docs must be a string list")
-        if not isinstance(row["relevant_tables"], list) or not all(isinstance(v, str) and "|" in v for v in row["relevant_tables"]):
-            errors.append(f"{prefix}: relevant_tables must be a list of report|position strings")
-        variables: set[str] = set()
-        if not isinstance(row["evidence"], list):
-            errors.append(f"{prefix}: evidence must be a list")
-        else:
-            for evidence in row["evidence"]:
-                if not isinstance(evidence, dict):
-                    errors.append(f"{prefix}: evidence entry must be an object")
-                    continue
-                variable, csv_path = evidence.get("variable"), evidence.get("csv_path")
-                if not isinstance(variable, str) or not VARIABLE_RE.fullmatch(variable) or variable in variables:
-                    errors.append(f"{prefix}: evidence variables must be unique Python identifiers")
+        answer = row["answer"]
+        if not isinstance(answer, (int, float)) or isinstance(answer, bool) or not math.isfinite(answer):
+            errors.append(f"{prefix}: answer must be a finite number")
+        docs = row["relevant_docs"]
+        if not isinstance(docs, list) or not all(isinstance(item, str) and item for item in docs):
+            errors.append(f"{prefix}: relevant_docs must be a non-empty string list")
+            docs = []
+        tables = row["relevant_tables"]
+        if not isinstance(tables, list) or not all(isinstance(item, str) for item in tables):
+            errors.append(f"{prefix}: relevant_tables must be a string list")
+            tables = []
+        for table_id in tables:
+            match = TABLE_ID_RE.fullmatch(table_id)
+            if not match:
+                errors.append(f"{prefix}: invalid table ID {table_id!r}; expected report_id|positive_start_line")
+            elif match.group(1) not in docs:
+                errors.append(f"{prefix}: table {table_id!r} has no matching relevant_doc")
+            elif catalog_ids is not None and table_id not in catalog_ids:
+                errors.append(f"{prefix}: table {table_id!r} is absent from the supplied catalog")
+        evidence = row["evidence"]
+        variables = set()
+        if not isinstance(evidence, list) or not evidence:
+            errors.append(f"{prefix}: evidence must contain at least one submitted table")
+            evidence = []
+        for item in evidence:
+            if not isinstance(item, dict):
+                errors.append(f"{prefix}: evidence entry must be an object")
+                continue
+            variable, csv_path = item.get("variable"), item.get("csv_path")
+            if not isinstance(variable, str) or not VARIABLE_RE.fullmatch(variable) or variable in variables:
+                errors.append(f"{prefix}: evidence variables must be unique Python identifiers")
+            if isinstance(variable, str):
                 variables.add(variable)
-                if not isinstance(csv_path, str) or not csv_path.startswith("data/"):
-                    errors.append(f"{prefix}: csv_path must be a relative data/ path")
-                elif not (root / csv_path).is_file():
-                    errors.append(f"{prefix}: missing evidence file {csv_path}")
-        if not isinstance(row["pandas_query"], str) or not row["pandas_query"].strip():
+            if not isinstance(csv_path, str) or not csv_path.startswith("data/"):
+                errors.append(f"{prefix}: csv_path must be a relative data/ path")
+            elif not (root / csv_path).is_file():
+                errors.append(f"{prefix}: missing evidence file {csv_path}")
+        query = row["pandas_query"]
+        if not isinstance(query, str) or not query.strip():
             errors.append(f"{prefix}: pandas_query must be non-empty text")
-
+        elif CONSTANT_QUERY_RE.fullmatch(query):
+            errors.append(f"{prefix}: pandas_query may not be a constant result")
+        else:
+            unused = [variable for variable in variables if not re.search(rf"\b{re.escape(variable)}\b", query)]
+            if unused:
+                errors.append(f"{prefix}: pandas_query does not reference evidence variable(s) {unused}")
     if expected_ids is not None and seen_ids != expected_ids:
-        errors.append("Submission IDs do not exactly match the question IDs")
+        errors.append("Submission IDs do not exactly match the supplied question IDs")
     return errors
+
+
+def safe_extract(archive: zipfile.ZipFile, target: Path) -> None:
+    for member in archive.infolist():
+        parts = PurePosixPath(member.filename).parts
+        if member.filename.startswith("/") or ".." in parts:
+            raise ValueError(f"Unsafe ZIP member: {member.filename}")
+    archive.extractall(target)
 
 
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("submission", type=Path)
     parser.add_argument("--questions", type=Path)
+    parser.add_argument("--catalog", type=Path)
     args = parser.parse_args()
-    expected_ids = None
-    if args.questions:
-        expected_ids = {json.loads(line)["id"] for line in args.questions.read_text(encoding="utf-8").splitlines() if line.strip()}
-    with tempfile.TemporaryDirectory() as temporary:
+    expected_ids = load_ids(args.questions, "id") if args.questions else None
+    catalog_ids = load_ids(args.catalog, "submission_table_id") if args.catalog else None
+    temporary = Path(tempfile.mkdtemp(prefix="vifinqa_submission_"))
+    try:
         root = args.submission
         if args.submission.suffix.lower() == ".zip":
             with zipfile.ZipFile(args.submission) as archive:
-                archive.extractall(temporary)
-            root = Path(temporary)
-        errors = validate(root, expected_ids)
+                safe_extract(archive, temporary)
+            root = temporary
+        errors = validate(root, expected_ids, catalog_ids)
+    finally:
+        shutil.rmtree(temporary, ignore_errors=True)
     if errors:
         print("INVALID")
         print("\n".join(f"- {error}" for error in errors))
@@ -96,4 +131,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

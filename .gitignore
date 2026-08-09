@@ -1,9 +1,49 @@
+# Python
 __pycache__/
 *.py[cod]
 .pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
+build/
+dist/
+*.egg-info/
+
+# Environments
 .venv/
+venv/
+env/
+ENV/
+
+# Local corpus, derived data, and generated packages
 data/raw/
 data/derived/
-data/results/
+data/results/*
+annotations/gold_150.jsonl
+annotations/gold_150_candidate_submissions.jsonl
+output/*
+!output/.gitkeep
 submission/
+*.zip
 
+# Model and tool caches
+.cache/
+hf_cache/
+huggingface/
+llm_cache.jsonl
+
+# Private notes and editor state
+conversation.md
+notes/
+*.private.md
+.vscode/
+.idea/
+.gemini/
+antigravity-ide/
+.agents/
+
+# Operating-system files
+.DS_Store
+Thumbs.db
