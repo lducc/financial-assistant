@@ -96,7 +96,8 @@ def table_metadata(title: str, context: tuple[str, ...], rows: tuple[tuple[str, 
     return headers, periods, unit
 
 
-@lru_cache(maxsize=256)
+# Corpus contains more than 256 reports; retain parsed tables for one full run.
+@lru_cache(maxsize=4096)
 def report_tables(path_text: str, identity: ReportIdentity) -> tuple[Table, ...]:
     text = Path(path_text).read_text(encoding="utf-8")
     pages = list(PAGE_RE.finditer(text))
