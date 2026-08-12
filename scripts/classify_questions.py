@@ -73,6 +73,7 @@ def diagnostics(parsed, docs: list[str]) -> dict:
         "entity_resolved": bool(parsed.tickers),
         "year_resolved": bool(parsed.years),
         "gated_reports": len(docs),
+        "gated_report_ids": docs,
     }
 
 

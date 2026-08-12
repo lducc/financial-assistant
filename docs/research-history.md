@@ -87,6 +87,34 @@ F2 0.5972 against 0.5011, Δ +0.0961 [+0.0496, +0.1511]. One per report — the
 structurally obvious budget — does not separate from the baseline. Conditioning
 the multiplier on the difficulty tier is not better than applying it uniformly.
 
+## Extending the benchmark (v3)
+
+Resampling the cached traces shows what the current 150 records can decide: CI
+half-width 0.041 F2 overall, so only effects above ~0.08 are resolvable, and per
+tier it is 0.018 easy, 0.085 medium, 0.090 intermediate, 0.113 hard. The accepted
+budget effect was 0.098 — barely clear of the floor, and nothing about hard
+questions is measurable at n=23. `scripts/build_annotation_queue.py` therefore
+draws 250 further questions weighted 40/30/20/10 toward hard and intermediate,
+excluding any question whose gated reports already appear in gold-150 so new
+records form new bootstrap clusters instead of thickening existing ones.
+
+Discovery is deliberately not our retriever. `scripts/search_evidence.py` does
+diacritic-folded substring matching over the raw OCR of the gated reports, in
+document order, with no scoring; `scripts/propose_evidence.py` derives the metric
+phrase from the question and relaxes it from the front, since Vietnamese noun
+phrases lead with a generic head ("số dư", "tổng giá trị") and carry the
+discriminative words at the tail. Rows are proposals; a reviewer picks.
+
+Calibration batch, 20 questions: 18 labelled, 0 binding errors against raw OCR, 2
+deferred rather than guessed — one names a fund absent from the report, one asks
+for "chứng khoán nợ" where three portfolios carry that label. Median 3.5
+candidate rows per question after relaxation, 7 of 20 unambiguous.
+
+These labels were discovered independently of our BM25, and they agree with
+gold-150 on the budget: three tables per gated report is again the best policy
+(F2 0.6457 against 0.5674 for a fixed five, Δ +0.0783). At n=18 the interval
+crosses zero, so this corroborates the direction rather than proving it.
+
 ## Rejected
 
 Corpus-wide BM25 IDF, built by `scripts/build_row_idf.py` over all 1,535,824

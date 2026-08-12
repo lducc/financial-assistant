@@ -298,6 +298,15 @@ def test_question_tiers_follow_the_published_difficulty_definitions():
     ) == "hard"
 
 
+def test_metric_phrase_strips_question_boilerplate_but_keeps_the_line_item():
+    phrase = load_script("propose_evidence").metric_phrase(
+        "Số dư phải thu phí quản lý tập trung của công ty mẹ Tập đoàn Công nghiệp Cao su Việt Nam - CTCP "
+        "cuối năm 2020 là bao nhiêu triệu đồng?",
+        ["GVR"],
+    )
+    assert phrase == "so du phai thu phi quan ly tap trung"
+
+
 def test_cross_validation_folds_never_split_a_report_cluster():
     module = load_script("cross_validate_retrieval")
     labels = [

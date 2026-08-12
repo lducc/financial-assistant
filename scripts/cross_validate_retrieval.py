@@ -33,18 +33,21 @@ from evaluate_table_retrieval import connected_report_groups, prefix_score, reci
 
 SEED = 20260812
 TIER_MULTIPLIER = {"easy": 1, "medium": 2, "intermediate": 3, "hard": 3}
+# Multipliers apply to the gated report count directly, never to table_budget():
+# that helper carries whichever multiplier currently ships, so routing policies
+# through it would silently rename every row whenever the default changes.
 POLICIES = {
     "fixed-5": lambda reports, tier: 5,
     "fixed-10": lambda reports, tier: 10,
-    "reports": lambda reports, tier: table_budget(reports),
-    "reports+1": lambda reports, tier: min(30, table_budget(reports) + 1),
-    "reports x2": lambda reports, tier: min(30, 2 * table_budget(reports)),
-    "reports x3": lambda reports, tier: min(30, 3 * table_budget(reports)),
-    "reports x4": lambda reports, tier: min(30, 4 * table_budget(reports)),
+    "reports x1": lambda reports, tier: min(30, max(1, reports)),
+    "reports x2": lambda reports, tier: min(30, max(1, 2 * reports)),
+    "reports x3": lambda reports, tier: min(30, max(1, 3 * reports)),
+    "reports x4": lambda reports, tier: min(30, max(1, 4 * reports)),
+    "shipped default": lambda reports, tier: table_budget(reports),
     # Easy questions have exactly one gold table in one report, so spending extra
     # slots on them only costs precision. Difficulty comes from the tier
     # classifier, which is validated against the organizer's published counts.
-    "tier-aware": lambda reports, tier: min(30, TIER_MULTIPLIER.get(tier, 3) * table_budget(reports)),
+    "tier-aware": lambda reports, tier: min(30, max(1, TIER_MULTIPLIER.get(tier, 3) * reports)),
 }
 
 
