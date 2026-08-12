@@ -603,13 +603,18 @@ def select_evidence_slots(
 def table_budget(report_count: int, setting: str | int = "auto") -> int:
     """Resolve the submitted table budget shared by production and evaluation.
 
-    The gated report count predicts the gold table count on gold-150: the median
-    gold table count equals the gold report count for one through four reports.
-    F2 weights recall four times precision, so the budget that maximizes it sits
-    above that median. Sweeping multiples on the dev split peaks sharply at three
-    tables per gated report (F2 0.5343, against 0.4716 at one per report and
-    0.4356 for a fixed five), and the peak holds on both halves of the split. The
-    cap matches the largest gold table count observed on that set.
+    The gated report count carries the structure: on gold-150 the median gold
+    table count equals the gold report count for one through four reports, and 299
+    of 345 report slots hold exactly one gold table. F2 weights recall four times
+    precision, so the scoring optimum sits above that median.
+
+    Three tables per gated report is the measured peak, and it holds outside the
+    data it was chosen on. Grouped five-fold cross-validation over all 150 records
+    (folds blocked by connected report groups) gives +0.0979 F2 against a fixed
+    five, cluster-bootstrap CI [+0.0727, +0.1242], improving every difficulty tier.
+    The frozen 45-record holdout agrees: +0.0961, CI [+0.0496, +0.1511]. Four per
+    report falls back on both. The cap matches the largest gold table count on the
+    set. Re-derive with scripts/cross_validate_retrieval.py before changing it.
     """
     if setting == "auto":
         return min(30, max(1, 3 * report_count))

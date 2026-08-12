@@ -23,6 +23,15 @@ from vifinqa.review import validate_source_bindings
 from vifinqa.tables import ReportIdentity, parse_table_rows
 
 
+def load_script(name: str):
+    """Import a scripts/ entry point that is not part of an installed package."""
+    spec = importlib.util.spec_from_file_location(name, ROOT / "scripts" / f"{name}.py")
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader
+    spec.loader.exec_module(module)
+    return module
+
+
 def test_html_spans_expand_grid():
     html = '<table><tr><th rowspan="2">Metric</th><th colspan="2">Balance</th></tr><tr><td>2024</td><td>2023</td></tr></table>'
     assert parse_table_rows(html) == [["Metric", "Balance", "Balance"], ["Metric", "2024", "2023"]]
@@ -274,6 +283,39 @@ def test_report_coverage_reserves_one_table_per_gated_report(tmp_path):
     assert {table["report_id"] for table in metric_result["tables"]} == {"R1", "R2"}
 
 
+def test_question_tiers_follow_the_published_difficulty_definitions():
+    classify = load_script("classify_questions").classify
+    assert classify("Tiền và tương đương tiền của VJC cuối năm 2018 là bao nhiêu?", ["VJC"], [2018]) == "easy"
+    assert classify(
+        "Tăng trưởng doanh thu thuần năm 2024 so với 2023 của VJC là bao nhiêu?", ["VJC"], [2023, 2024],
+    ) == "medium"
+    assert classify(
+        "Doanh thu thuần trung bình của VJC giai đoạn 2020-2024 là bao nhiêu?", ["VJC"], [2020, 2021, 2022, 2023, 2024],
+    ) == "intermediate"
+    assert classify(
+        "Trong nhóm HPG, HSG và NKG, doanh nghiệp có doanh thu cao nhất năm 2024 ghi nhận hàng tồn kho bao nhiêu?",
+        ["HPG", "HSG", "NKG"], [2024],
+    ) == "hard"
+
+
+def test_cross_validation_folds_never_split_a_report_cluster():
+    module = load_script("cross_validate_retrieval")
+    labels = [
+        {"id": 1, "annotation": {"gold_reports": ["A", "B"]}},
+        {"id": 2, "annotation": {"gold_reports": ["B"]}},
+        {"id": 3, "annotation": {"gold_reports": ["C"]}},
+    ]
+    cluster_by_report = {
+        report: group[0] for group in module.connected_report_groups(labels) for report in group
+    }
+    # Questions 1 and 2 share report B, so they must land in the same fold.
+    clusters = {
+        record["id"]: cluster_by_report[record["annotation"]["gold_reports"][0]] for record in labels
+    }
+    assert clusters[1] == clusters[2] != clusters[3]
+    assert module.fold_of(clusters[1], 5) == module.fold_of(clusters[2], 5)
+
+
 def test_table_budget_scales_with_gated_reports_and_honors_explicit_values():
     assert table_budget(1) == 3
     assert table_budget(4) == 12
@@ -303,10 +345,7 @@ def test_retained_pilot_has_valid_schema_and_no_gold_reference():
 
 
 def test_evaluator_fixed_prefix_metrics():
-    spec = importlib.util.spec_from_file_location("evaluator", ROOT / "scripts" / "evaluate_table_retrieval.py")
-    module = importlib.util.module_from_spec(spec)
-    assert spec.loader
-    spec.loader.exec_module(module)
+    module = load_script("evaluate_table_retrieval")
     assert module.prefix_score(["A", "B"], ["A", "X", "B"], 1)["recall"] == 0.5
 
 

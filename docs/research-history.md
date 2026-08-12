@@ -34,23 +34,68 @@ answer-quality claims. Run `python3 scripts/validate_pilot.py --labels
 annotations/gold_150.jsonl` against local corpus to verify every reconstructed
 binding reaches its stated raw OCR cell.
 
-## Measured on gold-150 dev (105 records, `report-coverage`)
+## Benchmark trust
 
-| Change | Submitted F2 | P | R | candidate recall@50 |
-|---|---|---|---|---|
-| Fixed top-5 | 0.4356 | 0.2476 | 0.6173 | 0.9052 |
-| One table per gated report | 0.4716 | 0.4946 | 0.4689 | 0.9052 |
-| **Three tables per gated report** | **0.5343** | 0.2645 | 0.7338 | 0.9052 |
-| Corpus-wide BM25 IDF (rejected) | 0.4923 | 0.2433 | 0.6762 | 0.9122 |
+All 150 gold-150 records re-verified against raw OCR: `python3
+scripts/validate_pilot.py --labels annotations/gold_150.jsonl` prints `VALID`,
+so every table ID, start line, and raw cell still resolves in the corpus.
 
-The budget sweep peaks sharply at three tables per gated report and holds on both
-halves of the dev split. Corpus-wide document frequency, built by
-`scripts/build_row_idf.py` over all 1,535,824 parsed rows, was rejected: it lifts
-deep candidate recall slightly but costs 4 points of submitted F2, because
-statistics local to the gated slice downweight terms that are boilerplate inside
-the company's own reports, which is what top-k ranking needs.
+Seeding bias, measured rather than assumed: 181 of 420 gold tables (43.1%) also
+appear in the submission-2333 candidate file, and 78 of 150 questions (52.0%)
+have their entire gold set inside those candidates. The remaining 57% of gold
+tables were located independently during the source audit. The set leans toward
+what one public retriever found, but it is not a copy of it.
 
-Candidate recall@50 is 0.9052 while F2@5 recall is 0.6029, so the gold table is
+## Question tiers
+
+`scripts/classify_questions.py` assigns the organizer's four difficulty tiers to
+all 1,012 questions using `docs.parse_question` for entities, years, and scope.
+Against the published counts it lands at easy 331 (361), medium 184 (235),
+intermediate 256 (200), hard 241 (216) — absolute deviation 162 of 1,012. The
+tiers are not calibrated to those counts beyond this check.
+
+The tiers hold up against evidence they never saw, on gold-150:
+
+| Tier | Questions | Mean gold tables | Mean gold reports |
+|---|---:|---:|---:|
+| easy | 46 | 1.00 | 1.00 |
+| medium | 39 | 2.08 | 1.77 |
+| intermediate | 42 | 3.50 | 3.07 |
+| hard | 23 | 6.35 | 4.39 |
+
+Every easy question has exactly one gold table in one report.
+
+## Table budget, cross-validated
+
+`scripts/cross_validate_retrieval.py` retrieves once to depth 50, then scores
+selection policies offline over five folds blocked by connected report groups,
+with a paired cluster bootstrap against a fixed top-5 baseline. All 150 records:
+
+| Policy | F2 | P | R | mean k | Δ vs fixed-5 (95% CI) |
+|---|---:|---:|---:|---:|---|
+| fixed-5 | 0.4553 | 0.2480 | 0.6550 | 5.00 | baseline |
+| fixed-10 | 0.4127 | 0.1653 | 0.7924 | 10.00 | −0.0425 [−0.0772, −0.0059] |
+| one per report | 0.4687 | 0.4908 | 0.4661 | 2.34 | +0.0135 [−0.0405, +0.0695] |
+| two per report | 0.5238 | 0.3294 | 0.6224 | 4.68 | +0.0686 [+0.0343, +0.1025] |
+| **three per report** | **0.5532** | 0.2701 | 0.7637 | 7.02 | **+0.0979 [+0.0727, +0.1242]** |
+| four per report | 0.5064 | 0.2111 | 0.7980 | 9.35 | +0.0511 [+0.0225, +0.0801] |
+| tier-aware multiplier | 0.5305 | 0.3918 | 0.6270 | 5.95 | +0.0752 [+0.0252, +0.1259] |
+
+Three per report improves every tier (easy 0.54→0.70, medium 0.52→0.55,
+intermediate 0.40→0.48, hard 0.26→0.39) and the frozen 45-record holdout agrees:
+F2 0.5972 against 0.5011, Δ +0.0961 [+0.0496, +0.1511]. One per report — the
+structurally obvious budget — does not separate from the baseline. Conditioning
+the multiplier on the difficulty tier is not better than applying it uniformly.
+
+## Rejected
+
+Corpus-wide BM25 IDF, built by `scripts/build_row_idf.py` over all 1,535,824
+parsed rows: it lifts candidate recall@50 from 0.9052 to 0.9122 but drops
+submitted F2 from 0.5343 to 0.4923 on the dev split. Statistics local to the
+gated slice downweight terms that are boilerplate inside the company's own
+reports, which is what top-k ranking needs.
+
+Candidate recall@50 is 0.9052 while recall@5 is 0.6029, so the gold table is
 usually retrieved and mis-ranked rather than missed. Ranking, not candidate
 generation, is where the remaining table headroom is.
 
