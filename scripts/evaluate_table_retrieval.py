@@ -18,7 +18,7 @@ from docs import (
     load_companies, load_reports as load_doc_reports, parse_question, required_report_years,
     retrieve_docs,
 )
-from vifinqa.retrieval import load_reports, retrieve_rows
+from vifinqa.retrieval import load_reports, retrieve_rows, table_budget
 
 
 RANKS = (1, 3, 5, 10)
@@ -84,6 +84,7 @@ def score_record(
     selected_docs: list[str],
     retrieval: dict | None = None,
     ranked_depth: int = max(CANDIDATE_RANKS),
+    budget: int | None = None,
 ) -> dict:
     annotation = record["annotation"]
     gold_tables = annotation["gold_tables"]
@@ -98,6 +99,9 @@ def score_record(
         "table_count": record.get("taxonomy", {}).get("table_count", len(gold_tables)),
     }
     trace["prefix"] = {str(k): prefix_score(gold_tables, ranked_tables, k) for k in RANKS}
+    # Fixed prefixes describe the ranking; the submitted budget describes the score.
+    if budget is not None:
+        trace["submitted"] = {"k": budget, **prefix_score(gold_tables, ranked_tables, budget)}
     trace["mrr"] = {str(k): reciprocal_rank(gold_tables, ranked_tables, k) for k in (5, 10)}
     trace["ndcg@5"] = binary_ndcg(gold_tables, ranked_tables, 5)
     trace["all_gold_covered@5"] = set(gold_tables) <= set(unique(ranked_tables)[:5])
@@ -129,9 +133,14 @@ def summarize(traces: list[dict]) -> dict:
         }
         for k in RANKS
     }
+    submitted = [trace for trace in traces if "submitted" in trace]
     return {
         "records": len(traces),
         "prefix": prefix,
+        **({"submitted": {
+            "mean_k": mean([trace["submitted"]["k"] for trace in submitted]),
+            **{name: mean([trace["submitted"][name] for trace in submitted]) for name in ("precision", "recall", "f2")},
+        }} if submitted else {}),
         "mrr@5": mean([trace["mrr"]["5"] for trace in traces]),
         "mrr@10": mean([trace["mrr"]["10"] for trace in traces]),
         "ndcg@5": mean([trace["ndcg@5"] for trace in traces]),
@@ -202,6 +211,7 @@ def production_trace(
     ranked_depth: int,
     table_mode: str,
     reranker: str | None = None,
+    table_top_k: str | int = "auto",
 ) -> dict:
     parsed = parse_question(record["question"], companies)
     if not parsed.tickers and parsed.candidate_tickers:
@@ -213,11 +223,16 @@ def production_trace(
         "slot_years": required_report_years(parsed),
         "scope": parsed.scope,
     }
+    # Retrieve to full depth for candidate-recall diagnostics. Coverage modes reserve
+    # per report in gate order, so truncating to the budget matches what run.py emits.
     retrieval = retrieve_rows(
         record["question"], metadata, table_reports, top_k=ranked_depth,
         report_ids=docs, mode=table_mode, reranker=reranker,
     )
-    return score_record(record, [table["table_id"] for table in retrieval["tables"]], docs, retrieval, ranked_depth)
+    return score_record(
+        record, [table["table_id"] for table in retrieval["tables"]], docs, retrieval, ranked_depth,
+        budget=table_budget(len(docs), table_top_k),
+    )
 
 
 def load_submission(path: Path) -> dict[int, dict]:
@@ -272,6 +287,7 @@ def main() -> None:
     parser.add_argument("--split", choices=("all", "dev", "test"), default="all")
     parser.add_argument("--ranked-depth", type=int, default=max(CANDIDATE_RANKS))
     parser.add_argument("--table-mode", default="baseline")
+    parser.add_argument("--table-top-k", default="auto", help="'auto' budgets one table per gated report; an integer fixes the budget")
     parser.add_argument("--reranker", choices=("mmarco",))
     parser.add_argument(
         "--experimental-mode",
@@ -304,7 +320,8 @@ def main() -> None:
         "production",
         [
             production_trace(
-                record, table_reports, companies, doc_reports, args.ranked_depth, args.table_mode, args.reranker,
+                record, table_reports, companies, doc_reports, args.ranked_depth, args.table_mode,
+                args.reranker, args.table_top_k,
             )
             for record in records
         ],

@@ -13,7 +13,7 @@ from docs import (
     load_companies, load_reports, make_row, parse_question, required_report_years,
     retrieve_docs, validate, write_package,
 )
-from vifinqa.retrieval import load_reports as load_table_reports, retrieve_rows
+from vifinqa.retrieval import load_reports as load_table_reports, retrieve_rows, table_budget
 from vifinqa.tables import materialize
 from vifinqa.answers import EvidenceValue, answer_plan, first_numeric_cell
 from validate_submission import validate as validate_submission
@@ -75,9 +75,7 @@ def main() -> None:
             "slot_years": required_report_years(parsed),
             "scope": parsed.scope,
         }
-        # Cap the budget at the largest gold table count seen on gold-150 so a
-        # corpus-wide document gate cannot collapse table precision.
-        top_k = min(30, max(1, len(docs))) if args.table_top_k == "auto" else int(args.table_top_k)
+        top_k = table_budget(len(docs), args.table_top_k)
         result = retrieve_rows(
             source["question"], metadata, table_reports, top_k=top_k,
             report_ids=docs, mode=args.table_mode,

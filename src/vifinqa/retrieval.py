@@ -603,6 +603,22 @@ def select_evidence_slots(
     return selected, uncovered
 
 
+def table_budget(report_count: int, setting: str | int = "auto") -> int:
+    """Resolve the submitted table budget shared by production and evaluation.
+
+    The gated report count predicts the gold table count on gold-150: the median
+    gold table count equals the gold report count for one through four reports.
+    F2 weights recall four times precision, so the budget that maximizes it sits
+    above that median. Sweeping multiples on the dev split peaks sharply at three
+    tables per gated report (F2 0.5343, against 0.4716 at one per report and
+    0.4356 for a fixed five), and the peak holds on both halves of the split. The
+    cap matches the largest gold table count observed on that set.
+    """
+    if setting == "auto":
+        return min(30, max(1, 3 * report_count))
+    return max(1, int(setting))
+
+
 def select_report_coverage(
     ranked: list[tuple[float, Table, int]], candidates: list[Report], top_k: int,
 ) -> list[tuple[float, Table, int]]:

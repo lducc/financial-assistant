@@ -9,7 +9,7 @@ import sys
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from vifinqa.retrieval import Report, metric_query_tokens, rank_fuse_signal_scores, report_tables, retrieve_rows
+from vifinqa.retrieval import Report, metric_query_tokens, rank_fuse_signal_scores, report_tables, retrieve_rows, table_budget
 from vifinqa.answers import EvidenceValue, answer_plan, first_numeric_cell, parse_ocr_number
 from vifinqa.rerank import table_representation
 from vifinqa.dense import fused_rankings
@@ -272,6 +272,15 @@ def test_report_coverage_reserves_one_table_per_gated_report(tmp_path):
     assert {table["report_id"] for table in result["tables"]} == {"R1", "R2"}
     metric_result = retrieve_rows("Tính tỷ lệ Revenue", {"years": [2024]}, reports, mode="metric-coverage", top_k=2)
     assert {table["report_id"] for table in metric_result["tables"]} == {"R1", "R2"}
+
+
+def test_table_budget_scales_with_gated_reports_and_honors_explicit_values():
+    assert table_budget(1) == 3
+    assert table_budget(4) == 12
+    assert table_budget(0) == 1
+    assert table_budget(40) == 30
+    assert table_budget(4, 5) == 5
+    assert table_budget(4, "5") == 5
 
 
 def test_source_binding_validation_reads_raw_table(tmp_path):
