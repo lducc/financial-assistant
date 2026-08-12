@@ -115,6 +115,26 @@ gold-150 on the budget: three tables per gated report is again the best policy
 (F2 0.6457 against 0.5674 for a fixed five, Δ +0.0783). At n=18 the interval
 crosses zero, so this corroborates the direction rather than proving it.
 
+Batch 0, 50 questions: 21 labelled, 0 binding errors, 29 deferred. The deferrals
+are not evenly spread — 12 of 13 hard questions could not be labelled. Hard
+questions are multi-hop by definition: an intermediate result picks the year,
+company, or row whose table is the answer. Where the selection criterion and the
+target share a statement the label is exact and cheap (id 526: earnings per share
+picks the year, and both live in the income statement). Where they live in
+different statements, labelling requires computing the intermediate value, which
+this pass deliberately does not do. Extending the hard tier therefore needs a
+scope decision, not more of the same effort.
+
+Merged benchmark, 189 records and 157 clusters: three per report holds at
++0.0896 F2, CI [+0.0662, +0.1129]. The interval half-width tightened from 0.0258
+to 0.0234, roughly the 1/sqrt(n) the resampling predicted.
+
+| Split | Records | Clusters | Three-per-report Δ vs fixed-5 |
+|---|---:|---:|---|
+| gold-150 | 150 | 119 | +0.0979 [+0.0727, +0.1242] |
+| v3 fresh labels | 39 | — | corroborating, intervals wide |
+| merged | 189 | 157 | +0.0896 [+0.0662, +0.1129] |
+
 ## Rejected
 
 Corpus-wide BM25 IDF, built by `scripts/build_row_idf.py` over all 1,535,824
