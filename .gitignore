@@ -51,3 +51,12 @@ antigravity-ide/
 # Operating-system files
 .DS_Store
 Thumbs.db
+
+# Research dumps and local experiment artifacts
+github-research-output/
+.codex/
+uv.lock
+*.checkpoint.json
+annotations/v2_*/
+annotations/v2_*.json
+annotations/gold_150_ids.txt

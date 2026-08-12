@@ -1,8 +1,8 @@
 # ViFinQA table retrieval
 
 This is a small, deterministic retrieval project for Vietnamese financial-report
-tables. It produces document IDs, table IDs, and CSV evidence only. Answer
-execution is explicitly out of scope.
+tables. It produces document IDs, table IDs, CSV evidence, and conservative
+single-report numeric extraction.
 
 The production path is:
 
@@ -43,8 +43,16 @@ The command keeps raw OCR untouched and writes `output/run/submission.zip`.
 The ZIP contains `submission.json` and one `data/tables/*.csv` file for every
 retrieved table. The strict validator runs before ZIP creation and rejects bad
 IDs, documents/table mismatches, duplicate table IDs, missing evidence CSVs,
-and invalid package schema. The fixed top-5 contextual-BM25 baseline is the
-default; multi-year role coverage is opt-in with `--table-mode role-coverage`.
+and invalid package schema. The default is contextual BM25 with adaptive
+report coverage: for multi-report questions it reserves the best table from
+each document-gated report, then fills the remaining slots by relevance.
+`baseline`, `role-coverage`, and `evidence-slots` remain explicit modes via
+`--table-mode`.
+
+For a single document-gated report, the submission also emits a numeric answer
+from the highest-ranked matched OCR row and a matching executable evidence
+expression. Multi-report arithmetic remains conservative until its operands
+can be jointly validated.
 
 Public scores and the retained pilot measure retrieval evidence, not answer
 correctness. The pilot is not organizer ground truth; see

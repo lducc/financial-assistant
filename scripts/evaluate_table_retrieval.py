@@ -14,7 +14,10 @@ from zipfile import ZipFile
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from docs import load_companies, load_reports as load_doc_reports, parse_question, retrieve_docs
+from docs import (
+    load_companies, load_reports as load_doc_reports, parse_question, required_report_years,
+    retrieve_docs,
+)
 from vifinqa.retrieval import load_reports, retrieve_rows
 
 
@@ -198,15 +201,21 @@ def production_trace(
     doc_reports: dict,
     ranked_depth: int,
     table_mode: str,
+    reranker: str | None = None,
 ) -> dict:
     parsed = parse_question(record["question"], companies)
     if not parsed.tickers and parsed.candidate_tickers:
         parsed.tickers = parsed.candidate_tickers[:1]
     docs, _ = retrieve_docs(parsed, doc_reports)
-    metadata = {"tickers": parsed.tickers, "years": parsed.years, "scope": parsed.scope}
+    metadata = {
+        "tickers": parsed.tickers,
+        "years": parsed.years,
+        "slot_years": required_report_years(parsed),
+        "scope": parsed.scope,
+    }
     retrieval = retrieve_rows(
         record["question"], metadata, table_reports, top_k=ranked_depth,
-        report_ids=docs, mode=table_mode,
+        report_ids=docs, mode=table_mode, reranker=reranker,
     )
     return score_record(record, [table["table_id"] for table in retrieval["tables"]], docs, retrieval, ranked_depth)
 
@@ -262,10 +271,24 @@ def main() -> None:
     )
     parser.add_argument("--split", choices=("all", "dev", "test"), default="all")
     parser.add_argument("--ranked-depth", type=int, default=max(CANDIDATE_RANKS))
-    parser.add_argument("--table-mode", choices=("baseline", "role-coverage"), default="baseline")
+    parser.add_argument("--table-mode", default="baseline")
+    parser.add_argument("--reranker", choices=("mmarco",))
+    parser.add_argument(
+        "--experimental-mode",
+        action="store_true",
+        help="allow archived research-only table modes in this evaluator",
+    )
     parser.add_argument("--submission", type=Path, help="submission.json or its containing package directory")
-    parser.add_argument("--output-dir", type=Path, default=ROOT / "data" / "results" / "table_retrieval_eval")
+    parser.add_argument("--output-dir", type=Path, default=ROOT / "output" / "table_retrieval_eval")
     args = parser.parse_args()
+    production_modes = {"baseline", "role-coverage"}
+    experimental_modes = {"metric-focused", "metric-coverage", "field-aware", "field-coverage", "rank-fusion", "report-coverage", "evidence-slots"}
+    if args.table_mode not in production_modes | experimental_modes:
+        raise ValueError(f"unknown table mode: {args.table_mode}")
+    if args.table_mode in experimental_modes and not args.experimental_mode:
+        raise ValueError(
+            f"{args.table_mode} is research-only; pass --experimental-mode to evaluate it"
+        )
     if args.ranked_depth < max(CANDIDATE_RANKS):
         raise ValueError(f"--ranked-depth must be at least {max(CANDIDATE_RANKS)}")
 
@@ -281,7 +304,7 @@ def main() -> None:
         "production",
         [
             production_trace(
-                record, table_reports, companies, doc_reports, args.ranked_depth, args.table_mode,
+                record, table_reports, companies, doc_reports, args.ranked_depth, args.table_mode, args.reranker,
             )
             for record in records
         ],
