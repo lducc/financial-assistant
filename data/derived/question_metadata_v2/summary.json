@@ -1,0 +1,35 @@
+{
+  "experiment": "E005b",
+  "generated_at": "2026-08-04T14:51:41.103097+00:00",
+  "question_count": 1012,
+  "entity_resolution": {
+    "resolved": 983,
+    "unresolved": 29,
+    "candidate_count_distribution": {
+      "0": 29,
+      "1": 716,
+      "2": 78,
+      "3": 73,
+      "4": 70,
+      "5": 17,
+      "6": 11,
+      "7": 9,
+      "8": 5,
+      "9": 1,
+      "10": 3
+    },
+    "candidate_source_counts": {
+      "company_alias": 511,
+      "explicit_bare_ticker": 868,
+      "explicit_parenthetical_ticker": 285
+    }
+  },
+  "year_coverage": 1011,
+  "scope_distribution": {
+    "consolidated": 3,
+    "separate": 365,
+    "unspecified": 644
+  },
+  "output_path": "data\\derived\\question_metadata_v2\\questions.jsonl",
+  "warning": "Exact known ticker coverage is not entity-linking accuracy; validate on the frozen proxy set."
+}

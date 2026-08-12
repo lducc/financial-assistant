@@ -1,0 +1,25 @@
+{
+  "experiment": "E009",
+  "generated_at": "2026-08-04T16:15:53.097322+00:00",
+  "question_count": 1012,
+  "valid_plan_count": 1012,
+  "operation_distribution": {
+    "aggregate": 66,
+    "average": 48,
+    "difference": 78,
+    "growth_or_change": 108,
+    "lookup": 379,
+    "ratio_or_percent": 207,
+    "selector": 126
+  },
+  "unit_hint_distribution": {
+    "billion_vnd": 373,
+    "million_vnd": 216,
+    "percent_points": 294,
+    "shares_or_count": 22,
+    "thousand_vnd": 15,
+    "unspecified": 92
+  },
+  "output_path": "data\\derived\\template_plans\\plans.jsonl",
+  "warning": "This reports structural coverage only, not operation classification accuracy."
+}

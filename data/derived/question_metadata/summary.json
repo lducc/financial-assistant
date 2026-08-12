@@ -1,0 +1,34 @@
+{
+  "experiment": "E005",
+  "generated_at": "2026-08-09T03:28:12.797432+00:00",
+  "question_count": 1012,
+  "company_map_count": 100,
+  "entity_resolution": {
+    "resolved": 983,
+    "unresolved": 29,
+    "candidate_count_distribution": {
+      "0": 29,
+      "1": 716,
+      "2": 78,
+      "3": 73,
+      "4": 70,
+      "5": 17,
+      "6": 11,
+      "7": 9,
+      "8": 5,
+      "9": 1,
+      "10": 3
+    }
+  },
+  "year_coverage": {
+    "with_year": 1011,
+    "without_year": 1
+  },
+  "scope_distribution": {
+    "consolidated": 3,
+    "separate": 365,
+    "unspecified": 644
+  },
+  "output_path": "data/derived/question_metadata/questions.jsonl",
+  "warning": "Coverage is not accuracy; validate against frozen proxy annotations before applying hard filters beyond explicit metadata."
+}

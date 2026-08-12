@@ -18,18 +18,7 @@ env/
 ENV/
 
 # Local corpus, derived data, and generated packages
-data/raw/
-data/derived/
-data/results/*
-!data/results/e027_gold_150/
-!data/results/e027_gold_150/evidence.csv
-!data/results/e027_gold_150/manifest.json
-!data/results/e027_gold_150/report.md
-!data/results/e027_gold_150/review.json
-annotations/gold_150_candidate_submissions.jsonl
-output/*
-!output/.gitkeep
-submission/
+
 *.zip
 
 # Model and tool caches

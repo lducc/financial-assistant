@@ -1,0 +1,59 @@
+{
+  "experiment": "E003",
+  "selection": "deterministic round-robin across question-only full strata",
+  "source_questions": 1012,
+  "selected_questions": 120,
+  "seed": "vifinqa-e003-v2",
+  "feature_counts": {
+    "operation_hint": {
+      "aggregate": 9,
+      "average": 31,
+      "difference": 24,
+      "extremum_or_selector": 14,
+      "growth_or_change": 10,
+      "lookup": 23,
+      "ratio_or_percent": 9
+    },
+    "complexity_hint": {
+      "derived_or_compositional": 41,
+      "multi_entity": 20,
+      "multi_period": 48,
+      "single_lookup": 11
+    },
+    "scope_hint": {
+      "consolidated_hint": 3,
+      "separate_hint": 50,
+      "unspecified": 67
+    },
+    "unit_hint": {
+      "billion_vnd_hint": 34,
+      "million_vnd_hint": 34,
+      "percent_hint": 24,
+      "thousand_vnd_hint": 6,
+      "unspecified": 22
+    },
+    "primary_stratum": {
+      "aggregate|derived_or_compositional": 6,
+      "aggregate|multi_entity": 1,
+      "aggregate|multi_period": 2,
+      "average|derived_or_compositional": 10,
+      "average|multi_entity": 7,
+      "average|multi_period": 14,
+      "difference|derived_or_compositional": 13,
+      "difference|multi_entity": 4,
+      "difference|multi_period": 7,
+      "extremum_or_selector|derived_or_compositional": 5,
+      "extremum_or_selector|multi_period": 9,
+      "growth_or_change|derived_or_compositional": 3,
+      "growth_or_change|multi_period": 7,
+      "lookup|multi_entity": 6,
+      "lookup|multi_period": 6,
+      "lookup|single_lookup": 11,
+      "ratio_or_percent|derived_or_compositional": 4,
+      "ratio_or_percent|multi_entity": 2,
+      "ratio_or_percent|multi_period": 3
+    }
+  },
+  "queue_path": "data\\derived\\proxy_queue\\annotation_queue.jsonl",
+  "label_status": "unannotated; no model comparison is permitted"
+}

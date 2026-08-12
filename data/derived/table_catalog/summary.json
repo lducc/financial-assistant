@@ -1,0 +1,15 @@
+{
+  "catalog_version": 1,
+  "generated_at": "2026-08-04T14:32:40.386647+00:00",
+  "identifier_semantics": "report_id|1-based line at literal <table> start in source OCR text",
+  "report_count": 1973,
+  "table_count": 146246,
+  "unique_submission_table_ids": 146246,
+  "scope_counts": {
+    "aggregated": 7,
+    "consolidated": 957,
+    "separate": 954,
+    "unclassified": 55
+  },
+  "catalog_path": "data\\derived\\table_catalog\\tables.jsonl"
+}
