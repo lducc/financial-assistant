@@ -17,8 +17,12 @@ venv/
 env/
 ENV/
 
-# Local corpus, derived data, and generated packages
-
+# Generated packages and local evaluation output. The corpus and the derived
+# artifacts under data/ are tracked deliberately, so they stay out of this list.
+output/*
+!output/.gitkeep
+submission/
+data/derived/row_idf.json
 *.zip
 
 # Model and tool caches

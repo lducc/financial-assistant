@@ -34,6 +34,26 @@ answer-quality claims. Run `python3 scripts/validate_pilot.py --labels
 annotations/gold_150.jsonl` against local corpus to verify every reconstructed
 binding reaches its stated raw OCR cell.
 
+## Measured on gold-150 dev (105 records, `report-coverage`)
+
+| Change | Submitted F2 | P | R | candidate recall@50 |
+|---|---|---|---|---|
+| Fixed top-5 | 0.4356 | 0.2476 | 0.6173 | 0.9052 |
+| One table per gated report | 0.4716 | 0.4946 | 0.4689 | 0.9052 |
+| **Three tables per gated report** | **0.5343** | 0.2645 | 0.7338 | 0.9052 |
+| Corpus-wide BM25 IDF (rejected) | 0.4923 | 0.2433 | 0.6762 | 0.9122 |
+
+The budget sweep peaks sharply at three tables per gated report and holds on both
+halves of the dev split. Corpus-wide document frequency, built by
+`scripts/build_row_idf.py` over all 1,535,824 parsed rows, was rejected: it lifts
+deep candidate recall slightly but costs 4 points of submitted F2, because
+statistics local to the gated slice downweight terms that are boilerplate inside
+the company's own reports, which is what top-k ranking needs.
+
+Candidate recall@50 is 0.9052 while F2@5 recall is 0.6029, so the gold table is
+usually retrieved and mis-ranked rather than missed. Ranking, not candidate
+generation, is where the remaining table headroom is.
+
 ## Rejected directions and next hypothesis
 
 Historical pseudo-ground-truth rules, answer planners, text repair, and numeric

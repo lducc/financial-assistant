@@ -202,45 +202,42 @@ def contextual_row(table: Table, row: str) -> str:
     return f"{contextual_prefix(table)} {row}"
 
 
-def bm25(query: list[str], rows: list[str]) -> list[float]:
-    if not query or not rows:
-        return [0.0] * len(rows)
-    terms = set(query)
-    tokens = [tokenize(row) for row in rows]
-    frequencies = [Counter(row) for row in tokens]
+def score_bm25(terms: set[str], tokens: list[list[str]]) -> list[float]:
+    """Score tokenized rows against the candidate slice.
+
+    Corpus-wide document frequency was measured on the dev split and rejected:
+    it lifted candidate recall@50 from 0.9052 to 0.9122 but dropped submitted F2
+    from 0.5343 to 0.4923. Statistics local to the gated slice downweight terms
+    that are boilerplate within the company's own reports, which is exactly the
+    discrimination top-k ranking needs.
+    """
     document_frequency = Counter(term for row in tokens for term in set(row) if term in terms)
     average_length = statistics.fmean(max(1, len(row)) for row in tokens)
     scores = []
-    for row, counts in zip(tokens, frequencies):
+    for row in tokens:
+        counts = Counter(row)
         score, length = 0.0, max(1, len(row))
         for term in terms:
             frequency = counts[term]
             if frequency:
-                idf = math.log(1 + (len(rows) - document_frequency[term] + 0.5) / (document_frequency[term] + 0.5))
+                seen = document_frequency[term]
+                idf = math.log(1 + (len(tokens) - seen + 0.5) / (seen + 0.5))
                 score += idf * frequency * 2.2 / (frequency + 1.2 * (0.25 + 0.75 * length / average_length))
         scores.append(score)
     return scores
+
+
+def bm25(query: list[str], rows: list[str]) -> list[float]:
+    if not query or not rows:
+        return [0.0] * len(rows)
+    return score_bm25(set(query), [tokenize(row) for row in rows])
 
 
 def unicode_bm25(query: list[str], rows: list[str]) -> list[float]:
     """BM25 variant preserving NFC Vietnamese distinctions."""
     if not query or not rows:
         return [0.0] * len(rows)
-    terms = set(query)
-    tokens = [unicode_tokenize(row) for row in rows]
-    frequencies = [Counter(row) for row in tokens]
-    document_frequency = Counter(term for row in tokens for term in set(row) if term in terms)
-    average_length = statistics.fmean(max(1, len(row)) for row in tokens)
-    scores = []
-    for row, counts in zip(tokens, frequencies):
-        score, length = 0.0, max(1, len(row))
-        for term in terms:
-            frequency = counts[term]
-            if frequency:
-                idf = math.log(1 + (len(rows) - document_frequency[term] + 0.5) / (document_frequency[term] + 0.5))
-                score += idf * frequency * 2.2 / (frequency + 1.2 * (0.25 + 0.75 * length / average_length))
-        scores.append(score)
-    return scores
+    return score_bm25(set(query), [unicode_tokenize(row) for row in rows])
 
 
 def phrase_bonus(query: list[str], row: str) -> float:
