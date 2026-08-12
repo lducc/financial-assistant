@@ -37,6 +37,9 @@ notes/
 antigravity-ide/
 .agents/
 
+# Competition briefs and other local PDFs
+*.pdf
+
 # Operating-system files
 .DS_Store
 Thumbs.db

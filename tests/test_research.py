@@ -34,6 +34,15 @@ def test_ocr_number_parser_handles_grouping_decimals_and_parentheses():
     assert first_numeric_cell(["Metric", "-", "42,5%"]) == (2, 42.5)
 
 
+def test_first_numeric_cell_skips_account_code_and_note_columns():
+    assert first_numeric_cell(["Doanh thu thuan", "01", "VI.25", "1.234.567"]) == (3, 1234567.0)
+    cells = ["Tien", "110", "V.01", "38.446.527.451"]
+    assert first_numeric_cell(cells, ["Chi tieu", "Ma so", "Thuyet minh", "31/12/2020"]) == (3, 38446527451.0)
+    assert first_numeric_cell(cells, ["Chỉ tiêu", "Mã số", "Thuyết minh", "31/12/2020"]) == (3, 38446527451.0)
+    assert first_numeric_cell(["Doanh thu", "42"]) == (1, 42.0)
+    assert first_numeric_cell(["Doanh thu", "-", "n/a"]) is None
+
+
 def test_metric_query_tokens_remove_arithmetic_boilerplate_but_keep_line_item():
     tokens = metric_query_tokens(
         "Tính tỷ lệ tăng trưởng doanh thu thuần năm 2024 so với năm 2023 là bao nhiêu?",

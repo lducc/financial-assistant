@@ -475,6 +475,15 @@ def rank_fusion_table_scores(
     return fused
 
 
+def header_cells(table: Table) -> list[str]:
+    """Merge every header row into one label per column for cell-level gating."""
+    width = max((len(row) for row in table.headers), default=0)
+    return [
+        " ".join(row[column] for row in table.headers if column < len(row) and row[column])
+        for column in range(width)
+    ]
+
+
 def ranked_tables(best: dict[str, tuple[float, Table, int]]) -> list[tuple[float, Table, int]]:
     return sorted(best.values(), key=lambda item: (-item[0], item[1].table_id))
 
@@ -737,6 +746,7 @@ def retrieve_rows(
                 "score": round(score, 6),
                 "row_index": row_index,
                 "row_cells": list(table.rows[row_index]),
+                "header_cells": header_cells(table),
                 "title": table.title,
                 "periods": list(table.periods),
                 "unit": table.unit,

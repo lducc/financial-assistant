@@ -1,10 +1,13 @@
 """Conservative numeric extraction for retrieved OCR evidence."""
 
 import re
+import unicodedata
 from dataclasses import dataclass
 
 
 NUMBER_RE = re.compile(r"[+-]?\d[\d.,]*")
+GROUPED_RE = re.compile(r"\d{1,3}([.,]\d{3})+(?![\d])")
+SKIP_HEADERS = ("ma so", "thuyet minh", "stt", "ghi chu")
 
 
 def parse_ocr_number(value: str) -> float | None:
@@ -27,12 +30,34 @@ def parse_ocr_number(value: str) -> float | None:
         return None
 
 
-def first_numeric_cell(cells: list[str]) -> tuple[int, float] | None:
-    """Return the first numeric value after a row label, preserving table order."""
+def fold(text: str) -> str:
+    """Strip Vietnamese diacritics and casefold, matching retrieval-side folding."""
+    text = unicodedata.normalize("NFD", text.casefold())
+    return "".join(char for char in text if unicodedata.category(char) != "Mn").replace("đ", "d")
+
+
+def first_numeric_cell(cells: list[str], headers: list[str] | None = None) -> tuple[int, float] | None:
+    """Return the value cell after a row label, skipping code/note columns."""
+    tiers: list[list[tuple[int, float]]] = [[], [], [], []]
     for column, cell in enumerate(cells[1:], 1):
+        if headers and column < len(headers):
+            folded = fold(headers[column])
+            if any(marker in folded for marker in SKIP_HEADERS):
+                continue
         value = parse_ocr_number(cell)
-        if value is not None:
-            return column, value
+        if value is None:
+            continue
+        if GROUPED_RE.search(cell):
+            tiers[0].append((column, value))
+        elif abs(value) >= 1000:
+            tiers[1].append((column, value))
+        elif "%" in cell or value != int(value):
+            tiers[2].append((column, value))
+        else:
+            tiers[3].append((column, value))
+    for tier in tiers:
+        if tier:
+            return tier[0]
     return None
 
 
