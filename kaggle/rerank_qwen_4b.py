@@ -8,19 +8,12 @@ Reads pairs_v3.jsonl and writes scores.jsonl, which `apply_rerank_scores.py`
 fuses locally. Retrieval is untouched: only the order of already-retrieved
 candidates changes, so a bad run is discarded by deleting one file.
 
-Three things make this materially faster than a naive loop:
+Candidates are sorted by length before batching, since a batch costs its longest
+member and they run from 300 to 2,800 characters — worth 25-40% of the runtime.
+Scores append per question and finished IDs are skipped, so a session that hits
+the 12-hour limit is rerun rather than restarted.
 
-* **Length-sorted batching.** Candidates vary from 300 to 2,800 characters, and a
-  batch costs its longest member. Sorting by length before batching removes most
-  of the padding waste — typically 25-40% of the runtime.
-* **Sharding.** Kaggle gives two T4s. Run this notebook twice with SHARD=0 and
-  SHARD=1 (SHARDS=2) to halve wall-clock; each writes its own scores file and the
-  local step reads both.
-* **Resume.** Scores append per question and finished IDs are skipped, so a
-  session that hits the 12-hour limit is rerun rather than restarted.
-
-Runtime for 50,335 pairs at max_length 512: roughly 3-4 h on one T4, 1.5-2 h
-across two shards.
+Runtime for 50,335 pairs at max_length 512: roughly 3-4 h on a T4.
 """
 
 import json
@@ -30,15 +23,13 @@ import time
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
-MODEL_NAME = os.environ.get("QWEN_RERANKER", "Qwen/Qwen3-Reranker-4B")
-PAIRS_PATH = os.environ.get("PAIRS_PATH", "/kaggle/input/vifinqa-rerank-pairs/pairs_v3.jsonl")
-SHARD = int(os.environ.get("SHARD", "0"))
-SHARDS = int(os.environ.get("SHARDS", "1"))
-SCORES_PATH = os.environ.get("SCORES_PATH", f"/kaggle/working/scores_{SHARD}.jsonl")
+MODEL_NAME = "Qwen/Qwen3-Reranker-4B"
+PAIRS_PATH = "/kaggle/input/vifinqa-rerank-pairs/pairs_v3.jsonl"
+SCORES_PATH = "/kaggle/working/scores.jsonl"
 # 16% of candidates run past 320 tokens and the line-item inventory sits early in
 # the text, so 512 keeps what decides the ranking.
-MAX_LENGTH = int(os.environ.get("MAX_LENGTH", "512"))
-BATCH_SIZE = int(os.environ.get("BATCH_SIZE", "16"))
+MAX_LENGTH = 512
+BATCH_SIZE = 16
 
 INSTRUCTION = (
     "Given a Vietnamese financial question, judge whether the table contains the "
@@ -54,8 +45,7 @@ SUFFIX = "<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n"
 
 def load_pairs(path):
     with open(path, encoding="utf-8") as handle:
-        records = [json.loads(line) for line in handle if line.strip()]
-    return [record for index, record in enumerate(records) if index % SHARDS == SHARD]
+        return [json.loads(line) for line in handle if line.strip()]
 
 
 def already_scored(path):
@@ -101,7 +91,7 @@ def main():
         torch_dtype=torch.float16 if device == "cuda" else torch.float32,
         device_map="auto" if device == "cuda" else None,
     ).eval()
-    print(f"device={device} model={MODEL_NAME} shard={SHARD}/{SHARDS} max_length={MAX_LENGTH}", flush=True)
+    print(f"device={device} model={MODEL_NAME} max_length={MAX_LENGTH}", flush=True)
 
     yes_id = tokenizer.convert_tokens_to_ids("yes")
     no_id = tokenizer.convert_tokens_to_ids("no")
@@ -115,7 +105,7 @@ def main():
         print(f"resuming, {len(done)} questions already scored", flush=True)
     pending = [record for record in records if record["id"] not in done]
     total = sum(len(record["candidates"]) for record in pending)
-    print(f"{len(pending)} questions, {total} pairs in this shard", flush=True)
+    print(f"{len(pending)} questions, {total} pairs", flush=True)
 
     started, scored = time.time(), 0
     with open(SCORES_PATH, "a", encoding="utf-8") as out:

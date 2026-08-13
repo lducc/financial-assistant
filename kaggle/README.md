@@ -46,9 +46,9 @@ not care which one produced it.
 
 | Script | Model | Memory | 50,335 pairs |
 |---|---|---|---|
-| `rerank_qwen_4b.py` | Qwen3-Reranker-4B | fits one T4 in fp16 | 3–4 h, or 1.5–2 h as two shards |
-| `rerank_qwen_8b.py` | Qwen3-Reranker-8B | needs both T4s, or 4-bit on one | 6–9 h, or 3–5 h as two 4-bit shards |
-| `rerank_bge.py` | bge-reranker-v2-m3 | one T4 | kept only as the record of a failure |
+| `rerank_qwen_4b.py` | Qwen3-Reranker-4B, fp16 | ~8 GB | 3–4 h |
+| `rerank_qwen_8b.py` | Qwen3-Reranker-8B, 8-bit | ~8.2 GB | 9–15 h, resumable |
+| `rerank_bge.py` | bge-reranker-v2-m3 | ~1 GB | kept only as the record of a failure |
 
 **Run 4B first.** It is the configuration that has actually worked here: +0.0355
 F2 on the benchmark, +0.023 live. Whether 8B beats it is an open question — on
@@ -56,20 +56,11 @@ reranking tasks the gap between sizes is usually smaller than the gap between th
 right and wrong model family, and BGE losing 0.15 F2 is what that gap looks like.
 Measure both on the benchmark before spending a submission on either.
 
-**8B needs quantizing to fit.** 8.19B parameters is 16.4 GB in fp16 and a T4 has
-16 GB, so pick one:
-
-| Setting | Memory | Speed | Fidelity |
-|---|---|---|---|
-| `LOAD_8BIT=1` | ~8.2 GB, one card | slowest — bitsandbytes handles outliers in higher precision, ~1.5–2× fp16 on Turing | near-lossless |
-| `LOAD_4BIT=1` | ~5.5 GB, one card | close to fp16 | some loss |
-| default | 16.4 GB across both cards | layers run in sequence, so no speedup | full |
-
-**Use both GPUs from one session.** Kaggle hands both T4s to a single notebook,
-so the parallelism goes inside it rather than across two sessions: quantize to one
-card, then launch one process per GPU with `CUDA_VISIBLE_DEVICES` and `SHARD`.
-The launcher snippet is at the bottom of `rerank_qwen_8b.py`. Each process writes
-its own scores file and the local step merges them with repeated `--scores`.
+**8B loads in 8-bit** because 8.19B parameters is 16.4 GB in fp16 and a T4 has
+16 GB. At int8 it is about 8.2 GB, fits one card, and stays near-lossless. It is
+the slower of the two models by more than the parameter count suggests:
+bitsandbytes computes outlier features in higher precision, roughly 1.5–2× fp16
+on Turing.
 
 Both Qwen scripts sort candidates by length before batching, since a batch costs
 its longest member — worth 25–40% of the runtime — and both append per question,
@@ -93,9 +84,9 @@ Put `scores.jsonl` in `output/rerank/`, then:
 
 ```
 python3 scripts/apply_rerank_scores.py --pairs output/rerank/pairs_v3.jsonl \
-    --scores output/rerank/scores_0.jsonl --scores output/rerank/scores_1.jsonl
+    --scores output/rerank/scores.jsonl
 python3 scripts/apply_rerank_scores.py --pairs output/rerank/pairs_v3.jsonl \
-    --scores output/rerank/scores_0.jsonl --mode replace   # trust the model outright
+    --scores output/rerank/scores.jsonl --mode replace   # trust the model outright
 ```
 
 Writes `output/rerank/ranking.json`. Fusion is the default because on this task
