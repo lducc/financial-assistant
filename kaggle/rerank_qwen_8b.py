@@ -4,19 +4,26 @@ Same contract as `rerank_qwen_4b.py` — reads pairs_v3.jsonl, writes scores.jso
 changes nothing about retrieval — but 8B does not fit a single T4 in fp16, so the
 memory strategy is the difference between the two files:
 
-* **T4 x2 (default).** `device_map="auto"` splits the layers across both 16 GB
-  cards. The cards run in sequence, not in parallel, so this buys capacity rather
-  than speed, and sharding the data is not available — both GPUs are already
-  holding one model.
-* **4-bit on a single card** (`LOAD_4BIT=1`). NF4 quantization puts 8B in about
-  6 GB, which frees the second T4 to run a second shard. Two shards at 4-bit
-  usually finish sooner than one unquantized model across both cards, at some
-  cost in fidelity.
+* **8-bit on one card** (`LOAD_8BIT=1`, the simplest). 8.19B parameters at int8
+  is about 8.2 GB, which leaves a T4 plenty of headroom, and int8 is close to
+  lossless. It is also the slowest: bitsandbytes decomposes outliers in higher
+  precision, which costs roughly 1.5-2x fp16 on Turing.
+* **4-bit on one card** (`LOAD_4BIT=1`). NF4 puts the model near 5.5 GB and runs
+  closer to fp16 speed, at some fidelity cost.
+* **fp16 across both cards** (the default). `device_map="auto"` splits the layers,
+  because 16.4 GB of weights does not fit one 16 GB card. The cards run in
+  sequence, so this buys capacity rather than speed and leaves no GPU free for a
+  second shard.
 
-Runtime for 50,335 pairs at max_length 512: roughly 6-9 h split across two T4s,
-or 3-5 h as two 4-bit shards. Both exceed a single session at the slow end, and
-that is fine — scores append per question and finished IDs are skipped, so rerun
-the cell and it continues.
+Quantizing to one card is what makes both GPUs usable: pin one process per card
+and give each half the questions. See the launcher at the bottom of this file —
+Kaggle hands both T4s to a single session, so the parallelism has to happen
+inside one notebook rather than across two.
+
+Runtime for 50,335 pairs at max_length 512, as two shards: roughly 3-5 h at 4-bit,
+5-8 h at 8-bit. One model across both cards is 6-9 h. The slower paths exceed a
+12-hour session; scores append per question and finished IDs are skipped, so
+rerunning the cell continues rather than restarts.
 
 Whether 8B is worth it over 4B is an empirical question, not a given: measure
 both on the benchmark before spending a submission. 4B already returned +0.0355
@@ -39,6 +46,7 @@ SCORES_PATH = os.environ.get("SCORES_PATH", f"/kaggle/working/scores_8b_{SHARD}.
 MAX_LENGTH = int(os.environ.get("MAX_LENGTH", "512"))
 # 8B activations are twice 4B's, so keep batches smaller to stay inside 16 GB.
 BATCH_SIZE = int(os.environ.get("BATCH_SIZE", "8"))
+LOAD_8BIT = os.environ.get("LOAD_8BIT", "0") == "1"
 LOAD_4BIT = os.environ.get("LOAD_4BIT", "0") == "1"
 
 INSTRUCTION = (
@@ -68,16 +76,21 @@ def already_scored(path):
 
 def load_model():
     kwargs = {"torch_dtype": torch.float16, "device_map": "auto"}
-    if LOAD_4BIT:
+    if LOAD_8BIT or LOAD_4BIT:
         from transformers import BitsAndBytesConfig
 
-        kwargs["quantization_config"] = BitsAndBytesConfig(
-            load_in_4bit=True,
-            bnb_4bit_quant_type="nf4",
-            bnb_4bit_compute_dtype=torch.float16,
-            bnb_4bit_use_double_quant=True,
+        kwargs["quantization_config"] = (
+            BitsAndBytesConfig(load_in_8bit=True)
+            if LOAD_8BIT
+            else BitsAndBytesConfig(
+                load_in_4bit=True,
+                bnb_4bit_quant_type="nf4",
+                bnb_4bit_compute_dtype=torch.float16,
+                bnb_4bit_use_double_quant=True,
+            )
         )
-        # Pin the whole model to one card so the other is free for a second shard.
+        # Quantized weights fit one card, so pin the model there and leave the
+        # other GPU free for a second shard of the questions.
         kwargs["device_map"] = {"": 0}
     return AutoModelForCausalLM.from_pretrained(MODEL_NAME, **kwargs).eval()
 
@@ -112,8 +125,9 @@ def main():
         raise SystemExit("8B needs a GPU; select T4 x2 in the notebook accelerator settings")
     tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME, padding_side="left")
     model = load_model()
+    precision = "8bit" if LOAD_8BIT else "4bit" if LOAD_4BIT else "fp16"
     print(
-        f"model={MODEL_NAME} 4bit={LOAD_4BIT} gpus={torch.cuda.device_count()} "
+        f"model={MODEL_NAME} precision={precision} gpus={torch.cuda.device_count()} "
         f"shard={SHARD}/{SHARDS} max_length={MAX_LENGTH}", flush=True,
     )
 
@@ -155,3 +169,25 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+# --- Kaggle launcher -------------------------------------------------------
+# Kaggle gives both T4s to one session, so run two processes here rather than two
+# notebooks. Save this file as rerank_qwen_8b.py in a cell, then run:
+#
+#   import subprocess, os
+#   env = {**os.environ, "LOAD_8BIT": "1", "SHARDS": "2",
+#          "PAIRS_PATH": "/kaggle/input/vifinqa-rerank-pairs/pairs_v3.jsonl"}
+#   jobs = [
+#       subprocess.Popen(["python", "rerank_qwen_8b.py"],
+#                        env={**env, "CUDA_VISIBLE_DEVICES": str(gpu), "SHARD": str(gpu)},
+#                        stdout=open(f"/kaggle/working/log_{gpu}.txt", "w"),
+#                        stderr=subprocess.STDOUT)
+#       for gpu in (0, 1)
+#   ]
+#   for job in jobs:
+#       job.wait()
+#
+# Each process sees one GPU as device 0, writes scores_8b_{SHARD}.jsonl, and the
+# local step merges them with repeated --scores flags. Tail the logs from another
+# cell to watch progress.

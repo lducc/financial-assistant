@@ -56,11 +56,20 @@ reranking tasks the gap between sizes is usually smaller than the gap between th
 right and wrong model family, and BGE losing 0.15 F2 is what that gap looks like.
 Measure both on the benchmark before spending a submission on either.
 
-**Use both GPUs.** Run the 4B notebook twice with `SHARD=0` and `SHARD=1`
-(`SHARDS=2`); each writes its own scores file and the local step reads both with
-repeated `--scores` flags. For 8B, `LOAD_4BIT=1` fits the model on one card so the
-same trick applies; without it `device_map="auto"` spreads the layers across both
-cards, which buys capacity rather than speed.
+**8B needs quantizing to fit.** 8.19B parameters is 16.4 GB in fp16 and a T4 has
+16 GB, so pick one:
+
+| Setting | Memory | Speed | Fidelity |
+|---|---|---|---|
+| `LOAD_8BIT=1` | ~8.2 GB, one card | slowest — bitsandbytes handles outliers in higher precision, ~1.5–2× fp16 on Turing | near-lossless |
+| `LOAD_4BIT=1` | ~5.5 GB, one card | close to fp16 | some loss |
+| default | 16.4 GB across both cards | layers run in sequence, so no speedup | full |
+
+**Use both GPUs from one session.** Kaggle hands both T4s to a single notebook,
+so the parallelism goes inside it rather than across two sessions: quantize to one
+card, then launch one process per GPU with `CUDA_VISIBLE_DEVICES` and `SHARD`.
+The launcher snippet is at the bottom of `rerank_qwen_8b.py`. Each process writes
+its own scores file and the local step merges them with repeated `--scores`.
 
 Both Qwen scripts sort candidates by length before batching, since a batch costs
 its longest member — worth 25–40% of the runtime — and both append per question,
