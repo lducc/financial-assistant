@@ -729,6 +729,7 @@ def retrieve_rows(
     field_weights: dict[str, float] | None = None,
     reranker: str | None = None,
     reranker_batch_size: int = 8,
+    reranker_depth: int = 20,
     dense_index_path: str | Path | None = None,
 ) -> dict:
     if mode not in {"baseline", "dense-hybrid", "metric-focused", "metric-coverage", "role-coverage", "report-coverage", "field-aware", "field-coverage", "rank-fusion", "evidence-slots"}:
@@ -806,14 +807,14 @@ def retrieve_rows(
             ranked = sorted(fused_role, key=lambda item: (-item[0], item[1].table_id))
     if reranker:
         from .rerank import rerank
-        try:
-            reranked = rerank(question, baseline_ranked[:50], batch_size=reranker_batch_size)
-            if not reranked:
-                raise RuntimeError("reranker returned no candidates")
-            ranked = reranked
-        except Exception:
-            ranked = baseline_ranked
-            reranker_fallback = True
+        # Reranking costs a forward pass per candidate, so the depth is the entire
+        # cost knob: on four CPU cores it runs about 6.5 pairs a second. Tables
+        # below the reranked head keep their sparse order beneath it.
+        head = rerank(question, baseline_ranked[:reranker_depth], batch_size=reranker_batch_size)
+        if not head:
+            raise RuntimeError("reranker returned no candidates")
+        reranked_ids = {table.table_id for _, table, _ in head}
+        ranked = head + [item for item in baseline_ranked if item[1].table_id not in reranked_ids]
     if mode == "evidence-slots" and not reranker_fallback:
         ranked, uncovered_slots = select_evidence_slots(ranked, candidates, metadata, top_k)
     if mode in {"report-coverage", "metric-coverage", "field-coverage", "dense-hybrid"} and not reranker_fallback:

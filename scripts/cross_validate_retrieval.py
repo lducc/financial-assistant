@@ -51,7 +51,7 @@ POLICIES = {
 }
 
 
-def build_traces(labels: list[dict], dataset_root: Path, depth: int, mode: str) -> list[dict]:
+def build_traces(labels: list[dict], dataset_root: Path, depth: int, mode: str, reranker: str | None = None) -> list[dict]:
     companies = load_companies(dataset_root / "code_stock.csv")
     doc_reports = load_doc_reports(dataset_root / "financial_statements")
     table_reports = load_reports(dataset_root)
@@ -73,6 +73,8 @@ def build_traces(labels: list[dict], dataset_root: Path, depth: int, mode: str) 
             top_k=depth,
             report_ids=docs,
             mode=mode,
+            reranker=reranker,
+            reranker_batch_size=32,
         )
         traces.append({
             "id": record["id"],
@@ -136,6 +138,7 @@ def main() -> None:
     parser.add_argument("--tiers", type=Path, default=ROOT / "data" / "derived" / "question_tiers.jsonl")
     parser.add_argument("--cache", type=Path, default=ROOT / "output" / "cv" / "traces.jsonl")
     parser.add_argument("--table-mode", default="report-coverage")
+    parser.add_argument("--reranker", choices=("mmarco",), help="cross-encoder rerank of the ranking head")
     parser.add_argument("--depth", type=int, default=50)
     parser.add_argument("--folds", type=int, default=5)
     parser.add_argument("--iterations", type=int, default=10_000)
@@ -152,7 +155,7 @@ def main() -> None:
         traces = [json.loads(line) for line in args.cache.read_text(encoding="utf-8").splitlines() if line.strip()]
         print(f"reusing {len(traces)} cached traces from {args.cache}", file=sys.stderr)
     else:
-        traces = build_traces(labels, args.dataset_root, args.depth, args.table_mode)
+        traces = build_traces(labels, args.dataset_root, args.depth, args.table_mode, args.reranker)
         args.cache.parent.mkdir(parents=True, exist_ok=True)
         args.cache.write_text(
             "".join(json.dumps(trace, ensure_ascii=False) + "\n" for trace in traces), encoding="utf-8"

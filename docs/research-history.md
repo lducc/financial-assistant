@@ -186,6 +186,23 @@ repeats the earlier pattern: as a replacement it helps intermediate (+0.0166) an
 hard (+0.0262) and hurts easy (−0.0227) and medium (−0.0160); fused as its own
 ranking every tier improves and recall goes 0.7588 to 0.7826.
 
+Cross-encoder reranking, the organizers' own biggest reported jump (recall@10
+63.9% to 80.2%), was tried with `cross-encoder/mmarco-mMiniLMv2-L12-H384-v1` over
+the top 20 candidates. It is far worse than no reranking: **−0.1520 F2, CI
+[−0.1921, −0.1113]**, easy −0.2434, MRR 0.754 to 0.580. The model is trained on
+web passage ranking and a table representation of headers, periods, and a numeric
+row is out of its distribution. This is a model-quality failure, not a compute
+one — the organizers' gain came from a reranker in the billions of parameters,
+which four CPU cores cannot run. Throughput was made workable first (sequence
+length 512 to 192, all cores, batches to 64: 3.3 to 6.5 pairs per second), so the
+result is about quality, not truncation.
+
+Section paths from the account-code hierarchy — reading "dự phòng giảm giá hàng
+tồn kho" as sitting under "hàng tồn kho" under "tài sản ngắn hạn", which is the
+group context the organizers' preprocessing adds — came to −0.0065, CI [−0.0209,
++0.0054], with easy down 0.0269. The paths themselves are extracted correctly;
+adding them as a ranking signal did not pay.
+
 Slot decomposition — split a question on its connectives ("trên", "và", "giữa"),
 build one query per line item, and give each its own slot — was the largest
 structural idea and it failed in all three forms tried:

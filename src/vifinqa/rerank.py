@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from functools import lru_cache
+import os
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -10,7 +11,10 @@ if TYPE_CHECKING:
 
 
 MODEL_NAME = "cross-encoder/mmarco-mMiniLMv2-L12-H384-v1"
-MAX_LENGTH = 512
+# Sequence length dominates cost on CPU, and this machine has four cores. At 512
+# the model does 3.3 pairs/sec, which is four hours for one submission; at 192 it
+# does 6.5 and still covers a table's title, headers, periods, and matched row.
+MAX_LENGTH = 192
 
 
 def table_representation(table: "Table", row_index: int) -> str:
@@ -31,6 +35,8 @@ def _model():
         raise RuntimeError("reranker requires uv sync") from error
     tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
     device = "cuda" if torch.cuda.is_available() else "cpu"
+    if device == "cpu":
+        torch.set_num_threads(os.cpu_count() or 1)
     model = AutoModelForSequenceClassification.from_pretrained(MODEL_NAME).eval().to(device)
     if device == "cuda":
         model = model.half()
@@ -41,8 +47,8 @@ def rerank(question: str, ranked: list[tuple[float, "Table", int]], *, batch_siz
     """Score immutable baseline candidates. Ties retain baseline order."""
     if not ranked:
         return []
-    if batch_size not in {1, 2, 4, 8}:
-        raise ValueError("batch_size must be one of 1, 2, 4, 8")
+    if batch_size not in {1, 2, 4, 8, 16, 32, 64}:
+        raise ValueError("batch_size must be a power of two up to 64")
     torch, tokenizer, model, device = _model()
     scores: list[float] = []
     for start in range(0, len(ranked), batch_size):
