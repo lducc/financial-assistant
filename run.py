@@ -45,6 +45,12 @@ def main() -> None:
     # at the oracle, against 0.7353 for a fixed five.
     parser.add_argument("--table-top-k", default="auto", help="'auto' budgets one table per gated report; an integer fixes the budget")
     parser.add_argument("--dense-index", type=Path)
+    parser.add_argument(
+        "--ranking", type=Path,
+        help="reranked orderings from apply_rerank_scores.py; retrieval widens to the "
+             "reranked depth and the budget is taken from that order",
+    )
+    parser.add_argument("--rerank-depth", type=int, default=50)
     parser.add_argument("--reranker", choices=("mmarco",))
     parser.add_argument("--reranker-batch-size", type=int, choices=(1, 2, 4, 8), default=8)
     args = parser.parse_args()
@@ -57,6 +63,7 @@ def main() -> None:
     reports = load_reports(data_root / "financial_statements")
     table_reports = load_table_reports(data_root)
     table_reports_by_id = {report.identity.report_id: report for report in table_reports}
+    ranking = json.loads(args.ranking.read_text("utf-8")) if args.ranking else None
     checkpoint = args.output_dir / "rows.checkpoint.json"
     rows = json.loads(checkpoint.read_text("utf-8")) if args.resume and checkpoint.exists() else []
     completed_ids = {row["id"] for row in rows}
@@ -78,11 +85,20 @@ def main() -> None:
         }
         top_k = table_budget(len(docs), args.table_top_k)
         result = retrieve_rows(
-            source["question"], metadata, table_reports, top_k=top_k,
+            source["question"], metadata, table_reports,
+            # With an external ranking the budget is applied after reordering, so
+            # retrieval has to return the whole reranked depth first.
+            top_k=args.rerank_depth if ranking else top_k,
             report_ids=docs, mode=args.table_mode,
             reranker=args.reranker, reranker_batch_size=args.reranker_batch_size,
             dense_index_path=args.dense_index,
         )
+        if ranking:
+            order = {table_id: rank for rank, table_id in enumerate(ranking.get(str(source["id"]), []))}
+            result["tables"] = sorted(
+                result["tables"],
+                key=lambda table: order.get(table["table_id"], len(order)),
+            )[:top_k]
         tables, evidence = [], []
         for rank, table in enumerate(result["tables"]):
             report = table_reports_by_id[table["report_id"]]
