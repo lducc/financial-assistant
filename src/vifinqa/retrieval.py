@@ -542,37 +542,64 @@ def materialize_candidate_rows(candidates: list[Report]) -> tuple[list[Table], l
 
 def baseline_ranked_rows(
     query: list[str], context_query: list[str], rows: list[tuple[Table, int, str]],
+    metric_query: list[str] | None = None,
 ) -> list[tuple[float, Table, int]]:
-    """Stage 2 baseline ranker. Keep production ranking byte-for-byte stable."""
+    """Stage 2 baseline ranker: reciprocal-rank fusion over row, context, and metric views.
+
+    The raw question carries arithmetic wording ("chênh lệch", "tăng trưởng",
+    "trung bình") that no statement row contains, and on derived questions that
+    wording outweighs the line item being asked for. The metric view drops it.
+    Swapping the query for that view outright was measured and rejected: it lifts
+    intermediate (+0.0431) and hard (+0.0222) but costs easy (-0.0258), where the
+    question already reads like a row label. Fusing it as a third ranking keeps
+    both behaviours without a per-question switch.
+    """
     scores = bm25(query, [row for _, _, row in rows])
     context_scores = bm25(context_query, [contextual_row(table, row) for table, _, row in rows])
+    metric_scores = bm25(metric_query or [], [row for _, _, row in rows])
     raw_best: dict[str, tuple[float, Table, int]] = {}
     context_best: dict[str, tuple[float, Table, int]] = {}
-    for (table, row_index, row), raw_score, context_score in zip(rows, scores, context_scores):
+    metric_best: dict[str, tuple[float, Table, int]] = {}
+    for (table, row_index, row), raw_score, context_score, metric_score in zip(
+        rows, scores, context_scores, metric_scores,
+    ):
         raw_score += phrase_bonus(query, row)
-        for score, best in ((raw_score, raw_best), (context_score, context_best)):
+        if metric_query:
+            metric_score += phrase_bonus(metric_query, row)
+        for score, best in ((raw_score, raw_best), (context_score, context_best), (metric_score, metric_best)):
             previous = best.get(table.table_id)
             if previous is None or score > previous[0] or score == previous[0] and row_index < previous[2]:
                 best[table.table_id] = score, table, row_index
     raw_ranked = ranked_tables(raw_best)
     context_ranked = ranked_tables(context_best)
+    metric_ranked = ranked_tables(metric_best) if metric_query else []
     raw_positive = [item for item in raw_ranked if item[0] > 0]
     context_positive = [item for item in context_ranked if item[0] > 0]
-    if not context_positive:
+    metric_positive = [item for item in metric_ranked if item[0] > 0]
+    if not context_positive and not metric_positive:
         return raw_ranked
     raw_ranks = {table.table_id: rank for rank, (_, table, _) in enumerate(raw_positive, 1)}
     context_ranks = {table.table_id: rank for rank, (_, table, _) in enumerate(context_positive, 1)}
+    metric_ranks = {table.table_id: rank for rank, (_, table, _) in enumerate(metric_positive, 1)}
+    covered = raw_ranks.keys() | context_ranks.keys() | metric_ranks.keys()
     selected = {
-        table_id: raw_best[table_id] if table_id in raw_ranks else context_best[table_id]
-        for table_id in raw_ranks.keys() | context_ranks.keys()
+        table_id: (
+            raw_best[table_id] if table_id in raw_ranks
+            else metric_best[table_id] if table_id in metric_ranks
+            else context_best[table_id]
+        )
+        for table_id in covered
     }
     ranked = [
         (
-            (1 / (RRF_OFFSET + raw_ranks[table_id]) if table_id in raw_ranks else 0)
-            + (1 / (RRF_OFFSET + context_ranks[table_id]) if table_id in context_ranks else 0),
+            sum(
+                1 / (RRF_OFFSET + ranks[table_id])
+                for ranks in (raw_ranks, context_ranks, metric_ranks)
+                if table_id in ranks
+            ),
             selected[table_id][1], selected[table_id][2],
         )
-        for table_id in raw_ranks.keys() | context_ranks.keys()
+        for table_id in covered
     ]
     ranked.sort(key=lambda item: (-item[0], item[1].table_id))
     selected_ids = {table.table_id for _, table, _ in ranked}
@@ -624,7 +651,14 @@ def table_budget(report_count: int, setting: str | int = "auto") -> int:
 def select_report_coverage(
     ranked: list[tuple[float, Table, int]], candidates: list[Report], top_k: int,
 ) -> list[tuple[float, Table, int]]:
-    """Reserve one relevant table per gated report before relevance-only fill."""
+    """Reserve one relevant table per gated report before relevance-only fill.
+
+    Round-robin interleaving by report was measured as an alternative, on the
+    theory that one strong report starves the others: +0.0044 F2, CI [-0.0065,
+    +0.0152], and it changed only 18 of 192 questions. Starvation is real but
+    lives beyond the submitted budget, so reordering inside the budget cannot
+    reach it. Rejected in favour of the simpler rule.
+    """
     selected: list[tuple[float, Table, int]] = []
     selected_ids: set[str] = set()
     for report in candidates[:top_k]:
@@ -673,7 +707,11 @@ def retrieve_rows(
     if mode in {"metric-focused", "metric-coverage"}:
         query = metric_query_tokens(question, metadata)
         context_query = metric_query_tokens(question, metadata, keep_years=True)
-    baseline_ranked = baseline_ranked_rows(query, context_query, rows)
+    baseline_ranked = baseline_ranked_rows(
+        query, context_query, rows,
+        # The metric view is redundant when the mode already ranks on it.
+        metric_query=None if mode in {"metric-focused", "metric-coverage"} else metric_query_tokens(question, metadata),
+    )
     if mode == "dense-hybrid":
         if dense_index_path is None:
             raise ValueError("dense-hybrid retrieval requires dense_index_path")

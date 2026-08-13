@@ -135,6 +135,30 @@ to 0.0234, roughly the 1/sqrt(n) the resampling predicted.
 | v3 fresh labels | 39 | — | corroborating, intervals wide |
 | merged | 189 | 157 | +0.0896 [+0.0662, +0.1129] |
 
+## Ranking, measured on the 192-record benchmark
+
+Diagnostics first: the document gate loses nothing on any record, so every gold
+report is gated and the losses are downstream. Raising the ranked depth from 50
+to 200 moves `candidate_miss` from 0.209 to 0.065 and `rank_miss` from 0.201 to
+0.345, which settles the question — gold tables are reachable and mis-ranked, not
+missing. Ranking is the bottleneck.
+
+| Change | F2 delta | 95% CI | Verdict |
+|---|---|---|---|
+| Round-robin interleave by report | +0.0044 | [−0.0065, +0.0152] | rejected |
+| Metric query replacing the question query | +0.0073 | [−0.0163, +0.0307] | rejected, easy −0.0258 |
+| **Metric query fused as a third ranking** | **+0.0242** | **[+0.0061, +0.0430]** | **accepted** |
+
+Round-robin was meant to cure report starvation, and starvation is real, but it
+lives beyond the submitted budget: reordering inside the budget touched only 18
+of 192 questions.
+
+Swapping the query for the metric view helps derived questions (intermediate
++0.0431, hard +0.0222) and hurts easy ones (−0.0258), where the question already
+reads like a row label. Fusing it instead keeps both: easy is unchanged to four
+decimals while medium gains +0.0446, intermediate +0.0384, hard +0.0160. Pooled
+recall 0.7536 to 0.7883, MRR 0.6122 to 0.6622.
+
 ## Rejected
 
 Corpus-wide BM25 IDF, built by `scripts/build_row_idf.py` over all 1,535,824
