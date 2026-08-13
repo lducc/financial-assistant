@@ -112,6 +112,11 @@ def main() -> None:
         for rank, table in enumerate(result["tables"]):
             if table["report_id"] in seen_reports:
                 continue
+            # Row 0 of the grid becomes the DataFrame's column names, so it can never
+            # be read back as a value; binding it yields a text cell and a query that
+            # raises rather than answering.
+            if table["row_index"] == 0:
+                continue
             numeric = first_numeric_cell(table["row_cells"], table.get("header_cells"))
             if numeric is None:
                 continue

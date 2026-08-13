@@ -77,6 +77,31 @@ def test_answer_plan_converts_to_the_unit_the_question_asks_for():
     assert answer == 5120.0
 
 
+def test_emitted_query_reproduces_the_answer_through_pandas(tmp_path):
+    """Execute the emitted Pandas the way the evaluator does: read_csv, then iloc."""
+    import csv as csv_module
+
+    import pandas as pd
+
+    grid = [
+        ["", "2018VND", "2017VND"],
+        ["Lãi tiền gửi", "208.253.201.298", "69.917.578.051"],
+        ["Lãi khác", "85.422.296.361", "43.977.690.600"],
+    ]
+    path = tmp_path / "table.csv"
+    with path.open("w", encoding="utf-8", newline="") as handle:
+        csv_module.writer(handle).writerows(grid)
+
+    # Row 1 of the parsed grid is the figure we want; column 1 is the 2018 column.
+    value = EvidenceValue("df0", 1, 1, 208_253_201_298.0, "R")
+    answer, expression = answer_plan("Lãi tiền gửi năm 2018 là bao nhiêu triệu đồng?", [value])
+    assert answer == 208253.2
+
+    namespace = {"df0": pd.read_csv(path)}
+    exec(f"result = {expression}", namespace)  # noqa: S102 - mirrors the evaluator
+    assert round(namespace["result"], 2) == answer
+
+
 def test_operator_routing_ignores_line_item_words():
     values = [EvidenceValue("df0", 1, 2, 10.0, "R1"), EvidenceValue("df1", 2, 3, 30.0, "R2")]
     # "Tổng phải thu ngắn hạn khác" is a line item, not an instruction to add.

@@ -120,7 +120,15 @@ class EvidenceValue:
 
 
 def numeric_expression(value: EvidenceValue) -> str:
-    expression = f"str({value.variable}.iloc[{value.row}, {value.column}])"
+    """Read a bound cell, in the row space the evaluator's DataFrame will have.
+
+    Our row indices count the parsed grid, whose first row is the table's header.
+    `pandas.read_csv` consumes that line as column names, so the same figure sits
+    one row earlier in the DataFrame. Emitting the grid index made every query
+    read the row below the intended one — which is why answer accuracy rose to
+    0.1186 while execution accuracy stayed at 0.004.
+    """
+    expression = f"str({value.variable}.iloc[{max(0, value.row - 1)}, {value.column}])"
     normalized = f"{expression}.replace('(', '-').replace(')', '').replace('%', '').replace('.', '').replace(',', '.')"
     return f"float({normalized})"
 
