@@ -20,6 +20,7 @@ shown rather than a label invented to fill the gap.
 
 import argparse
 from collections import Counter, defaultdict
+from functools import lru_cache
 import json
 from pathlib import Path
 import sys
@@ -28,18 +29,45 @@ import sys
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
+from docs import load_companies
 from vifinqa.answers import fold, line_item_phrases, parse_ocr_number
 from vifinqa.retrieval import load_reports, report_tables
 
 PERIOD_TOKENS = {"nam", "quy", "thang", "ngay", "ky", "tai", "cuoi", "dau"}
+# Company names appear as row labels too — subsidiary lists, related-party tables —
+# so the corpus lexicon contains them and a question naming its own issuer matches.
+# "Tổng cộng nguồn vốn của Công ty Cổ phần Đầu tư Dịch vụ Hoàng Huy" then drags in
+# every subsidiary-investment table as if it were evidence. "tổng công ty" is not
+# in this list on purpose: it prefixes real line items.
+ENTITY_PHRASES = ("cong ty", "ngan hang", "tap doan", "ctcp", "chi nhanh", "quy dau tu")
 
 
-def named_line_items(question: str, limit: int = 3) -> list[str]:
-    """Corpus row labels the question names, longest first, without period phrases."""
+@lru_cache(maxsize=1)
+def company_names(dataset_root: str) -> tuple[str, ...]:
+    """Folded official company names, used to keep issuer text out of line items."""
+    companies = load_companies(Path(dataset_root) / "code_stock.csv")
+    return tuple(fold(company.name) for company in companies.values())
+
+
+def named_line_items(question: str, limit: int = 3, dataset_root: str | None = None) -> list[str]:
+    """Corpus row labels the question names, longest first, without period phrases.
+
+    Subsidiary lists and related-party tables put company names in row labels, so
+    the corpus lexicon contains them and a question naming its own issuer matches
+    them. "Tổng cộng nguồn vốn của Công ty Cổ phần Đầu tư Dịch vụ Hoàng Huy" then
+    drags every subsidiary-investment table in as evidence. Anything contained in
+    a real company name is dropped — precise, unlike guessing at prefixes, which
+    left "cổ phần" and "đầu tư" behind.
+    """
     text = f" {fold(question)} "
+    issuers = company_names(dataset_root or str(ROOT / "data" / "raw" / "vifinqa"))
     found: list[str] = []
     for label in line_item_phrases():
         if all(token in PERIOD_TOKENS or token.isdigit() for token in label.split()):
+            continue
+        if any(phrase in label for phrase in ENTITY_PHRASES):
+            continue
+        if any(label in issuer for issuer in issuers):
             continue
         # "cổ phiếu" is a fragment of "lãi cơ bản trên cổ phiếu" and matches 22 rows
         # a report on its own; keep only phrases no longer phrase contains.
