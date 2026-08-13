@@ -10,7 +10,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from vifinqa.retrieval import Report, metric_query_tokens, rank_fuse_signal_scores, report_tables, retrieve_rows, table_budget
-from vifinqa.answers import EvidenceValue, answer_plan, first_numeric_cell, parse_ocr_number
+from vifinqa.answers import EvidenceValue, answer_plan, first_numeric_cell, fold, operator_text, parse_ocr_number, says
 from vifinqa.rerank import table_representation
 from vifinqa.dense import fused_rankings
 import vifinqa.retrieval as retrieval_module
@@ -64,8 +64,27 @@ def test_answer_plan_uses_only_bound_evidence_for_common_operations():
     values = [EvidenceValue("df0", 1, 2, 10.0, "R1"), EvidenceValue("df1", 2, 3, 30.0, "R2")]
     answer, expression = answer_plan("Tổng giá trị là bao nhiêu?", values) or (None, "")
     assert answer == 40.0 and "df0" in expression and "df1" in expression
+    # Percentages come back as percentage points, rounded to two decimals.
     answer, _ = answer_plan("Tỷ lệ phần trăm là bao nhiêu?", values) or (None, "")
-    assert answer is not None and abs(answer - 100 / 3) < 1e-9
+    assert answer == 33.33
+
+
+def test_answer_plan_converts_to_the_unit_the_question_asks_for():
+    billions = [EvidenceValue("df0", 1, 3, 5_120_000_000.0, "R1")]
+    answer, expression = answer_plan("Tiền và tương đương tiền là bao nhiêu tỷ đồng?", billions) or (None, "")
+    assert answer == 5.12 and "/ 1000000000.0" in expression
+    answer, _ = answer_plan("... là bao nhiêu triệu đồng?", billions) or (None, "")
+    assert answer == 5120.0
+
+
+def test_operator_routing_ignores_line_item_words():
+    values = [EvidenceValue("df0", 1, 2, 10.0, "R1"), EvidenceValue("df1", 2, 3, 30.0, "R2")]
+    # "Tổng phải thu ngắn hạn khác" is a line item, not an instruction to add.
+    text = operator_text("Tổng phải thu ngắn hạn khác của OGC đến ngày 31/12/2019?")
+    assert "phai thu ngan han khac" not in text
+    # And "bao nhiêu" must never read as "hiệu" once diacritics are folded.
+    assert not says(fold("Doanh thu là bao nhiêu?"), "hieu")
+    assert says(fold("Chênh lệch giữa hai năm?"), "chenh lech")
 
 
 def test_retrieval_produces_unique_table_ids(tmp_path):

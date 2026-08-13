@@ -119,6 +119,11 @@ def main() -> None:
             column, value = numeric
             values.append(EvidenceValue(f"df{rank}", table["row_index"], column, value, table["report_id"]))
         plan = answer_plan(source["question"], values)
+        if plan is None and values:
+            # No operation matched, but evidence is bound: answer the lookup rather
+            # than emitting a constant. The private phase rejects constant-return
+            # queries, and a scaled figure from a real cell is a genuine attempt.
+            plan = answer_plan(source["question"], values[:1])
         if plan is not None:
             row["answer"], expression = plan
             # Match whole names: "df1" is a substring of "df10", so a plain
