@@ -78,13 +78,13 @@ def test_retrieval_produces_unique_table_ids(tmp_path):
     identity = ReportIdentity("R", "ABC", 2024, "consolidated", path.name)
     result = retrieve_rows("Doanh thu năm 2024", {"years": [2024]}, [Report(identity, path)], top_k=5)
     assert [table["table_id"] for table in result["tables"]] == ["R|2", "R|4"]
-    # Three reciprocal-rank terms contribute here — row, context, and metric —
-    # so the winning table scores 3/(60+1) and the runner-up 1/(60+2).
+    # Four reciprocal-rank terms contribute here — row, context, metric, and
+    # supporting rows — so the winner scores 4/(60+1) and the runner-up 1/(60+2).
     assert [
         (table["score"], table["row_index"], table["row_cells"])
         for table in result["tables"]
     ] == [
-        (0.04918, 1, ["Doanh thu", "42"]),
+        (0.065574, 1, ["Doanh thu", "42"]),
         (0.016129, 0, ["Chỉ tiêu", "2024"]),
     ]
     assert len({table["table_id"] for table in result["tables"]}) == len(result["tables"])

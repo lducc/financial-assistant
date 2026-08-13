@@ -159,6 +159,40 @@ reads like a row label. Fusing it instead keeps both: easy is unchanged to four
 decimals while medium gains +0.0446, intermediate +0.0384, hard +0.0160. Pooled
 recall 0.7536 to 0.7883, MRR 0.6122 to 0.6622.
 
+## Second ranking round, against de-biased labels
+
+Live feedback arrived: Tables F2 0.4221 (P 0.2149, R 0.5735, MRR@5 0.4951), Docs
+F2 0.9711. Working back from it, organizer gold is ~3.17 tables per question
+against the 2.57 our labels held, so `scripts/complete_benchmark_labels.py` adds
+interchangeable tables — same report, same exact raw cell, overlapping row label.
+That took the benchmark to 720 gold tables (3.75 per question) and lifted local
+F2 to 0.5969, still above live because our benchmark averages 6.56 gated reports
+against 8.46 corpus-wide.
+
+| Change | F2 delta | 95% CI | Verdict |
+|---|---|---|---|
+| Drop degenerate candidate tables | +0.0029 | [−0.0004, +0.0087] | kept, see note |
+| Multi-row table score replacing the raw view | −0.0031 | [−0.0199, +0.0127] | rejected |
+| **Multi-row table score fused as a ranking** | **+0.0180** | **[+0.0050, +0.0320]** | **accepted** |
+| Statement-type prior from question vocabulary | −0.0404 | [−0.0738, −0.0080] | rejected |
+
+The degenerate filter did not clear the interval bar, but it drops 2.8% of
+candidates that cannot answer a numeric question, never removed a gold table in a
+3,447-table sample, and unclassified fragments were 18.5% of what we submitted
+against 7.5% of gold. Kept as hygiene, not as a measured gain.
+
+Scoring a table by its three strongest rows rather than its single best row
+repeats the earlier pattern: as a replacement it helps intermediate (+0.0166) and
+hard (+0.0262) and hurts easy (−0.0227) and medium (−0.0160); fused as its own
+ranking every tier improves and recall goes 0.7588 to 0.7826.
+
+The statement prior failed hard. The diagnosis behind it stands — we submit 54.6%
+notes against 27% in gold, and 9.6% balance sheets against 38.5% — but mapping
+question vocabulary to a statement is too blunt: "số dư", "vay", and "đầu tư"
+appear in most questions, so nearly everything was pushed toward balance sheets
+and easy lost 0.09. Only the hard tier gained (+0.0805). A sharper signal is
+needed before this idea returns.
+
 ## Rejected
 
 Corpus-wide BM25 IDF, built by `scripts/build_row_idf.py` over all 1,535,824

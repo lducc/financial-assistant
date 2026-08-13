@@ -2,7 +2,7 @@
   "records": 192,
   "clusters": 160,
   "distinct_first_reports": 185,
-  "gold_tables": 493,
+  "gold_tables": 720,
   "by_source": {
     "gold_150": 150,
     "v3": 42
@@ -32,18 +32,27 @@
     }
   },
   "table_count_distribution": {
-    "1": 76,
-    "2": 59,
-    "3": 16,
-    "4": 19,
-    "5": 15,
-    "6": 1,
-    "10": 1,
-    "12": 2,
-    "15": 2,
-    "30": 1
+    "1": 41,
+    "2": 63,
+    "3": 24,
+    "4": 23,
+    "5": 20,
+    "6": 4,
+    "7": 3,
+    "8": 2,
+    "9": 1,
+    "10": 2,
+    "11": 1,
+    "12": 1,
+    "15": 1,
+    "21": 2,
+    "24": 1,
+    "26": 1,
+    "27": 1,
+    "42": 1
   },
   "seeded_share": 0.7812,
   "corpus_tree_hash": "7513f087ecbdd202b38dae1a4e814d47baaf5ae583a60770ce9caaf39494791c",
-  "benchmark_sha256": "6c8fae31d23232fa7cce27e1630401f890eec3d55ca3ed30182fe3d7c235ac6d"
+  "benchmark_sha256": "78ab7a6aa76523f6b2c807c58ffc6b1f4e04d23354bc451534ce3d76dd1b66b0",
+  "interchangeable_tables_added": 227
 }

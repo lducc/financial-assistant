@@ -31,10 +31,16 @@ ROLE_STOPWORDS = {
     "hon", "nhat", "me", "tap", "doan", "ctcp", "ma", "tinh", "va",
 }
 PERIOD_RE = re.compile(r"\b(?:19|20)\d{2}\b|\b\d{1,2}/\d{1,2}/(?:19|20)\d{2}\b")
+# A financial figure: at least two digits, so account codes and list numbering
+# do not make a prose block look like a data table.
+NUMERIC_CELL_RE = re.compile(r"\d[\d.,]*\d")
 TITLE_RE = re.compile(r"\b(?:bao cao|bang|thuyet minh)\b")
 UNIT_PHRASES = ("vnd", "don vi", "trieu dong", "nghin dong", "ty dong", "million", "billion")
 HEADER_TOKENS = {"ma", "so", "thuyet", "minh", "chi", "tieu", "don", "vi"}
 RRF_OFFSET = 60
+# How many rows of a table contribute to its score. Questions cite at most a
+# handful of line items, so counting more rows would reward long tables for length.
+SUPPORTING_ROWS = 3
 # Equal-start weights for field-aware fusion; tune on dev only.
 FIELD_WEIGHTS = {
     "row": 4.0,
@@ -534,9 +540,27 @@ def select_candidate_reports(
     return [reports_by_id[report_id] for report_id in report_ids if report_id in reports_by_id], "report_ids"
 
 
+def carries_figures(table: Table) -> bool:
+    """Reject tables that cannot hold an answer: prose blocks and layout fragments.
+
+    OCR turns headers, signature blocks, and page furniture into <table> elements.
+    The corpus holds 8,901 tables of at most two rows and 1,435 with a single
+    column, and unclassified fragments were 18.5% of what we submitted against
+    7.5% of gold. A table with no numeric cell, or with nothing beside its label
+    column, cannot be the evidence for a numeric question.
+    """
+    if max((len(row) for row in table.rows), default=0) < 2:
+        return False
+    return any(NUMERIC_CELL_RE.search(cell) for row in table.rows for cell in row[1:])
+
+
 def materialize_candidate_rows(candidates: list[Report]) -> tuple[list[Table], list[tuple[Table, int, str]]]:
     """Stage 2: materialize immutable table and row candidates in report order."""
-    tables = [table for report in candidates for table in report_tables(str(report.path), report.identity)]
+    tables = [
+        table for report in candidates
+        for table in report_tables(str(report.path), report.identity)
+        if carries_figures(table)
+    ]
     return tables, [(table, index, " ".join(row)) for table in tables for index, row in enumerate(table.rows)]
 
 
@@ -560,27 +584,42 @@ def baseline_ranked_rows(
     raw_best: dict[str, tuple[float, Table, int]] = {}
     context_best: dict[str, tuple[float, Table, int]] = {}
     metric_best: dict[str, tuple[float, Table, int]] = {}
+    supporting: dict[str, list[float]] = {}
     for (table, row_index, row), raw_score, context_score, metric_score in zip(
         rows, scores, context_scores, metric_scores,
     ):
         raw_score += phrase_bonus(query, row)
         if metric_query:
             metric_score += phrase_bonus(metric_query, row)
+        supporting.setdefault(table.table_id, []).append(max(raw_score, metric_score))
         for score, best in ((raw_score, raw_best), (context_score, context_best), (metric_score, metric_best)):
             previous = best.get(table.table_id)
             if previous is None or score > previous[0] or score == previous[0] and row_index < previous[2]:
                 best[table.table_id] = score, table, row_index
+    # A question naming several line items is answered by the one statement holding
+    # all of them, but a table scored only by its best row cannot express that: a
+    # note repeating one item ties with a balance sheet carrying three. Replacing
+    # the raw view with this one was measured and rejected — it lifts intermediate
+    # (+0.0166) and hard (+0.0262) while costing easy (-0.0227) and medium
+    # (-0.0160), which name a single item. It earns its place as its own ranking.
+    supporting_best = {
+        table_id: (sum(sorted(supporting[table_id], reverse=True)[:SUPPORTING_ROWS]), table, row_index)
+        for table_id, (_, table, row_index) in raw_best.items()
+    }
     raw_ranked = ranked_tables(raw_best)
     context_ranked = ranked_tables(context_best)
     metric_ranked = ranked_tables(metric_best) if metric_query else []
+    supporting_ranked = ranked_tables(supporting_best)
     raw_positive = [item for item in raw_ranked if item[0] > 0]
     context_positive = [item for item in context_ranked if item[0] > 0]
     metric_positive = [item for item in metric_ranked if item[0] > 0]
+    supporting_positive = [item for item in supporting_ranked if item[0] > 0]
     if not context_positive and not metric_positive:
         return raw_ranked
     raw_ranks = {table.table_id: rank for rank, (_, table, _) in enumerate(raw_positive, 1)}
     context_ranks = {table.table_id: rank for rank, (_, table, _) in enumerate(context_positive, 1)}
     metric_ranks = {table.table_id: rank for rank, (_, table, _) in enumerate(metric_positive, 1)}
+    supporting_ranks = {table.table_id: rank for rank, (_, table, _) in enumerate(supporting_positive, 1)}
     covered = raw_ranks.keys() | context_ranks.keys() | metric_ranks.keys()
     selected = {
         table_id: (
@@ -594,7 +633,7 @@ def baseline_ranked_rows(
         (
             sum(
                 1 / (RRF_OFFSET + ranks[table_id])
-                for ranks in (raw_ranks, context_ranks, metric_ranks)
+                for ranks in (raw_ranks, context_ranks, metric_ranks, supporting_ranks)
                 if table_id in ranks
             ),
             selected[table_id][1], selected[table_id][2],
