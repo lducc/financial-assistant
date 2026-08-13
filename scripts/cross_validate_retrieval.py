@@ -102,8 +102,15 @@ def score(trace: dict, budget: int) -> dict:
     return scores
 
 
-def mean(values: list[float]) -> float:
-    return sum(values) / len(values) if values else 0.0
+def mean(values: list[float], weights: list[float] | None = None) -> float:
+    """Weighted mean, so a sample that over-represents hard questions still
+    estimates corpus performance. Per-tier figures pass no weights."""
+    if not values:
+        return 0.0
+    if weights is None:
+        return sum(values) / len(values)
+    total = sum(weights)
+    return sum(v * w for v, w in zip(values, weights)) / total if total else 0.0
 
 
 def fold_of(cluster: str, folds: int) -> int:
@@ -172,6 +179,8 @@ def main() -> None:
             json.loads(line)["id"]: json.loads(line)["tier"]
             for line in args.tiers.read_text(encoding="utf-8").splitlines() if line.strip()
         }
+    # Weights come from the benchmark records themselves when present.
+    weight_of = {record["id"]: record.get("weight", 1.0) for record in labels}
 
     cluster_by_report = {
         report: group[0] for group in connected_report_groups(labels) for report in group
@@ -193,7 +202,10 @@ def main() -> None:
         ]
         results[name] = {
             "pooled": {
-                metric: round(mean([scored[trace["id"]][metric] for trace in traces]), 4)
+                metric: round(mean(
+                    [scored[trace["id"]][metric] for trace in traces],
+                    [weight_of.get(trace["id"], 1.0) for trace in traces],
+                ), 4)
                 for metric in ("f2", "precision", "recall", "mrr", "k")
             },
             "fold_f2": [round(value, 4) for value in fold_means],

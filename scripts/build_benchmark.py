@@ -33,6 +33,22 @@ def load_jsonl(path: Path) -> list[dict]:
     return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
 
 
+def tier_weights(records: list[dict], corpus: Counter) -> dict[str, float]:
+    """Per-tier weights that make the sample estimate the corpus.
+
+    The sample deliberately over-represents hard questions, because that is where
+    multi-hop retrieval fails and where 27 records could resolve nothing. Weighting
+    the aggregate keeps the headline number an estimate of corpus performance while
+    the per-tier numbers stay readable on their own.
+    """
+    sampled = Counter(record["tier"] for record in records)
+    total_corpus, total_sample = sum(corpus.values()), len(records)
+    return {
+        tier: round((corpus[tier] / total_corpus) / (count / total_sample), 4)
+        for tier, count in sampled.items() if count and corpus.get(tier)
+    }
+
+
 def normalize(record: dict, source: str, tier: str | None) -> dict:
     annotation = record["annotation"]
     return {
@@ -80,6 +96,10 @@ def main() -> None:
                 records[record["id"]] = normalize(record, "v3", tiers.get(record["id"]))
 
     ordered = [records[identifier] for identifier in sorted(records)]
+    corpus_tiers = Counter(record["tier"] for record in load_jsonl(args.tiers)) if args.tiers.exists() else Counter()
+    weights = tier_weights(ordered, corpus_tiers) if corpus_tiers else {}
+    for record in ordered:
+        record["weight"] = weights.get(record["tier"], 1.0)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(
         "".join(json.dumps(record, ensure_ascii=False) + "\n" for record in ordered), encoding="utf-8"
@@ -109,6 +129,7 @@ def main() -> None:
             record["taxonomy"]["table_count"] for record in ordered
         ).items())),
         "seeded_share": round(len(seeded) / len(ordered), 4),
+        "tier_weights": weights,
         "corpus_tree_hash": corpus_tree_hash(args.dataset_root),
         "benchmark_sha256": sha256_text(args.output.read_text(encoding="utf-8")),
     }

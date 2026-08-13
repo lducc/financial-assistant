@@ -1,17 +1,17 @@
 {
-  "records": 192,
-  "clusters": 160,
-  "distinct_first_reports": 185,
-  "gold_tables": 720,
+  "records": 221,
+  "clusters": 181,
+  "distinct_first_reports": 211,
+  "gold_tables": 972,
   "by_source": {
     "gold_150": 150,
-    "v3": 42
+    "v3": 71
   },
   "by_tier": {
     "easy": 63,
-    "intermediate": 54,
+    "intermediate": 66,
     "medium": 48,
-    "hard": 27
+    "hard": 44
   },
   "by_tier_and_source": {
     "easy": {
@@ -20,10 +20,10 @@
     },
     "hard": {
       "gold_150": 23,
-      "v3": 4
+      "v3": 21
     },
     "intermediate": {
-      "v3": 12,
+      "v3": 24,
       "gold_150": 42
     },
     "medium": {
@@ -33,26 +33,35 @@
   },
   "table_count_distribution": {
     "1": 41,
-    "2": 63,
-    "3": 24,
-    "4": 23,
-    "5": 20,
-    "6": 4,
-    "7": 3,
-    "8": 2,
-    "9": 1,
-    "10": 2,
-    "11": 1,
-    "12": 1,
-    "15": 1,
+    "2": 64,
+    "3": 25,
+    "4": 24,
+    "5": 25,
+    "6": 9,
+    "7": 5,
+    "8": 4,
+    "9": 2,
+    "10": 4,
+    "11": 3,
+    "12": 3,
+    "14": 1,
+    "15": 3,
+    "19": 1,
+    "20": 1,
     "21": 2,
     "24": 1,
     "26": 1,
     "27": 1,
     "42": 1
   },
-  "seeded_share": 0.7812,
+  "seeded_share": 0.6787,
+  "tier_weights": {
+    "easy": 1.1474,
+    "intermediate": 0.847,
+    "medium": 0.8371,
+    "hard": 1.1961
+  },
   "corpus_tree_hash": "7513f087ecbdd202b38dae1a4e814d47baaf5ae583a60770ce9caaf39494791c",
-  "benchmark_sha256": "78ab7a6aa76523f6b2c807c58ffc6b1f4e04d23354bc451534ce3d76dd1b66b0",
-  "interchangeable_tables_added": 227
+  "benchmark_sha256": "4e10344b4ca2ed06ec73da5cfb314e7454b374c6c17ca38f7b0aa53df9d05502",
+  "interchangeable_tables_added": 269
 }
