@@ -186,6 +186,14 @@ repeats the earlier pattern: as a replacement it helps intermediate (+0.0166) an
 hard (+0.0262) and hurts easy (−0.0227) and medium (−0.0160); fused as its own
 ranking every tier improves and recall goes 0.7588 to 0.7826.
 
+A score-margin cutoff — submit every table scoring within 90% of the top table,
+floored at one per gated report and capped at three — was swept offline from
+cached scores. It trades well on paper (precision 0.3855 to 0.4273, recall 0.7826
+to 0.7664, mean 5.39 tables instead of 6.56) but comes to +0.0096 F2, CI
+[−0.0013, +0.0198], and the hard tier loses 0.0152. Rejected. Live precision is
+0.2149 against 0.3855 locally, so an adaptive cutoff may behave better there than
+here — but that is a guess, and guesses do not ship.
+
 The statement prior failed hard. The diagnosis behind it stands — we submit 54.6%
 notes against 27% in gold, and 9.6% balance sheets against 38.5% — but mapping
 question vocabulary to a statement is too blunt: "số dư", "vay", and "đầu tư"

@@ -80,6 +80,8 @@ def build_traces(labels: list[dict], dataset_root: Path, depth: int, mode: str) 
             "gold_reports": sorted(set(record["annotation"]["gold_reports"])),
             "selected_docs": docs,
             "ranked_tables": [table["table_id"] for table in retrieval["tables"]],
+            # Scores let cutoff policies be swept offline, like budgets already are.
+            "ranked_scores": [table["score"] for table in retrieval["tables"]],
             "latency_ms": retrieval["latency_ms"],
         })
         if number % 25 == 0:
