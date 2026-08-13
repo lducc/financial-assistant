@@ -48,13 +48,22 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     root = Path(__file__).resolve().parents[1]
     parser.add_argument("--pairs", type=Path, default=root / "output" / "rerank" / "pairs.jsonl")
-    parser.add_argument("--scores", type=Path, default=root / "output" / "rerank" / "scores.jsonl")
+    parser.add_argument(
+        "--scores", type=Path, action="append", default=[],
+        help="score file from a Kaggle run; repeat once per shard (defaults to output/rerank/scores.jsonl)",
+    )
     parser.add_argument("--output", type=Path, default=root / "output" / "rerank" / "ranking.json")
     parser.add_argument("--mode", choices=("fuse", "replace"), default="fuse")
     args = parser.parse_args()
 
     pairs = {record["id"]: record for record in load_jsonl(args.pairs)}
-    scored = {record["id"]: record["scores"] for record in load_jsonl(args.scores)}
+    # Sharded Kaggle runs write one file per GPU; questions never overlap between
+    # them, so merging is a plain union.
+    score_paths = args.scores or [args.pairs.parent / "scores.jsonl"]
+    scored = {
+        record["id"]: record["scores"]
+        for path in score_paths for record in load_jsonl(path)
+    }
     missing = sorted(set(pairs) - set(scored))
 
     ranking = {}

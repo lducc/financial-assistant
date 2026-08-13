@@ -29,14 +29,18 @@ def table_representation(table: "Table", row_index: int, *, inventory: int = 0) 
     headers = " | ".join(" | ".join(row) for row in table.headers)
     periods = " | ".join(table.periods)
     row = " | ".join(table.rows[row_index])
-    parts = [table.title, headers, periods, table.unit, row]
+    listed = ""
     if inventory:
         labels = dict.fromkeys(
             " ".join(cell for cell in item[:1] if cell).strip()
             for item in table.rows if item and item[0].strip()
         )
         listed = "; ".join(label for label in labels if label)[:inventory]
-        parts.append(f"Các chỉ tiêu: {listed}" if listed else "")
+    # Ordered by how much each part decides the ranking, because the tail is what
+    # truncation eats: the median representation is 621 characters and 16% run past
+    # a 320-token window. Title and matched row identify the table, the inventory
+    # says what else it holds, and the header and period boilerplate goes last.
+    parts = [table.title, row, f"Các chỉ tiêu: {listed}" if listed else "", headers, periods, table.unit]
     return "\n".join(part for part in dict.fromkeys(part.strip() for part in parts) if part)
 
 

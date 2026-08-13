@@ -1,0 +1,143 @@
+"""Kaggle GPU notebook: score candidate pairs with Qwen3-Reranker-4B.
+
+The model that worked. On the first export it gave +0.0355 F2 on the benchmark
+and +0.023 live, against BGE-reranker-v2-m3 losing 0.15 — a general web-passage
+reranker is wrong for Vietnamese financial tables, this family is not.
+
+Reads pairs_v3.jsonl and writes scores.jsonl, which `apply_rerank_scores.py`
+fuses locally. Retrieval is untouched: only the order of already-retrieved
+candidates changes, so a bad run is discarded by deleting one file.
+
+Three things make this materially faster than a naive loop:
+
+* **Length-sorted batching.** Candidates vary from 300 to 2,800 characters, and a
+  batch costs its longest member. Sorting by length before batching removes most
+  of the padding waste — typically 25-40% of the runtime.
+* **Sharding.** Kaggle gives two T4s. Run this notebook twice with SHARD=0 and
+  SHARD=1 (SHARDS=2) to halve wall-clock; each writes its own scores file and the
+  local step reads both.
+* **Resume.** Scores append per question and finished IDs are skipped, so a
+  session that hits the 12-hour limit is rerun rather than restarted.
+
+Runtime for 50,335 pairs at max_length 512: roughly 3-4 h on one T4, 1.5-2 h
+across two shards.
+"""
+
+import json
+import os
+import time
+
+import torch
+from transformers import AutoModelForCausalLM, AutoTokenizer
+
+MODEL_NAME = os.environ.get("QWEN_RERANKER", "Qwen/Qwen3-Reranker-4B")
+PAIRS_PATH = os.environ.get("PAIRS_PATH", "/kaggle/input/vifinqa-rerank-pairs/pairs_v3.jsonl")
+SHARD = int(os.environ.get("SHARD", "0"))
+SHARDS = int(os.environ.get("SHARDS", "1"))
+SCORES_PATH = os.environ.get("SCORES_PATH", f"/kaggle/working/scores_{SHARD}.jsonl")
+# 16% of candidates run past 320 tokens and the line-item inventory sits early in
+# the text, so 512 keeps what decides the ranking.
+MAX_LENGTH = int(os.environ.get("MAX_LENGTH", "512"))
+BATCH_SIZE = int(os.environ.get("BATCH_SIZE", "16"))
+
+INSTRUCTION = (
+    "Given a Vietnamese financial question, judge whether the table contains the "
+    "figure the question asks for."
+)
+PREFIX = (
+    "<|im_start|>system\nJudge whether the Document meets the requirements based on the Query "
+    'and the Instruct provided. Note that the answer can only be "yes" or "no".<|im_end|>\n'
+    "<|im_start|>user\n"
+)
+SUFFIX = "<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n"
+
+
+def load_pairs(path):
+    with open(path, encoding="utf-8") as handle:
+        records = [json.loads(line) for line in handle if line.strip()]
+    return [record for index, record in enumerate(records) if index % SHARDS == SHARD]
+
+
+def already_scored(path):
+    if not os.path.exists(path):
+        return set()
+    with open(path, encoding="utf-8") as handle:
+        return {json.loads(line)["id"] for line in handle if line.strip()}
+
+
+def score_question(record, tokenizer, model, prefix_ids, suffix_ids, yes_id, no_id, budget):
+    prompts = [
+        f"<Instruct>: {INSTRUCTION}\n<Query>: {record['question']}\n<Document>: {candidate['text']}"
+        for candidate in record["candidates"]
+    ]
+    # A batch costs its longest member, so group similar lengths together and put
+    # the scores back in the original order afterwards.
+    order = sorted(range(len(prompts)), key=lambda index: len(prompts[index]))
+    scores = [0.0] * len(prompts)
+    for start in range(0, len(order), BATCH_SIZE):
+        chunk = order[start:start + BATCH_SIZE]
+        encoded = tokenizer(
+            [prompts[index] for index in chunk],
+            truncation=True, max_length=budget, add_special_tokens=False,
+        )["input_ids"]
+        padded = tokenizer.pad(
+            {"input_ids": [prefix_ids + ids + suffix_ids for ids in encoded]},
+            padding=True, return_tensors="pt",
+        ).to(model.device)
+        with torch.inference_mode():
+            logits = model(**padded).logits[:, -1, :]
+        pair = torch.stack([logits[:, no_id], logits[:, yes_id]], dim=1).float()
+        probabilities = torch.log_softmax(pair, dim=1)[:, 1].exp().cpu().tolist()
+        for index, value in zip(chunk, probabilities):
+            scores[index] = value
+    return scores
+
+
+def main():
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME, padding_side="left")
+    model = AutoModelForCausalLM.from_pretrained(
+        MODEL_NAME,
+        torch_dtype=torch.float16 if device == "cuda" else torch.float32,
+        device_map="auto" if device == "cuda" else None,
+    ).eval()
+    print(f"device={device} model={MODEL_NAME} shard={SHARD}/{SHARDS} max_length={MAX_LENGTH}", flush=True)
+
+    yes_id = tokenizer.convert_tokens_to_ids("yes")
+    no_id = tokenizer.convert_tokens_to_ids("no")
+    prefix_ids = tokenizer.encode(PREFIX, add_special_tokens=False)
+    suffix_ids = tokenizer.encode(SUFFIX, add_special_tokens=False)
+    budget = MAX_LENGTH - len(prefix_ids) - len(suffix_ids)
+
+    records = load_pairs(PAIRS_PATH)
+    done = already_scored(SCORES_PATH)
+    if done:
+        print(f"resuming, {len(done)} questions already scored", flush=True)
+    pending = [record for record in records if record["id"] not in done]
+    total = sum(len(record["candidates"]) for record in pending)
+    print(f"{len(pending)} questions, {total} pairs in this shard", flush=True)
+
+    started, scored = time.time(), 0
+    with open(SCORES_PATH, "a", encoding="utf-8") as out:
+        for record in pending:
+            values = score_question(
+                record, tokenizer, model, prefix_ids, suffix_ids, yes_id, no_id, budget,
+            )
+            out.write(json.dumps({
+                "id": record["id"],
+                "scores": {
+                    candidate["table_id"]: round(value, 6)
+                    for candidate, value in zip(record["candidates"], values)
+                },
+            }, ensure_ascii=False) + "\n")
+            out.flush()
+            scored += len(values)
+            if scored % 2000 < BATCH_SIZE:
+                rate = scored / (time.time() - started)
+                print(f"{scored}/{total} pairs, {rate:.1f}/s, eta {(total - scored) / rate / 60:.0f} min", flush=True)
+
+    print(f"wrote {SCORES_PATH} in {(time.time() - started) / 60:.1f} min", flush=True)
+
+
+if __name__ == "__main__":
+    main()

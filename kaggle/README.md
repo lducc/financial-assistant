@@ -31,7 +31,7 @@ actually contains. Pass `--inventory 0` to reproduce the old representation.
 
 **2. Upload to Kaggle**
 
-Create a Dataset named `vifinqa-rerank-pairs` containing `pairs_v2.jsonl`, and
+Create a Dataset named `vifinqa-rerank-pairs` containing `pairs_v3.jsonl`, and
 set `PAIRS_PATH` at the top of the script to match. Qwen scored the first export
 at F2 +0.0355 on the benchmark and +0.023 live, so it is the model to use;
 `rerank_bge.py` is kept only to document that a general web-passage reranker
@@ -44,23 +44,31 @@ paste one script into a cell → Run. Both print throughput and an ETA, and both
 write `/kaggle/working/scores.jsonl` (~1 MB) in the same format, so step 4 does
 not care which one produced it.
 
-| Script | Model | Params | 50k pairs on a T4 |
-|---|---|---:|---|
-| `rerank_bge.py` | `BAAI/bge-reranker-v2-m3` | 568M | 20–35 min |
-| `rerank_qwen.py` | `Qwen/Qwen3-Reranker-0.6B` | 0.6B | ~20 min |
-| `rerank_qwen.py` | `Qwen/Qwen3-Reranker-4B` (default) | 4B | 2–3 h |
-| `rerank_qwen.py` | `Qwen/Qwen3-Reranker-8B` | 8B | needs both T4s or 4-bit |
+| Script | Model | Memory | 50,335 pairs |
+|---|---|---|---|
+| `rerank_qwen_4b.py` | Qwen3-Reranker-4B | fits one T4 in fp16 | 3–4 h, or 1.5–2 h as two shards |
+| `rerank_qwen_8b.py` | Qwen3-Reranker-8B | needs both T4s, or 4-bit on one | 6–9 h, or 3–5 h as two 4-bit shards |
+| `rerank_bge.py` | bge-reranker-v2-m3 | one T4 | kept only as the record of a failure |
 
-Pick the Qwen size with an environment variable before running:
-`os.environ["QWEN_RERANKER"] = "Qwen/Qwen3-Reranker-0.6B"`.
+**Run 4B first.** It is the configuration that has actually worked here: +0.0355
+F2 on the benchmark, +0.023 live. Whether 8B beats it is an open question — on
+reranking tasks the gap between sizes is usually smaller than the gap between the
+right and wrong model family, and BGE losing 0.15 F2 is what that gap looks like.
+Measure both on the benchmark before spending a submission on either.
 
-Start with BGE — it is fast, and if reranking helps at all it will show there.
-Qwen-4B is the stronger model and the family the organizer slides measured
-(recall@10 63.9% → 80.8% with a reranker), so it is worth the longer run once
-BGE has shown the approach pays.
+**Use both GPUs.** Run the 4B notebook twice with `SHARD=0` and `SHARD=1`
+(`SHARDS=2`); each writes its own scores file and the local step reads both with
+repeated `--scores` flags. For 8B, `LOAD_4BIT=1` fits the model on one card so the
+same trick applies; without it `device_map="auto"` spreads the layers across both
+cards, which buys capacity rather than speed.
 
-All four are open models inside the 14B limit and released before the
-2026-06-01 cutoff. Kaggle needs internet enabled to download them.
+Both Qwen scripts sort candidates by length before batching, since a batch costs
+its longest member — worth 25–40% of the runtime — and both append per question,
+skipping IDs already done, so a session that hits the 12-hour limit is rerun
+rather than restarted.
+
+All models are open, inside the 14B limit, and released before the 2026-06-01
+cutoff. Kaggle needs internet enabled to download them.
 
 The two scripts score differently under the hood. BGE is a cross-encoder with a
 classification head, so its logit is the score directly. Qwen3-Reranker is a
@@ -75,8 +83,10 @@ scored, so a session that hits the 12-hour limit can be rerun to finish the rest
 Put `scores.jsonl` in `output/rerank/`, then:
 
 ```
-python3 scripts/apply_rerank_scores.py            # reciprocal-rank fusion, the default
-python3 scripts/apply_rerank_scores.py --mode replace   # trust the model outright
+python3 scripts/apply_rerank_scores.py --pairs output/rerank/pairs_v3.jsonl \
+    --scores output/rerank/scores_0.jsonl --scores output/rerank/scores_1.jsonl
+python3 scripts/apply_rerank_scores.py --pairs output/rerank/pairs_v3.jsonl \
+    --scores output/rerank/scores_0.jsonl --mode replace   # trust the model outright
 ```
 
 Writes `output/rerank/ranking.json`. Fusion is the default because on this task
