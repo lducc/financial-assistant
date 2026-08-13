@@ -298,6 +298,36 @@ def test_question_tiers_follow_the_published_difficulty_definitions():
     ) == "hard"
 
 
+def test_diagnostics_attribute_each_miss_to_the_stage_that_lost_it():
+    classify = load_script("diagnose_retrieval").classify
+    trace = {
+        "gold_tables": ["R1|10", "R1|20", "R2|30", "R3|40"],
+        "ranked_tables": ["R1|10", "R9|99", "R1|20"],
+        "selected_docs": ["R1", "R2"],
+    }
+    # Budget of one: the first gold table ships, the second is retrieved but below
+    # budget, the third is gated but never retrieved, the fourth was never gated.
+    states = classify(trace, budget=1)
+    assert states["hit"] == ["R1|10"]
+    assert states["rank_miss"] == ["R1|20"]
+    assert states["candidate_miss"] == ["R2|30"]
+    assert states["gate_miss"] == ["R3|40"]
+
+
+def test_benchmark_records_carry_verifiable_bindings():
+    benchmark = ROOT / "annotations" / "benchmark.jsonl"
+    records = [json.loads(line) for line in benchmark.read_text(encoding="utf-8").splitlines() if line.strip()]
+    assert len(records) == len({record["id"] for record in records})
+    for record in records:
+        annotation = record["annotation"]
+        assert annotation["gold_tables"], record["id"]
+        assert record["source"] in {"gold_150", "v3"}
+        assert record["taxonomy"]["table_count"] == len(annotation["gold_tables"])
+        assert sorted({table.partition("|")[0] for table in annotation["gold_tables"]}) == annotation["gold_reports"]
+        # Bindings prove the label; a record without them cannot be rechecked.
+        assert annotation["row_column_bindings"], record["id"]
+
+
 def test_metric_phrase_strips_question_boilerplate_but_keeps_the_line_item():
     phrase = load_script("propose_evidence").metric_phrase(
         "Số dư phải thu phí quản lý tập trung của công ty mẹ Tập đoàn Công nghiệp Cao su Việt Nam - CTCP "
