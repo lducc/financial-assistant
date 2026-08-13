@@ -186,6 +186,23 @@ repeats the earlier pattern: as a replacement it helps intermediate (+0.0166) an
 hard (+0.0262) and hurts easy (−0.0227) and medium (−0.0160); fused as its own
 ranking every tier improves and recall goes 0.7588 to 0.7826.
 
+Slot decomposition — split a question on its connectives ("trên", "và", "giữa"),
+build one query per line item, and give each its own slot — was the largest
+structural idea and it failed in all three forms tried:
+
+| Form | F2 delta | 95% CI |
+|---|---|---|
+| Reserve a table per report × operand | −0.0020 | [−0.0113, +0.0072] |
+| Fuse operand rankings into the global one | −0.0135 | [−0.0297, −0.0001] |
+| Same, with a lighter token filter for operands | −0.0290 | [−0.0476, −0.0129] |
+
+Splitting is the weak link, not the idea. On 1,012 questions the rule finds two
+or three operands in 200 of them, but the fragments it produces carry period and
+unit words ("tổng tài sản cuối 2016 phần trăm") or company names, and those
+queries retrieve worse than the whole question does. MRR fell in every variant,
+0.754 to 0.717. A parser that isolates the line-item noun phrase — rather than
+cutting on connectives — would be needed before this is worth retrying.
+
 A score-margin cutoff — submit every table scoring within 90% of the top table,
 floored at one per gated report and capped at three — was swept offline from
 cached scores. It trades well on paper (precision 0.3855 to 0.4273, recall 0.7826
