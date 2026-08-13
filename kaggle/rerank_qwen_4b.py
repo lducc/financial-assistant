@@ -32,8 +32,11 @@ MAX_LENGTH = 512
 BATCH_SIZE = 16
 
 INSTRUCTION = (
-    "Given a Vietnamese financial question, judge whether the table contains the "
-    "figure the question asks for."
+    "The company, reporting period and statement scope of every candidate have "
+    "already been verified. Judge only one thing: does this table contain the "
+    "line item the question asks for? Vietnamese accounting labels differ by a "
+    "single word and mean different figures — chi phí lãi vay is not lãi tiền "
+    "gửi, and a note restating a figure counts as containing it."
 )
 PREFIX = (
     "<|im_start|>system\nJudge whether the Document meets the requirements based on the Query "
@@ -55,9 +58,24 @@ def already_scored(path):
         return {json.loads(line)["id"] for line in handle if line.strip()}
 
 
+def build_query(record):
+    """Question plus the line item it names, when the export carries one.
+
+    The question states the company, the year and the output unit, none of which
+    separate the candidates: the gate has already fixed all three, so 99% of them
+    come from a gold report. Naming the line item puts the one open question in
+    front of the model instead of leaving it to be inferred.
+    """
+    items = record.get("line_items") or []
+    if not items:
+        return record["question"]
+    return f"{record['question']}\nChỉ tiêu cần tìm: {'; '.join(items)}"
+
+
 def score_question(record, tokenizer, model, prefix_ids, suffix_ids, yes_id, no_id, budget):
+    query = build_query(record)
     prompts = [
-        f"<Instruct>: {INSTRUCTION}\n<Query>: {record['question']}\n<Document>: {candidate['text']}"
+        f"<Instruct>: {INSTRUCTION}\n<Query>: {query}\n<Document>: {candidate['text']}"
         for candidate in record["candidates"]
     ]
     # A batch costs its longest member, so group similar lengths together and put

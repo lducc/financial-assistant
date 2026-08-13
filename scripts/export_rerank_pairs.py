@@ -22,8 +22,36 @@ sys.path.insert(0, str(ROOT / "src"))
 sys.path.insert(0, str(ROOT / "scripts"))
 
 from docs import load_companies, load_reports as load_doc_reports, parse_question, required_report_years, retrieve_docs
+from propose_multihop_labels import named_line_items
+from vifinqa.answers import fold
 from vifinqa.rerank import table_representation
 from vifinqa.retrieval import load_reports, retrieve_rows
+
+
+def original_spans(question: str, items: list[str]) -> list[str]:
+    """Recover each matched item as the question wrote it, diacritics intact.
+
+    Matching happens on folded text so OCR and questions meet on common ground,
+    but "lai tien gui" is not what a Vietnamese model should be handed — the
+    diacritics carry the meaning. Folding character by character keeps an index
+    back into the original, so the span can be quoted as written.
+    """
+    folded, origin = [], []
+    for index, character in enumerate(question):
+        for folded_character in fold(character):
+            folded.append(folded_character)
+            origin.append(index)
+    text = "".join(folded)
+    spans = []
+    for item in items:
+        position = text.find(item)
+        if position < 0:
+            spans.append(item)
+            continue
+        start = origin[position]
+        end = origin[min(position + len(item) - 1, len(origin) - 1)]
+        spans.append(question[start:end + 1])
+    return spans
 
 
 def main() -> None:
@@ -85,6 +113,10 @@ def main() -> None:
             handle.write(json.dumps({
                 "id": question["id"],
                 "question": question["question"],
+                # The reranker is told which line item to look for: the question
+                # also names a company, a year and an output unit, and the gate has
+                # already settled all three.
+                "line_items": original_spans(question["question"], named_line_items(question["question"])),
                 "selected_docs": docs,
                 "candidates": candidates,
             }, ensure_ascii=False) + "\n")

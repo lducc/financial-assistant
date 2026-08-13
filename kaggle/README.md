@@ -93,6 +93,36 @@ Writes `output/rerank/ranking.json`. Fusion is the default because on this task
 every replacement has lost and every fusion that earned its place has won;
 `--mode replace` exists so the difference can be measured rather than assumed.
 
+## Testing a prompt without burning a full run
+
+The instruction and the query shape matter as much as the model here. Scoring all
+1,012 questions to compare two prompts is wasteful — export only the benchmark
+questions instead:
+
+```
+python3 scripts/export_rerank_pairs.py \
+    --questions <(python3 -c "import json;[print(json.dumps({'id':r['id'],'question':r['question']},ensure_ascii=False)) for r in map(json.loads,open('annotations/benchmark.jsonl'))]") \
+    --output output/rerank/pairs_bench.jsonl
+```
+
+That is 221 questions, ~11k pairs, roughly 45 minutes at 4B instead of 3-4 hours,
+and every one of them has verified labels, so the comparison is measurable
+locally with no submission spent. Run the winner on the full export afterwards.
+
+The current prompt does two things the first version did not. It tells the model
+that company, period and scope are already settled — 99% of candidates sit in a
+gold report, so judging those again is wasted capacity — and it names the line
+item explicitly, quoted from the question with its diacritics intact:
+
+```
+<Query>: Lãi tiền gửi năm 2018 của công ty mẹ CTCP Hàng không Vietjet (VJC) là bao nhiêu triệu đồng?
+         Chỉ tiêu cần tìm: Lãi tiền gửi
+```
+
+It also warns that Vietnamese accounting labels differ by one word and mean
+different figures, which is the discrimination the whole task turns on, and that
+a note restating a figure still counts — restatements are gold here.
+
 ## What to check before shipping it
 
 Measure on the benchmark first — the reranked ordering has to beat the sparse one
