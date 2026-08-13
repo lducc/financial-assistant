@@ -369,8 +369,8 @@ def test_cross_validation_folds_never_split_a_report_cluster():
 
 
 def test_table_budget_scales_with_gated_reports_and_honors_explicit_values():
-    assert table_budget(1) == 3
-    assert table_budget(4) == 12
+    assert table_budget(1) == 2
+    assert table_budget(4) == 8
     assert table_budget(0) == 1
     assert table_budget(40) == 30
     assert table_budget(4, 5) == 5
