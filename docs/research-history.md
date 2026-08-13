@@ -186,6 +186,24 @@ repeats the earlier pattern: as a replacement it helps intermediate (+0.0166) an
 hard (+0.0262) and hurts easy (−0.0227) and medium (−0.0160); fused as its own
 ranking every tier improves and recall goes 0.7588 to 0.7826.
 
+Query decomposition against the corpus's own vocabulary is the strongest form of
+the idea and it still fails: **−0.0302 F2, CI [−0.0553, −0.0059]**, with
+intermediate down 0.1053 and only hard gaining (+0.0484).
+`scripts/build_line_item_lexicon.py` collects row labels appearing in at least
+ten reports and drops those matching more than 15% of questions, which removes
+"của công ty mẹ", "số dư", "cuối năm" by frequency rather than by hand. The
+result is 7,870 phrases matching 1,011 of 1,012 questions, and the decomposition
+is clean — "tỷ lệ cho vay khách hàng trên tổng tiền gửi khách hàng" yields
+exactly `cho vay khach hang` and `tien gui khach hang`.
+
+The lexicon is kept as a derived artifact because it is correct and reusable; it
+is the fusion that cannot absorb it. Which points at the real ceiling: the
+reciprocal-rank pool weights every signal identically, so adding a signal that is
+merely good dilutes the ones that are better. Two signals earned their place
+(metric view, supporting rows) and everything since has diluted the mix. Getting
+further almost certainly requires weighting signals by reliability — which means
+fitting weights, on a benchmark that has already been shown not to transfer.
+
 Cross-encoder reranking, the organizers' own biggest reported jump (recall@10
 63.9% to 80.2%), was tried with `cross-encoder/mmarco-mMiniLMv2-L12-H384-v1` over
 the top 20 candidates. It is far worse than no reranking: **−0.1520 F2, CI
