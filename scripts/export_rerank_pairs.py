@@ -34,6 +34,7 @@ def main() -> None:
     parser.add_argument("--depth", type=int, default=50, help="candidates per question to rerank")
     parser.add_argument("--table-mode", default="report-coverage")
     parser.add_argument("--limit", type=int)
+    parser.add_argument("--inventory", type=int, default=600, help="characters of the table's line-item list to include; 0 keeps the matched row alone")
     parser.add_argument("--progress-every", type=int, default=100)
     args = parser.parse_args()
 
@@ -79,7 +80,7 @@ def main() -> None:
                 candidates.append({
                     "table_id": table["table_id"],
                     "sparse_rank": rank,
-                    "text": table_representation(match, table["row_index"]),
+                    "text": table_representation(match, table["row_index"], inventory=args.inventory),
                 })
             handle.write(json.dumps({
                 "id": question["id"],

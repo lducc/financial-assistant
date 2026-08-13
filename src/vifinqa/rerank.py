@@ -17,12 +17,26 @@ MODEL_NAME = "cross-encoder/mmarco-mMiniLMv2-L12-H384-v1"
 MAX_LENGTH = 192
 
 
-def table_representation(table: "Table", row_index: int) -> str:
-    """Build one deterministic, non-repeated table representation."""
+def table_representation(table: "Table", row_index: int, *, inventory: int = 0) -> str:
+    """Build one deterministic, non-repeated table representation.
+
+    With `inventory`, the table is described by its line items rather than by the
+    single row the sparse ranker matched. That row is the one that made the table
+    look relevant, so showing only it asks the reranker to judge a table through
+    the weaker ranker's choice, and it cannot recover when that choice is wrong.
+    Listing the row labels tells the model what the table actually contains.
+    """
     headers = " | ".join(" | ".join(row) for row in table.headers)
     periods = " | ".join(table.periods)
     row = " | ".join(table.rows[row_index])
     parts = [table.title, headers, periods, table.unit, row]
+    if inventory:
+        labels = dict.fromkeys(
+            " ".join(cell for cell in item[:1] if cell).strip()
+            for item in table.rows if item and item[0].strip()
+        )
+        listed = "; ".join(label for label in labels if label)[:inventory]
+        parts.append(f"Các chỉ tiêu: {listed}" if listed else "")
     return "\n".join(part for part in dict.fromkeys(part.strip() for part in parts) if part)
 
 

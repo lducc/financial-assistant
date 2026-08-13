@@ -13,20 +13,29 @@ discarding the result means deleting one file.
 
 ## Steps
 
-**1. Export the pairs (local, ~25 min)**
+**1. Export the pairs (local, ~35 min)**
 
 ```
-python3 scripts/export_rerank_pairs.py
+python3 scripts/export_rerank_pairs.py --output output/rerank/pairs_v2.jsonl
 ```
 
-Writes `output/rerank/pairs.jsonl` — one record per question with its top-50
-candidates, each carrying the table representation the model will score. About
-36 MB for all 1,012 questions.
+Writes one record per question with its top-50 candidates and the table
+representation the model scores — 50,335 pairs, 52 MB.
+
+The representation changed after the first run. Qwen-4B moved live F2 by only
++0.023, and the likely reason was that each candidate was described by the single
+row BM25 matched: the model was judging tables through the sparse ranker's choice
+and could not recover when that choice was wrong. Candidates now also carry the
+table's line-item inventory (`Các chỉ tiêu: …`), which says what the table
+actually contains. Pass `--inventory 0` to reproduce the old representation.
 
 **2. Upload to Kaggle**
 
-Create a Dataset named `vifinqa-rerank-pairs` containing `pairs.jsonl`. If you
-name it differently, change `PAIRS_PATH` at the top of `rerank_bge.py`.
+Create a Dataset named `vifinqa-rerank-pairs` containing `pairs_v2.jsonl`, and
+set `PAIRS_PATH` at the top of the script to match. Qwen scored the first export
+at F2 +0.0355 on the benchmark and +0.023 live, so it is the model to use;
+`rerank_bge.py` is kept only to document that a general web-passage reranker
+loses 0.15 F2 here.
 
 **3. Run one of the notebooks (Kaggle)**
 
