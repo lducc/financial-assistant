@@ -300,6 +300,17 @@ def test_question_tiers_follow_the_published_difficulty_definitions():
     ) == "hard"
 
 
+def test_unused_evidence_variables_match_whole_names_not_prefixes():
+    import re
+
+    expression = "float(df10.iloc[0, 1]) + float(df2.iloc[0, 1])"
+    # "df1" is a prefix of "df10"; a containment test would call it referenced and
+    # the strict submission validator would then reject the package.
+    unused = [f"df{rank}" for rank in range(12) if not re.search(rf"\bdf{rank}\b", expression)]
+    assert "df1" in unused
+    assert "df10" not in unused and "df2" not in unused
+
+
 def test_diagnostics_attribute_each_miss_to_the_stage_that_lost_it():
     classify = load_script("diagnose_retrieval").classify
     trace = {

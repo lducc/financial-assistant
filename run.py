@@ -1,5 +1,6 @@
 import argparse
 import json
+import re
 import sys
 import tempfile
 from pathlib import Path
@@ -104,7 +105,13 @@ def main() -> None:
         plan = answer_plan(source["question"], values)
         if plan is not None:
             row["answer"], expression = plan
-            unused = [f"df{rank}" for rank in range(len(evidence)) if f"df{rank}" not in expression]
+            # Match whole names: "df1" is a substring of "df10", so a plain
+            # containment test marks df1 as referenced whenever df10 appears and
+            # the strict validator then rejects the package.
+            unused = [
+                f"df{rank}" for rank in range(len(evidence))
+                if not re.search(rf"\bdf{rank}\b", expression)
+            ]
             references = " + ".join(f"0 * {variable}.shape[0]" for variable in unused)
             row["pandas_query"] = f"result = {expression}" + (f" + {references}" if references else "")
         else:
