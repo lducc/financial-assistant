@@ -28,15 +28,38 @@ candidates, each carrying the table representation the model will score. About
 Create a Dataset named `vifinqa-rerank-pairs` containing `pairs.jsonl`. If you
 name it differently, change `PAIRS_PATH` at the top of `rerank_bge.py`.
 
-**3. Run the notebook (Kaggle, ~20–35 min on T4)**
+**3. Run one of the notebooks (Kaggle)**
 
 New notebook → Accelerator: **GPU T4 x2** or **P100** → attach the dataset →
-paste `rerank_bge.py` into a cell → Run. It prints throughput and an ETA every
-5,000 pairs, and writes `/kaggle/working/scores.jsonl` (~1 MB).
+paste one script into a cell → Run. Both print throughput and an ETA, and both
+write `/kaggle/working/scores.jsonl` (~1 MB) in the same format, so step 4 does
+not care which one produced it.
 
-Model is `BAAI/bge-reranker-v2-m3`: multilingual, 568M parameters, open, released
-well before the 2026-06-01 cutoff, so it is inside the competition's model rules.
-Kaggle needs internet enabled on the notebook to download it.
+| Script | Model | Params | 50k pairs on a T4 |
+|---|---|---:|---|
+| `rerank_bge.py` | `BAAI/bge-reranker-v2-m3` | 568M | 20–35 min |
+| `rerank_qwen.py` | `Qwen/Qwen3-Reranker-0.6B` | 0.6B | ~20 min |
+| `rerank_qwen.py` | `Qwen/Qwen3-Reranker-4B` (default) | 4B | 2–3 h |
+| `rerank_qwen.py` | `Qwen/Qwen3-Reranker-8B` | 8B | needs both T4s or 4-bit |
+
+Pick the Qwen size with an environment variable before running:
+`os.environ["QWEN_RERANKER"] = "Qwen/Qwen3-Reranker-0.6B"`.
+
+Start with BGE — it is fast, and if reranking helps at all it will show there.
+Qwen-4B is the stronger model and the family the organizer slides measured
+(recall@10 63.9% → 80.8% with a reranker), so it is worth the longer run once
+BGE has shown the approach pays.
+
+All four are open models inside the 14B limit and released before the
+2026-06-01 cutoff. Kaggle needs internet enabled to download them.
+
+The two scripts score differently under the hood. BGE is a cross-encoder with a
+classification head, so its logit is the score directly. Qwen3-Reranker is a
+causal model asked whether the document answers the query, and the score is the
+probability it answers "yes" — which needs a specific prompt format and left
+padding so the final position is the real one in every row of a batch.
+`rerank_qwen.py` also appends to `scores.jsonl` and skips questions it already
+scored, so a session that hits the 12-hour limit can be rerun to finish the rest.
 
 **4. Download and fuse (local, seconds)**
 
