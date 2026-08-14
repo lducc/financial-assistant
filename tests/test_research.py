@@ -686,3 +686,37 @@ def test_submission_queries_need_not_read_every_submitted_table(tmp_path):
     assert not [error for error in reads_one if "evidence variable" in error], reads_one
     reads_none = validate.validate(package("result = 1234.0"))
     assert reads_none, "a query reading no submitted table must still be rejected"
+
+
+def test_listwise_parsing_never_loses_a_candidate():
+    """A generated permutation may be malformed; it may not shorten the ranking.
+
+    A candidate dropped while parsing disappears from the submission and takes
+    its retrieval score with it, so every failure mode has to degrade to the
+    incoming order rather than to a shorter one.
+    """
+    from vifinqa.listwise import parse_permutation, reorder
+    candidates = ["a", "b", "c", "d"]
+    assert reorder(candidates, "[3] > [1] > [4] > [2]") == ["c", "a", "d", "b"]
+    # Repeats keep the first mention; a second one is not a reordering signal.
+    assert reorder(candidates, "[2] > [2] > [1]") == ["b", "a", "c", "d"]
+    # Out of range labels have no candidate to attach to.
+    assert reorder(candidates, "[9] > [3]") == ["c", "a", "b", "d"]
+    # Truncated, empty and junk output all fall back to the incoming order.
+    assert reorder(candidates, "[2] >") == ["b", "a", "c", "d"]
+    assert reorder(candidates, "") == candidates
+    assert reorder(candidates, "I cannot rank these") == candidates
+    for text in ("[3] > [1]", "", "[9]", "[1] [1] [1]", "garbage"):
+        assert sorted(reorder(candidates, text)) == sorted(candidates)
+    assert parse_permutation("[1] [5]", 4) == [0]
+
+
+def test_listwise_splice_keeps_the_tail_and_admits_nothing_new():
+    """Only retrieved tables may be submitted, whatever the model emitted."""
+    from vifinqa.listwise import splice
+    ranking = ["a", "b", "c", "d", "e"]
+    assert splice(ranking, ["c", "a"]) == ["c", "a", "b", "d", "e"]
+    # A hallucinated table id is ignored rather than inserted.
+    assert splice(ranking, ["c", "zzz", "a"]) == ["c", "a", "b", "d", "e"]
+    assert splice(ranking, []) == ranking
+    assert sorted(splice(ranking, ["e", "d", "c", "b", "a"])) == sorted(ranking)
