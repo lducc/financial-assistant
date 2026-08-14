@@ -314,3 +314,30 @@ consecutive years (807 reports affected, but precision >= 0.87 caps non-gold at
 statement (2 of 2,080 reports would change). Local instruments cannot measure docs
 precision at all: the gate defines the search space, the search defines the gold,
 and the gold then scores the gate.
+
+## Fine-tuning the reranker: stopped at the pre-registered gate
+
+HiREC reports that its edge over flat retrieval on standardized filings came from
+a cross-encoder fine-tuned on financial tables, and we run an off-the-shelf one,
+so a LoRA pass over our own labels was the strongest literature-backed idea
+available. The plan gated it on data volume before any training: at least ~300
+usable questions that share no report with the benchmark, so the held-out 233
+stays honest.
+
+`propose_multihop_labels.py` over the 779 unlabelled questions returned 579
+proposed, 89 needs_review, 111 no_match, and `accept_proposals.py` kept 312 of
+them (easy 172, medium 70, intermediate 43, hard 27). Of those, only **189 share
+no report with the benchmark**, and their tier mix is 128 easy, 41 medium, 16
+intermediate and **4 hard** — the benchmark touches 466 of 1,182 gated reports,
+so report-blocking removes most of the hard questions along with them.
+
+Flipping which side absorbs the leak does better: training on all 312 and
+evaluating on the 128 benchmark questions disjoint from them keeps 27 hard in
+training and 18 in evaluation. It was still refused. 312 questions is roughly
+1,130 positives, thin for LoRA to beat a strong 8B, and shrinking the evaluation
+set from 233 to 128 widens the bootstrap interval exactly where the effects we
+are chasing are ~0.02. The gate existed to prevent talking ourselves past it.
+
+The proposals are kept at `annotations/train/` — queue, proposals and accepted,
+each carrying a `report_disjoint` flag — so the decision can be revisited without
+recomputing anything.

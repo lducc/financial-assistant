@@ -63,6 +63,11 @@ RERANK_DEPTH = 100
 # is faster on Turing and "fp16" is both faster and exact but needs a T4 x2 to
 # hold 16.4 GB; neither has been scored, so neither is the default.
 QUANTIZATION = os.environ.get("QUANTIZATION", "int8")
+# Score each named line item as its own query and keep the best, instead of one
+# query listing all of them. 550 of 1,012 questions name two or three items, and
+# 66.5% of the gold tables for those carry only one — so the combined query asks
+# the right table for figures it never held. Costs ~1.45x the pairs.
+PER_ITEM = os.environ.get("PER_ITEM", "0") == "1"
 
 INSTRUCTION = (
     "Every candidate is a table from the correct company, period and statement, "
@@ -98,18 +103,27 @@ def already_scored(path):
         return {json.loads(line)["id"] for line in handle if line.strip()}
 
 
-def build_query(record):
-    """Question plus the line item it names, when the export carries one.
+def build_queries(record):
+    """The queries to score each candidate against, best score winning.
 
     The question states the company, the year and the output unit, none of which
     separate the candidates: the gate has already fixed all three, so 99% of them
     come from a gold report. Naming the line item puts the one open question in
     front of the model instead of leaving it to be inferred.
+
+    With PER_ITEM, each named item becomes its own query. 550 of 1,012 questions
+    name two or three, and 66.5% of their gold tables carry only one of them, so
+    a single query listing all of them asks a table for figures it was never
+    going to hold. Scoring the items separately and keeping the best asks each
+    table only what it can answer. It costs about 1.45x the pairs, that being the
+    mean item count.
     """
     items = record.get("line_items") or []
     if not items:
-        return record["question"]
-    return f"{record['question']}\nChỉ tiêu cần tìm: {'; '.join(items)}"
+        return [record["question"]]
+    if PER_ITEM and len(items) > 1:
+        return [f"{record['question']}\nChỉ tiêu cần tìm: {item}" for item in items]
+    return [f"{record['question']}\nChỉ tiêu cần tìm: {'; '.join(items)}"]
 
 
 def packed_batches(lengths, order):
@@ -146,31 +160,33 @@ def last_position_logits(model, padded):
 
 
 def score_question(record, tokenizer, model, prefix_ids, suffix_ids, yes_id, no_id, budget):
-    query = build_query(record)
+    queries = build_queries(record)
     candidates = record["candidates"]
     scores = [0.0] * len(candidates)
     # Candidates arrive in sparse rank order, and the tail is scored so rarely
     # that it is cheaper to leave it to the sparse ranking than to judge it.
     scored = [i for i, candidate in enumerate(candidates)
               if candidate.get("sparse_rank", i + 1) <= RERANK_DEPTH]
-    prompts = {
-        index: f"<Instruct>: {INSTRUCTION}\n<Query>: {query}\n<Document>: {candidates[index]['text']}"
-        for index in scored
-    }
+    # One row per (candidate, query); rows are reduced back to a per-candidate
+    # best after scoring, so the output format never changes with PER_ITEM.
+    rows = [(index, query) for index in scored for query in queries]
+    prompts = [
+        f"<Instruct>: {INSTRUCTION}\n<Query>: {query}\n<Document>: {candidates[index]['text']}"
+        for index, query in rows
+    ]
     encoded = {
-        index: prefix_ids + ids + suffix_ids
-        for index, ids in zip(scored, tokenizer(
-            [prompts[index] for index in scored],
-            truncation=True, max_length=budget, add_special_tokens=False,
+        row: prefix_ids + ids + suffix_ids
+        for row, ids in zip(rows, tokenizer(
+            prompts, truncation=True, max_length=budget, add_special_tokens=False,
         )["input_ids"])
     }
-    lengths = {index: len(ids) for index, ids in encoded.items()}
-    order = sorted(scored, key=lambda index: lengths[index])
+    lengths = {row: len(ids) for row, ids in encoded.items()}
+    order = sorted(rows, key=lambda row: lengths[row])
     pending = list(packed_batches(lengths, order))
     while pending:
         chunk = pending.pop()
         padded = tokenizer.pad(
-            {"input_ids": [encoded[index] for index in chunk]},
+            {"input_ids": [encoded[row] for row in chunk]},
             padding=True, return_tensors="pt",
         ).to(model.device)
         try:
@@ -188,9 +204,11 @@ def score_question(record, tokenizer, model, prefix_ids, suffix_ids, yes_id, no_
         # Qwen3-Reranker answers a yes/no question; the score is the probability
         # of "yes" at the final position, which is why padding must be on the left.
         pair = torch.stack([logits[:, no_id], logits[:, yes_id]], dim=1).float()
-        for index, value in zip(chunk, torch.log_softmax(pair, dim=1)[:, 1].exp().cpu().tolist()):
-            scores[index] = value
-    return scores, len(scored)
+        # Best query wins: a table that holds one of several named items should
+        # score on that item, not be averaged down by the ones it does not hold.
+        for (index, _), value in zip(chunk, torch.log_softmax(pair, dim=1)[:, 1].exp().cpu().tolist()):
+            scores[index] = max(scores[index], value)
+    return scores, len(rows)
 
 
 def main():
@@ -237,9 +255,10 @@ def main():
     total = sum(
         sum(1 for index, candidate in enumerate(record["candidates"])
             if candidate.get("sparse_rank", index + 1) <= RERANK_DEPTH)
+        * len(build_queries(record))
         for record in pending
     )
-    print(f"{len(pending)} questions, {total} pairs to score", flush=True)
+    print(f"{len(pending)} questions, {total} pairs to score, per_item={PER_ITEM}", flush=True)
 
     started, scored = time.time(), 0
     with open(SCORES_PATH, "a", encoding="utf-8") as out:
