@@ -54,6 +54,12 @@ def main() -> None:
     parser.add_argument("--output", type=Path, default=root / "output" / "rerank" / "windows.jsonl")
     parser.add_argument("--depth", type=int, default=20, help="candidates per window")
     parser.add_argument("--cap", type=int, default=250, help="characters kept per candidate")
+    parser.add_argument(
+        "--reverse", action="store_true",
+        help="present the window back to front; ranking it again and aggregating "
+             "the two orders separates a model that judged from one that echoed "
+             "the order it was shown",
+    )
     args = parser.parse_args()
 
     records = load_jsonl(args.pairs)
@@ -67,6 +73,8 @@ def main() -> None:
                 for candidate in sorted(record["candidates"], key=lambda item: item["sparse_rank"])
             ]
         candidates = window(record, order, args.depth, args.cap)
+        if args.reverse:
+            candidates.reverse()
         short += len(candidates) < args.depth
         rows.append({
             "id": record["id"],
@@ -85,6 +93,7 @@ def main() -> None:
         "questions": len(rows),
         "candidates": sum(len(row["candidates"]) for row in rows),
         "windows_below_depth": short,
+        "presentation": "reversed" if args.reverse else "ranking_order",
         "mean_window_tokens": round(characters / max(1, len(rows)) / 3.5 + 220),
         "megabytes": round(args.output.stat().st_size / 1_048_576, 1),
     }, ensure_ascii=False, indent=2))

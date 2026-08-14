@@ -720,3 +720,46 @@ def test_listwise_splice_keeps_the_tail_and_admits_nothing_new():
     assert splice(ranking, ["c", "zzz", "a"]) == ["c", "a", "b", "d", "e"]
     assert splice(ranking, []) == ranking
     assert sorted(splice(ranking, ["e", "d", "c", "b", "a"])) == sorted(ranking)
+
+
+def test_borda_needs_agreement_across_passes():
+    """A candidate must place well under every presentation, not just one.
+
+    The point of ranking the same window twice is that an LLM is biased toward
+    the order it was shown; aggregating has to reward consistency, or the second
+    pass adds nothing.
+    """
+    from vifinqa.listwise import borda
+    # Unanimous orders survive unchanged.
+    assert borda([["a", "b", "c"], ["a", "b", "c"]]) == ["a", "b", "c"]
+    # Two exactly reversed passes tie every candidate by construction, so there
+    # is no information to act on and the incoming order stands. That is the
+    # behaviour we want when the model contradicts itself completely.
+    assert borda([["a", "b", "c"], ["c", "b", "a"]]) == ["a", "b", "c"]
+    # Partial disagreement does move things: "b" is second and first, "a" is
+    # first and last, so consistency wins.
+    assert borda([["a", "b", "c"], ["b", "c", "a"]])[0] == "b"
+    # One order in, one order out.
+    assert borda([["b", "a"]]) == ["b", "a"]
+    assert borda([]) == []
+    assert borda([[], []]) == []
+    # An omission counts as last, not as absent: "a" leads one pass and is
+    # missing from the other, so it keeps a middle place rather than winning.
+    assert borda([["a", "b", "c"], ["b", "c"]]) == ["b", "a", "c"]
+    # Each pass carries equal weight however long it is, so a short second pass
+    # cannot be outvoted merely by being short.
+    assert borda([["a", "b", "c", "d"], ["d", "a"]])[0] == "a"
+    # Nothing is created or lost.
+    merged = borda([["a", "b", "c"], ["c", "a", "b"]])
+    assert sorted(merged) == ["a", "b", "c"]
+
+
+def test_agreement_separates_a_judging_model_from_a_drifting_one():
+    """The diagnostic that decides what a flat result means."""
+    from vifinqa.listwise import agreement
+    assert agreement(["a", "b", "c", "d"], ["a", "b", "c", "d"]) == 1.0
+    assert agreement(["a", "b", "c", "d"], ["d", "c", "b", "a"]) == -1.0
+    assert abs(agreement(["a", "b", "c", "d"], ["a", "c", "b", "d"])) < 1.0
+    # Degenerate inputs must not raise.
+    assert agreement(["a"], ["a"]) == 1.0
+    assert agreement([], []) == 1.0
