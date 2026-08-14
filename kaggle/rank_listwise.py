@@ -54,6 +54,17 @@ MAX_LENGTH = 3072
 # A permutation of 20 labels is ~60 tokens. Cutting generation short costs only
 # the tail of the order, which the parser fills in from the incoming ranking.
 MAX_NEW_TOKENS = 160
+# nf4 rather than int8, which is the opposite of the choice made for the
+# pointwise reranker and for a reason that does not carry over. That model ranks
+# by the probability of "yes", where near-ties decide 47% of the misses and the
+# median gap is 0.067 — exactly the resolution coarse quantization destroys.
+# This model emits a permutation, so every decision is an argmax between token
+# "[4]" and token "[7]". Discrete choices survive quantization that would ruin a
+# calibrated score. nf4 also dequantizes to fp16 and skips the outlier path that
+# makes bitsandbytes int8 slow on Turing, and the run is generation-bound, so it
+# is the setting that buys the most time for the least risk. Set "int8" to
+# compare, or "fp16" on a card with 24 GB.
+QUANTIZATION = os.environ.get("QUANTIZATION", "nf4")
 
 INSTRUCTION = (
     "Bạn xếp hạng các bảng trong báo cáo tài chính. Mọi bảng dưới đây đều thuộc "
@@ -127,14 +138,23 @@ def main():
         raise SystemExit("select a GPU accelerator in the notebook settings")
 
     tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
+    if QUANTIZATION == "nf4":
+        config = BitsAndBytesConfig(
+            load_in_4bit=True, bnb_4bit_quant_type="nf4",
+            bnb_4bit_compute_dtype=torch.float16, bnb_4bit_use_double_quant=True,
+        )
+    elif QUANTIZATION == "int8":
+        config = BitsAndBytesConfig(load_in_8bit=True)
+    else:
+        config = None
     model = AutoModelForCausalLM.from_pretrained(
         MODEL_NAME,
-        quantization_config=BitsAndBytesConfig(load_in_8bit=True),
+        quantization_config=config,
         torch_dtype=torch.float16,
         device_map={"": 0},
         attn_implementation="sdpa",
     ).eval()
-    print(f"{MODEL_NAME} loaded in 8-bit, max_length={MAX_LENGTH}", flush=True)
+    print(f"{MODEL_NAME} loaded in {QUANTIZATION}, max_length={MAX_LENGTH}", flush=True)
 
     for path in [item.strip() for item in WINDOWS_PATH.split(",") if item.strip()]:
         rank_file(path, tokenizer, model)
