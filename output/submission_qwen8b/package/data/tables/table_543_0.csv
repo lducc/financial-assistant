@@ -1,0 +1,20 @@
+,Mã số,Thuyết minh,2025 Nghìn VND,2024 Nghìn VND
+Doanh thu bán hàng và cung cấp dịch vụ,01,25,7.442.723.808,14.345.267.406
+Các khoản giảm trừ doanh thu,02,25,-,8.938.679
+Doanh thu thuần về bán hàng và cung cấp dịch vụ (10 = 01 - 02),10,25,7.442.723.808,14.336.328.727
+Giá vốn hàng bán,11,,6.067.393.926,13.443.622.106
+Lợi nhuận gộp về bán hàng và cung cấp dịch vụ (20 = 10 - 11),20,,1.375.329.882,892.706.621
+Doanh thu hoạt động tài chính,21,26,183.847.389,1.917.333.501
+Chi phí tài chính,22,27,1.253.463.817,2.284.396.141
+Trong đó: Chi phí lãi vay,23,,1.020.071.938,1.371.669.159
+Phần lợi nhuận trong công ty liên kết,24,,-,30.316.644
+Chi phí bán hàng,25,28,99.168.649,361.709.384
+Chi phí quản lý doanh nghiệp,26,29,78.609.851,452.326.961
+Lợi nhuận/(lỗ) thuần từ hoạt động kinh doanh{30 = 20 + (21 - 22) + 24 - (25 + 26)},30,,127.934.954,(258.075.720)
+Thu nhập khác,31,30,10.214.490,69.542.334
+Chi phí khác,32,31,89.273.461,745.036.300
+Kết quả từ các hoạt động khác(40 = 31 - 32),40,,(79.058.971),(675.493.966)
+Lợi nhuận/(lỗ) kế toán trước thuế(50 = 30 + 40),50,,48.875.983,(933.569.686)
+Chi phí thuế TNDN hiện hành,51,32,33.504.306,309.709.189
+Chi phí thuế TNDN hoãn lại,52,32,4.078.714,343.319.775
+Lợi nhuận/(lỗ) sau thuế TNDN(60 = 50 - 51 - 52)(chuyển sang trang sau),60,,11.292.963,(1.586.598.650)

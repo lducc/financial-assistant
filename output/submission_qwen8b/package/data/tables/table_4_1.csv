@@ -1,0 +1,31 @@
+CHỈ TIÊU,Mã số,Thuyết minh,Năm nay,Năm trước
+A,B,C,1,2
+III. DOANH THU HOẠT ĐỘNG TÀI CHÍNH,,,,
+3.1. Chênh lệch lãi tỷ giá hối đoái đã và chưa thực hiện,41,,,
+"3.2. Doanh thu, dự thu cổ tức, lãi tiền gửi không cố định",42,B7.33,9.107.268.126,1.366.639.634
+Cộng doanh thu hoạt động tài chính (50 = 41->44),50,,9.107.268.126,1.366.639.634
+IV. CHI PHÍ TÀI CHÍNH,,,,
+4.1. Chênh lệch lỗ tỷ giá hối đoái đã và chưa thực hiện,51,,,
+4.2. Chi phí lãi vay,52,,,
+4.4. Chi phí tài chính khác,55,,,
+Cộng chi phí tài chính (60 = 51->55),60,,,
+V. CHI PHÍ BÁN HÀNG,61,,,
+VI. CHI PHÍ QUẢN LÝ CÔNG TY CHỨNG KHOÁN,62,B7.35,83.577.142.127,76.663.865.677
+VII. KẾT QUẢ HOẠT ĐỘNG (70= 20+50-40 - 60-61-62),70,,540.732.976.104,439.640.692.189
+VIII. THU NHẬP KHÁC VÀ CHI PHÍ KHÁC,,,,
+8.1. Thu nhập khác,71,B7.36,48.676.023.620,57.577.473.003
+8.2. Chi phí khác,72,B7.37,47.464.358.971,55.687.796.460
+Cộng kết quả hoạt động khác (80= 71-72),80,,1.211.664.649,1.889.676.543
+IX. TỔNG LỢI NHUẬN KẾ TOÁN TRƯỚC THUẾ (90=70 + 80),90,,541.944.640.753,441.530.368.732
+9.1. Lợi nhuận đã thực hiện,91,,510.038.647.820,638.120.966.164
+9.2. Lợi nhuận chưa thực hiện,92,,31.905.992.933,(196.590.597.432)
+X. CHI PHÍ THUẾ TNDN,100,,97.027.049.804,123.304.967.991
+10.1. Chi phí thuế TNDN hiện hành,100.1,B7.38,97.027.049.804,123.304.967.991
+10.2. Chi phí thuế TNDN hoãn lại,100.2,,,
+XI. LỢI NHUẬN KẾ TOÁN SAU THUẾ TNDN (200 = 90 - 100),200,,444.917.590.949,318.225.400.741
+XII. THU NHẬP (Lỗ) TOÀN DIỆN KHÁC SAU THUẾ TNDN,300,,,
+12.1. Lãi/(Lỗ) từ đánh giá lại các tài sản tài chính sẵn sàng để bán,301,,,
+12.2. Lãi/(Lỗ) chênh lệch tỷ giá của hoạt động tại nước ngoài,302,,,
+12.3. Lãi (lỗ) đánh giá lại tài sản cố định theo mô hình giá trị hợp lý công ty,303,,,
+12.4. Lãi/(Lỗ) toàn diện khác,304,,,
+Tổng thu nhập toàn diện,400,,,

@@ -1,0 +1,212 @@
+{
+  "bindings": 613,
+  "outcomes": {
+    "hit": 202,
+    "column_missed": 14,
+    "row_missed": 79,
+    "table_missed": 318
+  },
+  "share": {
+    "hit": 0.3295,
+    "column_missed": 0.0228,
+    "row_missed": 0.1289,
+    "table_missed": 0.5188
+  },
+  "by_tier": {
+    "easy": {
+      "bindings": 66,
+      "hit": 0.682,
+      "column_missed": 0.061,
+      "row_missed": 0.076,
+      "table_missed": 0.182
+    },
+    "hard": {
+      "bindings": 201,
+      "hit": 0.179,
+      "column_missed": 0.015,
+      "row_missed": 0.104,
+      "table_missed": 0.701
+    },
+    "intermediate": {
+      "bindings": 216,
+      "hit": 0.324,
+      "column_missed": 0.005,
+      "row_missed": 0.116,
+      "table_missed": 0.556
+    },
+    "medium": {
+      "bindings": 130,
+      "hit": 0.392,
+      "column_missed": 0.046,
+      "row_missed": 0.215,
+      "table_missed": 0.346
+    }
+  },
+  "example_misses": [
+    {
+      "id": 12,
+      "outcome": "column_missed",
+      "table": "VGT_financial_statements_2024_separate|1225",
+      "gold_row": 3,
+      "gold_column": 2,
+      "gold_raw": "5.000.000.000.000",
+      "gold_label": "Vốn cổ phần đã phát hànhCổ phiếu phổ thông",
+      "chosen_row": 3,
+      "chosen_column": 1
+    },
+    {
+      "id": 27,
+      "outcome": "row_missed",
+      "table": "DLG_financial_statements_2024_separate|390",
+      "gold_row": 17,
+      "gold_column": 3,
+      "gold_raw": "(150.202.628.445)",
+      "gold_label": "Lưu chuyển tiền thuần từ hoạt động kinh doanh",
+      "chosen_row": 1,
+      "chosen_column": null
+    },
+    {
+      "id": 89,
+      "outcome": "row_missed",
+      "table": "MSN_financial_statements_2018_consolidated|1858",
+      "gold_row": 2,
+      "gold_column": 1,
+      "gold_raw": "726.873",
+      "gold_label": "Năm hiện hành",
+      "chosen_row": 1,
+      "chosen_column": null
+    },
+    {
+      "id": 91,
+      "outcome": "row_missed",
+      "table": "VRE_financial_statements_2024_separate|236",
+      "gold_row": 12,
+      "gold_column": 4,
+      "gold_raw": "6.532.274",
+      "gold_label": "- Nguyên giá",
+      "chosen_row": 11,
+      "chosen_column": 4
+    },
+    {
+      "id": 92,
+      "outcome": "row_missed",
+      "table": "SSH_financial_statements_2025_consolidated|230",
+      "gold_row": 22,
+      "gold_column": 4,
+      "gold_raw": "12.139.247.381.785",
+      "gold_label": "TỔNG CỘNG TÀI SẢN (270=100+200)",
+      "chosen_row": 0,
+      "chosen_column": null
+    },
+    {
+      "id": 106,
+      "outcome": "column_missed",
+      "table": "PLX_financial_statements_2016_separate|826",
+      "gold_row": 14,
+      "gold_column": 3,
+      "gold_raw": "60,00%",
+      "gold_label": "Công ty TNHH Hóa chất PTN",
+      "chosen_row": 14,
+      "chosen_column": 5
+    },
+    {
+      "id": 123,
+      "outcome": "row_missed",
+      "table": "SSI_financial_statements_2016_consolidated|227",
+      "gold_row": 21,
+      "gold_column": 3,
+      "gold_raw": "7.152.567.156.682",
+      "gold_label": "D. VỐN CHỦ SỞ HỮU",
+      "chosen_row": 38,
+      "chosen_column": 3
+    },
+    {
+      "id": 146,
+      "outcome": "column_missed",
+      "table": "HBC_financial_statements_2018_consolidated|204",
+      "gold_row": 19,
+      "gold_column": 4,
+      "gold_raw": "111.719.354.613",
+      "gold_label": "1. Chi phí trả trước ngắn hạn",
+      "chosen_row": 19,
+      "chosen_column": 3
+    },
+    {
+      "id": 150,
+      "outcome": "column_missed",
+      "table": "DXG_financial_statements_2019_consolidated|966",
+      "gold_row": 2,
+      "gold_column": 2,
+      "gold_raw": "9.124.886.323",
+      "gold_label": "Dự phòng các khoản đặt cọc, ký quỹ",
+      "chosen_row": 2,
+      "chosen_column": 1
+    },
+    {
+      "id": 171,
+      "outcome": "row_missed",
+      "table": "NLG_financial_statements_2021_consolidated|306",
+      "gold_row": 15,
+      "gold_column": 3,
+      "gold_raw": "1.295.542.317.371",
+      "gold_label": "Lưu chuyển tiền thuần tử (sử dụng vào) hoạt động kinh doanh",
+      "chosen_row": 1,
+      "chosen_column": null
+    },
+    {
+      "id": 237,
+      "outcome": "column_missed",
+      "table": "GAS_financial_statements_2016_consolidated|1319",
+      "gold_row": 3,
+      "gold_column": 4,
+      "gold_raw": "59.076.193.175.661",
+      "gold_label": "Tổng doanh thu thuần",
+      "chosen_row": 3,
+      "chosen_column": 1
+    },
+    {
+      "id": 257,
+      "outcome": "row_missed",
+      "table": "VAB_financial_statements_2025_consolidated|434",
+      "gold_row": 27,
+      "gold_column": 2,
+      "gold_raw": "7.801.374.240.320",
+      "gold_label": "I. Lưu chuyển tiền thuần từ hoạt động kinh doanh",
+      "chosen_row": 1,
+      "chosen_column": null
+    },
+    {
+      "id": 315,
+      "outcome": "row_missed",
+      "table": "SAB_financial_statements_2023_separate|1324",
+      "gold_row": 6,
+      "gold_column": 2,
+      "gold_raw": "136.864.410.350",
+      "gold_label": "Tổng tài sản thuế thu nhập hoãn lại",
+      "chosen_row": 1,
+      "chosen_column": null
+    },
+    {
+      "id": 366,
+      "outcome": "row_missed",
+      "table": "HPX_financial_statements_2024_consolidated|398",
+      "gold_row": 16,
+      "gold_column": 3,
+      "gold_raw": "596.433.090.233",
+      "gold_label": "Lưu chuyển tiền thuần từ hoạt động kinh doanh",
+      "chosen_row": 1,
+      "chosen_column": null
+    },
+    {
+      "id": 366,
+      "outcome": "row_missed",
+      "table": "NVL_financial_statements_2024_consolidated|569",
+      "gold_row": 16,
+      "gold_column": 3,
+      "gold_raw": "(5.971.178.115.653)",
+      "gold_label": "Lưu chuyển tiền thuần từ hoạt động kinh doanh",
+      "chosen_row": 1,
+      "chosen_column": null
+    }
+  ]
+}

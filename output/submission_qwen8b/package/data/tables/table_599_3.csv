@@ -1,0 +1,34 @@
+Chỉ tiêu,Mã số,Thuyết minh,Năm nay,Năm trước
+A,B,C,1,2
+I. Lưu chuyển tiền từ hoạt động kinh doanh,,,,
+1. Lợi nhuận trước Thuế Thu nhập doanh nghiệp,01,,541.944.640.753,441.530.368.732
+2. Điều chỉnh cho các khoản:,02,,(9.964.711.684),22.853.434.112
+- Khấu hao TSCĐ,03,,19.920.006.367,17.066.767.824
+- Các khoản dự phòng,04,,40.185.000,(6.936.128)
+- Chi phí lãi vay,06,,,
+"- Lãi, lỗ từ hoạt động đầu tư",07,,(33.109.092),
+- Dự thu tiền lãi,08,,(29.891.793.959),5.793.602.416
+- Các khoản điều chỉnh khác,09,,,
+3. Tăng các chi phí phi tiền tệ,10,,1.362.127,(29.535.783)
+- Lỗ đánh giá lại giá trị các tài sản tài chính ghi nhận thông qua lãi/lỗ FVTPL,11,,1.362.127,(29.535.783)
+4. Giảm các doanh thu phi tiền tệ,18,,(31.907.355.060),196.620.133.215
+- Lãi đánh giá lại giá trị các tài sản tài chính ghi nhận thông qua lãi lỗ FVTPL,19,,(31.907.355.060),196.620.133.215
+5. Lợi nhuận từ hoạt động kinh doanh trước thay đổi vốn lưu động,30,,(1.243.551.140.320),(2.688.254.513.182)
+- Tăng (giảm) tài sản tài chính ghi nhận thông qua lãi lỗ,31,,(245.819.526.243),(163.778.234.092)
+- Tăng (giảm) các khoản cho vay,33,,(1.658.505.867.333),2.518.865.235.437
+"- Tăng giảm phải thu và dự thu cổ tức, tiền lãi các tài sản tài chính",36,,(109.650.483),591.230.856
+- Tăng giảm các khoản phải thu các dịch vụ CTCK cung cấp,37,,(1.404.607.661),2.857.824.093
+- Tăng giảm các khoản phải thu khác,39,,(2.033.770.721),1.011.113.321
+- Tăng giảm các tài sản khác,40,,1.460.028.741,(332.309.593)
+- Tăng giảm chi phí phải trả (không bao gồm lãi,41,,485.582.590,(4.022.521.924)
+- Tăng giảm chi phí trả trước,42,,907.451.764,(1.879.544.630)
+- Thuế TNDN đã nộp,43,,(97.625.047.281),(147.943.287.532)
+- Lãi vay đã trả,44,,,
+- Tăng giảm các khoản phải trả cho người bán,45,,(696.904.295),(2.878.686.179)
+- Tăng giảm các khoản trích nộp phúc lợi nhân viên,46,,176.349.588,86.576.637
+- Tăng giảm thuế và các khoản phải nộp nhà nước (Không bao gồm Thuế TNDN đã nộp),47,,(9.910.886.819),(7.623.019.702)
+- Tăng giảm phải trả người lao động,48,,2.365.131.183,(8.980.014.780)
+- Tăng giảm phải trả phải nộp khác,50,,796.925.042.822,(4.845.210.591.771)
+- Tiền thu từ các hoạt động kinh doanh,51,,15.000.000,65.504.783
+- Tiền chi từ các hoạt động kinh doanh,52,,(29.779.466.172),(29.083.788.106)
+Lưu chuyển tiền thuần từ hoạt động kinh doanh,60,,(743.477.204.184),(2.027.280.112.906)

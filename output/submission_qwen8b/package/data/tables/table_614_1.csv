@@ -1,0 +1,31 @@
+CHỈ TIÊU,CHỈ TIÊU,Mã số,Thuyết minh,Số cuối năm,Số đầu năm
+C - NỘ PHẢI TRẢ,C - NỘ PHẢI TRẢ,300,,3.365.488.438.659,4.499.972.582.279
+I.,Nợ ngắn hạn,310,,1.850.078.399.960,3.121.256.950.346
+1.,Phải trả người bán ngắn hạn,311,V.14a,753.389.743.058,861.599.527.177
+2.,Người mua trả tiền trước ngắn hạn,312,V.15,17.001.404.838,7.191.277.555
+3.,Thuế và các khoản phải nộp Nhà nước,313,V.16,20.823.665.510,77.432.768.951
+4.,Phải trả người lao động,314,V.17,2.356.314.767,2.109.751.896
+5.,Chi phí phải trả ngắn hạn,315,V.18,412.528.917.238,441.649.840.635
+6.,Phải trả nội bộ ngắn hạn,316,,-,-
+7.,Phải trả theo tiến độ kế hoạch hợp đồng xây dựng,317,,-,-
+8.,Doanh thu chưa thực hiện ngắn hạn,318,,-,938.686.643.721
+9.,Phải trả ngắn hạn khác,319,V.19a,102.972.484.041,264.623.599.343
+10.,Vay và nợ thuê tài chính ngắn hạn,320,V.20a,521.590.559.614,518.156.636.195
+11.,Dự phòng phải trả ngắn hạn,321,,-,-
+12.,"Quỹ khen thưởng, phúc lợi",322,V.21,19.415.310.894,9.806.904.873
+13.,Quỹ bình ổn giá,323,,-,-
+14.,Giao dịch mua bán lại trái phiếu Chính phủ,324,,-,-
+II.,Nợ dài hạn,330,,1.515.410.038.699,1.378.715.631.933
+1.,Phải trả người bán dài hạn,331,V.14b,186.151.594.000,207.174.848.000
+2.,Người mua trả tiền trước dài hạn,332,,-,-
+3.,Chi phí phải trả dài hạn,333,,-,-
+4.,Phải trả nội bộ về vốn kinh doanh,334,,-,-
+5.,Phải trả nội bộ dài hạn,335,,-,-
+6.,Doanh thu chưa thực hiện dài hạn,336,V.22,715.432.944.699,748.102.783.933
+7.,Phải trả dài hạn khác,337,V.19b,12.248.000.000,248.000.000
+8.,Vay và nợ thuê tài chính dài hạn,338,V.20b,601.577.500.000,423.190.000.000
+9.,Trái phiếu chuyển đổi,339,,-,-
+10.,Cổ phiếu ưu đãi,340,,-,-
+11.,Thuế thu nhập hoãn lại phải trả,341,,-,-
+12.,Dự phòng phải trả dài hạn,342,,-,-
+13.,Quỹ phát triển khoa học và công nghệ,343,,-,-

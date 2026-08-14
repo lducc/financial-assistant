@@ -1,0 +1,18 @@
+,NGUỒN VỐN,Mã số,Thuyết minh,Số cuối năm,Số đầu năm
+C.,NỘ PHẢI TRẢ,300,,12.910.946,13.303.514
+I.,Nợ ngắn hạn,310,,5.173.857,5.920.740
+1.,Phải trả người bán ngắn hạn,311,19,659.187,461.938
+2.,Người mua trả tiền trước ngắn hạn,312,20,309.096,184.770
+3.,Thuế và các khoản phải nộp Nhà nước,313,21,1.718.159,1.135.316
+4.,Phải trả người lao động,314,,-,245
+5.,Chỉ phí phải trả ngắn hạn,315,22,1.483.782,1.123.855
+6.,Doanh thu chưa thực hiện ngắn hạn,318,23,31.187,32.655
+7.,Phải trả ngắn hạn khác,319,24,949.277,968.841
+8.,Vay và nợ thuê tài chính ngắn hạn,320,25,20.626,2.009.752
+9.,Dự phòng phải trả ngắn hạn,321,,1.909,1.812
+10.,"Quỹ khen thưởng, phúc lợi",322,,634,1.556
+II.,Nợ dài hạn,330,,7.737.089,7.382.774
+1.,Doanh thu chưa thực hiện dài hạn,336,23,131.499,126.557
+2.,Phải trả dài hạn khác,337,24,1.157.099,4.663.323
+3.,Vay và nợ thuê tài chính dài hạn,338,26,6.380.455,2.523.103
+4.,Thuế thu nhập hoãn lại phải trả,341,27,68.036,69.791

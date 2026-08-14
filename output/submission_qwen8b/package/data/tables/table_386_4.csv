@@ -1,0 +1,20 @@
+,Mã số,Thuyết minh,2020 Triệu VND,2019 Triệu VND
+Doanh thu bán hàng và cung cấp dịch vụ,01,26,78.868.319,38.818.747
+Các khoản giảm trừ doanh thu,02,26,1.650.511,1.464.660
+Doanh thu thuần (10 = 01 - 02),10,26,77.217.808,37.354.087
+Giá vốn hàng bán và dịch vụ cung cấp,11,27,59.329.111,26.412.939
+Lợi nhuận gộp (20 = 10 - 11),20,,17.888.697,10.941.148
+Doanh thu hoạt động tài chính,21,28,1.430.663,1.188.183
+Chi phí tài chính,22,29,4.556.671,2.200.562
+Trong đó: Chi phí lãi vay,23,,3.770.283,1.866.015
+Phần lãi trong các công ty liên kết,24,7,2.640.068,2.182.410
+Chi phí bán hàng,25,30,13.166.087,3.994.895
+Chi phí quản lý doanh nghiệp,26,31,3.040.896,2.103.408
+Lợi nhuận thuần từ hoạt động kinh doanh {30 = 20 + (21 - 22) + 24 - (25 + 26)},30,,1.195.774,6.012.876
+Thu nhập khác,31,32,1.613.262,1.325.350
+Chi phí khác,32,,484.197,233.136
+Kết quả từ hoạt động khác (40 = 31 - 32),40,,1.129.065,1.092.214
+Lợi nhuận kế toán trước thuế (50 = 30 + 40),50,,2.324.839,7.105.090
+Chi phí thuế TNDN hiện hành,51,33,1.086.193,790.583
+Lợi ích thuế TNDN hoãn lại,52,33,(156.367),(50.108)
+Lợi nhuận sau thuế TNDN (60 = 50 - 51 - 52) (mang sang trang sau),60,,1.395.013,6.364.615

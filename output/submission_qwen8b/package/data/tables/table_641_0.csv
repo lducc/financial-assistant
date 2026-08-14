@@ -1,0 +1,37 @@
+,CHỈ TIÊU,Mã số,Thuyết minh,Năm 2018 VND,Năm 2017 VND
+I.,Lưu chuyển tiền từ hoạt động kinh doanh,Lưu chuyển tiền từ hoạt động kinh doanh,Lưu chuyển tiền từ hoạt động kinh doanh,Lưu chuyển tiền từ hoạt động kinh doanh,Lưu chuyển tiền từ hoạt động kinh doanh
+1.,Lợi nhuận trước thuế,01,,36.548.979.819,88.752.437.094
+2.,Điều chỉnh cho các khoản,Điều chỉnh cho các khoản,Điều chỉnh cho các khoản,Điều chỉnh cho các khoản,Điều chỉnh cho các khoản
+-,Khấu hao TSCĐ và BĐSĐT,02,"15,16,17,20",166.373.639.306,156.743.198.011
+-,Các khoản dự phòng,03,,14.962.655.158,10.171.827.182
+-,"Lãi, lỗ chênh lệch tỷ giá hối đoái do đánh giá lại các khoản mục tiền tệ có gốc ngoại tệ",04,37,10.563.566.670,1.381.231
+-,"Lãi, lỗ từ hoạt động đầu tư",05,"36,37,39,40",(154.455.265.572),(169.168.008.280)
+-,Chi phí lãi vay,06,37,329.332.578.988,350.324.190.859
+3.,LN từ hoạt động KD trước thay đổi vốn lưu động,08,,403.326.154.369,436.825.026.097
+-,"Tăng, giảm các khoản phải thu",09,,201.784.469.129,(468.145.995.153)
+-,"Tăng, giảm hàng tồn kho",10,,(138.007.901.651),(122.256.828.267)
+-,"Tăng, giảm các khoản phải trả (Không kể trả lãi vay, thuế thu nhập phải nộp)",11,,55.998.152.955,133.750.824.572
+-,"Tăng, giảm chi phí trả trước",12,,(961.039.260),(305.438.726)
+-,"Tăng, giảm chứng khoán kinh doanh",13,,18.423.265.980,18.423.265.980
+-,Tiền lãi vay đã trả,14,"24,26,37",(292.717.575.808),(326.594.392.528)
+-,Thuế thu nhập doanh nghiệp đã nộp,15,23,(32.298.601.365),(7.718.739.714)
+-,Tiền chi khác từ hoạt động kinh doanh,17,,(667.900.000),(2.613.833.000)
+,Lưu chuyển tiền thuần từ hoạt động kinh doanh,20,,214.879.024.349,(338.636.110.739)
+II.,Lưu chuyển tiền từ hoạt động đầu tư,Lưu chuyển tiền từ hoạt động đầu tư,Lưu chuyển tiền từ hoạt động đầu tư,Lưu chuyển tiền từ hoạt động đầu tư,Lưu chuyển tiền từ hoạt động đầu tư
+1.,Tiền chi để mua sắm XD TSCĐ và các TS DH khác,21,,(173.354.857.572),(278.324.959.343)
+2.,"Tiền thu từ TLý, nhượng bán TSCĐ và các TS DH khác",22,,32.042.027.045,27.701.082.727
+3.,"Tiền chi cho vay, mua các công cụ nợ của đơn vị khác",23,,(791.999.817.636),(1.583.244.499.147)
+4.,"Tiền thu hồi cho vay, bán lại các CC nợ của đơn vị khác",24,,799.633.474.262,1.329.813.994.337
+5.,Tiền chi đầu tư góp vốn vào đơn vị khác,25,,(317.761.517.126),1.347.679.124
+6.,Tiền thu hồi đầu tư góp vốn vào đơn vị khác,26,,7.983.534.298,58.869.982.662
+7.,"Tiền thu lãi cho vay, cổ tức và lợi nhuận được chia",27,"11,36",68.957.260.978,138.382.104.243
+,Lưu chuyển tiền thuần từ hoạt động đầu tư,30,,(374.499.895.751),(305.454.615.397)
+III.,Lưu chuyển tiền từ hoạt động tài chính,Lưu chuyển tiền từ hoạt động tài chính,Lưu chuyển tiền từ hoạt động tài chính,Lưu chuyển tiền từ hoạt động tài chính,Lưu chuyển tiền từ hoạt động tài chính
+1,"Tiền thu từ PH cổ phiếu, nhận vốn góp của CSH",31,,10.000.000,549.132.850.000
+2.,Tiền thu từ đi vay,33,,1.499.104.629.384,1.443.673.435.903
+3.,Tiền trả nợ gốc vay,34,,(1.632.733.179.994),(1.075.341.207.025)
+,Lưu chuyển tiền thuần từ hoạt động tài chính,40,,(133.618.550.610),917.465.078.878
+,Lưu chuyển tiền thuần trong kỳ,50,,(293.239.422.012),273.374.352.742
+,Tiền và tương đương tiền đầu kỳ,60,5,373.765.558.712,96.808.960.822
+,Ảnh hưởng của thay đổi tỷ giá hối đoái qui đổi ngoại tệ,61,,(894.310.826),3.582.245.148
+,Tiền và tương đương tiền cuối kỳ,70,5,79.631.825.874,373.765.558.712

@@ -1,0 +1,24 @@
+,CHỈ TIÊU,Mã số,Thuyết minh,Năm nay,Năm trước
+1.,Doanh thu bán hàng và cung cấp dịch vụ,01,24,101.114.077.419.627,57.959.112.673.412
+2.,Các khoản giảm trừ doanh thu,02,24,34.042.161.497,-
+3.,Doanh thu thuần về bán hàng và cung cấp dịch vụ (10=01-02),10,24,101.080.035.258.130,57.959.112.673.412
+4.,Giá vốn hàng bán và dịch vụ cung cấp,11,25,93.381.313.715.080,60.183.939.693.526
+5.,Lợi nhuận/(lỗ) gộp về bán hàng và cung cấp dịch vụ (20=10-11),20,,7.698.721.543.050,(2.224.827.020.114)
+6.,Doanh thu hoạt động tài chính,21,27,1.014.896.787.839,666.178.306.758
+7.,Chi phí tài chính,22,28,619.255.475.339,497.659.186.225
+,- Trong đó: Chi phí lãi vay,23,,406.811.371.357,325.082.824.759
+8.,Chi phí bán hàng,25,29,781.029.744.856,551.873.123.765
+9.,Chi phí quản lý doanh nghiệp,26,29,406.693.387.067,269.294.376.639
+10.,Lợi nhuận/(lỗ) thuần từ hoạt động kinh doanh (30=20+(21-22)-(25+26)),30,,6.906.639.723.627,(2.877.475.399.985)
+11.,Thu nhập khác,31,30,35.032.613.512,25.771.539.027
+12.,Chi phí khác,32,31,995.701.929,723.577.572
+13.,Lợi nhuận khác (40=31-32),40,,34.036.911.583,25.047.961.455
+14.,Tổng lợi nhuận/(lỗ) kế toán trước thuế (50=30+40),50,,6.940.676.635.210,(2.852.427.438.530)
+15.,Chi phí thuế thu nhập doanh nghiệp hiện hành,51,32,302.761.744.904,2.001.392.078
+16.,(Thu nhập)/chi phí thuế thu nhập doanh nghiệp hoãn lại,52,33,(45.624.962.070),3.698.671.766
+17.,Lợi nhuận/(lỗ) sau thuế thu nhập doanh nghiệp (60=50-51-52)Trong đó:,60,,6.683.539.852.376,(2.858.127.502.374)
+17.1.,Lợi nhuận/(lỗ) sau thuế của cổ đông của Công ty mẹ,61,,6.715.504.313.658,(2.818.841.515.440)
+17.2.,(Lỗ) sau thuế của cổ đông không kiểm soát,62,,(31.964.461.282),(39.285.986.934)
+18.,Lãi/(lỗ) cơ bản trên cổ phiếu,70,34,,(910)
+,,,,,
+Lê Thị Hồng TrâmNgười lập biểu,Lê Thị Hồng TrâmNgười lập biểu,Bạch Đức LongKế toán trường,Bạch Đức LongKế toán trường,Bửi Ngọc DươngTổng Giám đốc,Bửi Ngọc DươngTổng Giám đốc

@@ -1,0 +1,19 @@
+Chỉ tiêu,Mã số,Thuyết minh,Năm 2022,Đơn vị tính: VND Năm 2021
+1 Doanh thu bán hàng và cung cấp dịch vụ,01,VI.1.,176.865.456.265,297.138.601.409
+2 Các khoản giảm trừ doanh thu,02,,-,-
+3 Doanh thu thuần bán hàng và cung cấp dịch vụ (10=01-02),10,,176.865.456.265,297.138.601.409
+4 Giá vốn hàng bán,11,VI.2.,144.639.151.069,144.473.445.744
+5 Lợi nhuận gộp về bán hàng và cung cấp dịch vụ (20=10-11),20,,32.226.305.196,152.665.155.665
+6 Doanh thu hoạt động tài chính,21,VI.3.,405.210.474.937,41.156.435.820
+7 Chi phí tài chính,22,VI.4.,105.041.509.676,44.088.501.269
+Trong đó: Chi phí lãi vay,23,,8.238.240.198,2.259.513.236
+8 Chi phí bán hàng,25,VI.7.,8.366.870.446,10.767.486.395
+9 Chi phí quản lý doanh nghiệp,26,VI.7.,47.314.912.969,43.689.543.051
+10 Lợi nhuận thuần từ hoạt động kinh doanh {30=20+(21-22)-(25+26)},30,,276.713.487.042,95.276.060.770
+11 Thu nhập khác,31,VI.5.,2.401.191.358,2.815.951.038
+12 Chi phí khác,32,VI.6.,7.210.867.133,415.754.807
+13 Lợi nhuận khác (40=31-32),40,,(4.809.675.775),2.400.196.231
+14 Tổng lợi nhuận kế toán trước thuế (50=30+40),50,,271.903.811.267,97.676.257.001
+15 Chi phí thuế TNDN hiện hành,51,VI.8.,256.931.364,8.429.707.686
+16 Chi phí thuế TNDN hoãn lại,52,,-,-
+17 Lợi nhuận sau thuế thu nhập doanh nghiệp (60=50-51-52),60,,271.646.879.903,89.246.549.315

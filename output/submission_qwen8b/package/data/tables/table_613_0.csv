@@ -1,0 +1,13 @@
+CHỈ TIÊU,Mã số,Thuyết minh,Năm nay,Năm trước
+III. Lưu chuyển tiền từ hoạt động tài chính,III. Lưu chuyển tiền từ hoạt động tài chính,III. Lưu chuyển tiền từ hoạt động tài chính,III. Lưu chuyển tiền từ hoạt động tài chính,III. Lưu chuyển tiền từ hoạt động tài chính
+"1. Tiền thu từ phát hành cổ phiếu, nhận vốn góp của chủ sở hữu",31,,-,-
+"2. Tiền trả lại vốn góp cho các chủ sở hữu, mua lại cổ phiếu của doanh nghiệp đã phát hành",32,,-,(1.370.972.020.000)
+3. Tiền thu từ đi vay,33,V.20,607.874.198.581,612.296.237.103
+4. Tiền trả nợ gốc vay,34,V.20,(772.456.297.983),(595.253.748.248)
+5. Tiền trả nợ gốc thuê tài chính,35,,-,-
+"6. Cổ tức, lợi nhuận đã trả cho chủ sở hữu",36,"V.19a, V.23",(136.952.012.255),(109.751.974.800)
+Lưu chuyển tiền thuần từ hoạt động tài chính,40,,(301.534.111.657),(1.463.681.505.945)
+Lưu chuyển tiền thuần trong năm,50,,115.184.470.818,(5.564.160.618)
+Tiền và tương đương tiền đầu năm,60,V.1,38.428.748.337,43.992.908.955
+Ảnh hưởng của thay đổi tỷ giá hối đoái quy đổi ngoại tệ,61,,-,-
+Tiền và tương đương tiền cuối năm,70,V.1,153.613.219.155,38.428.748.337

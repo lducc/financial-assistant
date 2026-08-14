@@ -1,0 +1,42 @@
+STT,CHỈ TIÊU,Thuyết minh,Số cuối năm,Số đầu năm
+A,TÀI SẢN,,,
+I.,"Tiền mặt, vàng bạc, đá quý",5,13.221.709,11.989.885
+II.,"Tiền gửi tại Ngân hàng Nhà nước (""NHNN"")",6,106.304.480,64.406.786
+III.,Tiền gửi tại và cho vay các TCTD khác,7,224.765.336,141.027.025
+1.,Tiền gửi tại TCTD khác,,206.296.581,116.482.138
+2.,Cho vay các TCTD khác,,18.553.677,24.674.217
+3.,Dự phòng rủi ro tiền gửi tại các TCTD khác và cho vay các TCTD khác,8,(84.922),(129.330)
+IV.,Chứng khoán kinh doanh,9,62.094,4.847.481
+1.,Chứng khoán kinh doanh,,62.094,4.851.335
+2.,Dự phòng rủi ro chứng khoán kinh doanh,,,(3.854)
+V.,Các công cụ tài chính phải sinh và các tài sản tài chính khác,10,1.038.368,196.743
+VI.,Cho vay khách hàng,,1.450.909.497,1.291.888.164
+1.,Cho vay khách hàng,11,1.488.150.500,1.319.980.438
+2.,Dự phòng rủi ro cho vay khách hàng,12,(37.241.003),(28.092.274)
+VII.,Chứng khoán đầu tư,13,233.602.135,173.166.050
+1.,Chứng khoán đầu tư sẵn sàng để bán,,162.030.120,111.419.231
+2.,Chứng khoán đầu tư giữ đến ngày đáo hạn,,71.923.968,62.018.000
+3.,Dự phòng rủi ro chứng khoán đầu tư,,(351.953),(271.181)
+VIII.,"Gớp vốn, đầu tư dài hạn",14,7.838.152,7.806.570
+1.,Đầu tư vào công ty con,14.1,5.699.523,5.699.523
+2.,Vốn góp liên doanh,14.2,2.021.143,2.021.143
+3.,Đầu tư vào công ty liên kết,14.3,244.207,244.207
+4.,"Gớp vốn, đầu tư dài hạn khác",,153.750,153.750
+5.,Dự phòng giảm giá đầu tư dài hạn,14.4,(280.471),(312.053)
+IX.,Tài sản cố định,15,9.732.206,10.023.840
+1.,Tài sản cố định hữu hình,15.1,5.409.463,5.746.018
+a.,Nguyên giá tài sản cố định,,13.320.700,13.022.924
+b.,Hao mòn tài sản cố định,,(7.911.237),(7.276.906)
+2.,Tài sản cố định thuê tài chính,15.2,2.054,3.723
+a.,Nguyên giá tài sản cố định,,42.312,42.447
+b.,Hao mòn tài sản cố định,,(40.258),(38.724)
+3.,Tài sản cố định vô hình,15.3,4.320.689,4.274.099
+a.,Nguyên giá tài sản cố định,,6.365.183,6.108.869
+b.,Hao mòn tài sản cố định,,(2.044.494),(1.834.770)
+X.,Tài sản Có khác,16,32.706.300,15.963.211
+1.,Các khoản phải thu,,21.031.429,6.251.533
+2.,"Các khoản lãi, phí phải thu",,10.367.121,8.512.915
+3.,Tài sản thuế thu nhập doanh nghiệp hoãn lại,,562,2.446
+4.,Tài sản Có khác,,1.735.918,1.601.293
+5.,Dự phòng rủi ro cho các tài sản Có nội bằng khác,,(428.730),(404.976)
+,TỔNG TÀI SẢN,,2.080.180.277,1.721.315.755

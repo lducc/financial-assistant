@@ -1,0 +1,24 @@
+NGUỒN VỐN,NGUỒN VỐN,Mã số,Số cuối năm
+C.,NỘ PHẢI TRẢ,300,7.791.916.441.908
+I.,Nợ ngắn hạn,310,7.342.796.246.238
+I.,1. Phải trả người bán ngắn hạn,311,1.987.870.340.312
+I.,2. Thuế và các khoản phải nộp Nhà nước,313,9.454.840.093
+I.,3. Phải trả người lao động,314,371.877.557
+I.,4. Chi phí phải trả ngắn hạn,315,254.053.860.041
+I.,5. Phải trả nội bộ ngắn hạn,316,1.822.264.066.590
+I.,6. Doanh thu chưa thực hiện ngắn hạn,318,758.596.537.864
+I.,7. Phải trả ngắn hạn khác,319,284.692.646.465
+I.,8. Vay và nợ thuê tài chính ngắn hạn,320,2.094.181.289.625
+I.,"9. Quỹ khen thưởng, phúc lợi",322,131.310.787.691
+II.,Nợ dài hạn,330,449.120.195.670
+II.,1. Vay và nợ thuê tài chính dài hạn,338,449.120.195.670
+D.,VỐN CHỦ SỞ HỮU,400,2.810.701.925.569
+I.,Vốn chủ sở hữu,410,2.810.701.925.569
+I.,1. Vốn góp của chủ sở hữu,411,1.370.786.090.000
+I.,- Cổ phiếu phố thông có quyền biểu quyết,411a,1.370.786.090.000
+I.,2. Cổ phiếu quỹ,415,(300.150.000)
+I.,3. Quỹ đầu tư phát triển,418,131.972.384.482
+I.,4. Lợi nhuận sau thuế chưa phân phối,421,1.308.243.601.087
+I.,- Lợi nhuận sau thuế chưa phân phối lũy kế đến cuối năm trước,421a,780.149.508.348
+I.,- Lợi nhuận sau thuế chưa phân phối năm nay,421b,528.094.092.739
+TỔNG CỘNG NGUỒN VỐN (440=300+400),TỔNG CỘNG NGUỒN VỐN (440=300+400),440,10.602.618.367.477

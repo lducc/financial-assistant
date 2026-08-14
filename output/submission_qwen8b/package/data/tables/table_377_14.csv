@@ -1,0 +1,30 @@
+STT,CHỈ TIÊU,Mã số,Thuyết minh,Năm nay,Năm trước
+I.,Lưu chuyển tiền từ hoạt động kinh doanh,,,,
+1.,Lợi nhuận trước thuế,01,,163.052.229.445,113.932.938.489
+2.,Điều chỉnh cho các khoản,,,,
+-,Khấu hao tài sản cố định và BĐSDT,02,,53.989.794.366,72.083.177.207
+-,Các khoản dự phòng,03,,18.673.449.074,29.279.099.604
+-,"Lãi, lỗ chênh lệch tỷ giá hồi đoái do đánh giá lại các khoản mục tiền tệ có gốc ngoại tệ",04,,(10.337.502),70.965.475
+-,"Lãi, lỗ từ hoạt động đầu tư",05,,(73.827.293.882),(22.216.996.193)
+-,Chi phí lãi vay,06,,20.207.091.779,14.530.485.336
+-,Các khoản điều chỉnh khác,07,,-,-
+3.,Lợi nhuận từ hoạt động kinh doanh trước thay đổi vốn lưu động,08,,182.084.933.280,207.679.669.918
+-,"Tăng, giảm các khoản phải thu",09,,128.008.169.514,108.164.783.174
+-,"Tăng, giảm hàng tồn kho",10,,13.400.672.044,22.539.534.527
+-,"Tăng, giảm các khoản phải trả (không kể lãi vay phải trả, thuế TNDN phải nộp)",11,,(201.328.642.422),26.970.053.564
+-,"Tăng, giảm chi phí trả trước",12,,16.053.025.116,486.614.191
+-,"Tăng, giảm chứng khoán kinh doanh",13,,-,67.018.349.064
+-,Tiền lãi vay đã trả,14,,(5.614.935.552),(19.161.447.966)
+-,Thuế thu nhập doanh nghiệp đã nộp,15,,(23.440.453.436),(40.763.759.084)
+-,Tiền thu khác từ hoạt động kinh doanh,16,,-,-
+-,Tiền chi khác từ hoạt động kinh doanh,17,,(1.712.032.566),(2.537.844.536)
+,Lưu chuyển tiền thuần từ hoạt động kinh doanh,20,,107.450.735.978,370.395.952.852
+II.,Lưu chuyển tiền từ hoạt động đầu tư,,,,
+1.,"Tiền chi để mua sắm, xây dựng TSCĐ và các TS dài hạn khác",21,,(16.066.140.722),(17.738.753.086)
+2.,"Tiền thu từ thanh lý, nhượng bán TSCĐ và các TS dài hạn khác",22,,1.340.965.339,38.518.518
+3.,"Tiền chi cho vay, mua các công cụ nợ của đơn vị khác",23,,(636.601.542.030),(448.797.004.247)
+4.,"Tiền thu hồi cho vay, bán lại các công cụ nợ của đơn vị khác",24,,197.600.000.000,687.695.534.247
+5.,Tiền chi đầu tư góp vốn vào đơn vị khác,25,,(2.085.000.000.000),(266.671.000.000)
+6.,Tiền thu hồi đầu tư góp vốn vào đơn vị khác,26,,1.710.000.000,248.750.000.000
+7.,"Tiền thu lãi cho vay, cổ tức và lợi nhuận được chia",27,,51.552.077.857,13.423.971.451
+,Lưu chuyển tiền thuần từ hoạt động đầu tư,30,,(2.485.464.639.556),216.701.266.883

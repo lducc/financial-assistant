@@ -1,0 +1,34 @@
+STT,Chi tiêu,Thuyết minh,Tại 31/12/2025,Tại 31/12/2024
+A -,TÀI SẢN,,,
+I,"Tiền mặt, vàng bạc, đá quý",V.1,7.134,4.360
+II,Tiền gửi tại ngân hàng Nhà nước Việt Nam ('NHNN'),V.2,416.460,497.213
+III,Tiền gửi và cho vay các TCTD khác,V.3,6.408.017,4.891.725
+1.,Tiền gửi tại các TCTD khác,V.3.1,6.408.017,4.891.725
+IV,Chứng khoán kinh doanh,V.4,6.039.085,714.205
+1.,Chứng khoán kinh doanh,,6.048.391,714.205
+2.,Dự phòng rủi ro chứng khoán kinh doanh,,(9.306),-
+V,Cho vay khách hàng,,60.885.389,46.306.649
+1.,Cho vay khách hàng,V.5,61.745.129,46.802.982
+2.,Dự phòng rủi ro cho vay khách hàng,V.6,(859.740),(496.333)
+VI,Hoạt động mua nợ,V.7,1.973.090,-
+1.,Mua nợ,,1.988.000,-
+2.,Dự phòng rủi ro hoạt động mua nợ (*),,(14.910),-
+VII,Chứng khoán đầu tư,V.8,1.757.528,1.902.188
+1.,Chứng khoán đầu tư sẵn sàng để bán,,1.795.912,2.082.175
+2.,Dự phòng rủi ro chứng khoán đầu tư,,(38.384),(179.987)
+VIII,"Góp vốn, đầu tư dài hạn",V.9,1.784.216,1.826.477
+1.,Đầu tư dài hạn khác,,1.844.487,1.881.987
+2.,Dự phòng giảm giá đầu tư dài hạn,,(60.271),(55.510)
+IX,Tài sản cố định,,238.982,65.309
+1.,Tài sản cố định hữu hình,V.10,27.915,23.642
+a.,Nguyên giá,,107.891,107.534
+b.,Giá trị hao mòn lũy kế,,(79.976),(83.892)
+2.,Tài sản cố định vô hình,V.11,211.067,41.667
+a.,Nguyên giá,,277.209,99.074
+b.,Giá trị hao mòn lũy kế,,(66.142),(57.407)
+X,Tài sản có khác,V.12,3.548.257,3.390.435
+1.,Các khoản phải thu,V.12.1,1.372.805,1.958.713
+2.,"Các khoản lãi, phí phải thu",V.12.2,2.106.002,1.422.608
+3.,Tài sản Có khác,V.12.3,115.010,70.538
+4.,Các khoản dự phòng rủi ro cho các tài sản Có nội bằng khác,V.12.4,(46.360),(61.424)
+,TỔNG TÀI SẢN CÓ,,83.058.158,59.598.561

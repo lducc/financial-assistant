@@ -1,0 +1,35 @@
+STT,CHỈ TIÊU,Thuyết minh,Số cuối năm,Số đầu năm
+A.,TÀI SẢN,,,
+I.,Tiền mặt,5,10.940.803,11.196.660
+II.,"Tiền gửi tại Ngân hàng Nhà nước (""NHNN"")",6,29.726.607,23.382.941
+III.,Tiền gửi và cho vay các TCTD khác,7,241.389.033,147.331.139
+1.,Tiền gửi tại các TCTD khác,,223.981.711,130.825.951
+2.,Cho vay các TCTD khác,,17.407.322,16.505.188
+IV.,Chứng khoán kinh doanh,8,-,1.084.670
+1.,Chứng khoán kinh doanh,,-,1.092.554
+2.,Dự phòng rủi ro chứng khoán kinh doanh,,-,(7.884)
+V.,Các công cụ tài chính phải sinh và các tài sản tài chính khác,9,3.077.852,1.454.790
+VI.,Cho vay khách hàng,,1.234.635.168,1.094.460.294
+1.,Cho vay khách hàng,10,1.264.176.643,1.120.063.085
+2.,Dự phòng rủi ro cho vay khách hàng,11,(29.541.475),(25.602.791)
+VII.,Chứng khoán đầu tư,12,177.796.158,175.660.110
+1.,Chứng khoán đầu tư sẵn sàng để bán,12.1,176.271.031,173.192.431
+2.,Chứng khoán đầu tư giữ đến ngày đáo hạn,12.2,1.586.778,2.586.832
+3.,Dự phòng rủi ro chứng khoán đầu tư,12.4,(61.651),(119.153)
+VIII.,"Gớp vốn, đầu tư dài hạn",13,5.551.782,5.551.782
+1.,Đầu tư vào công ty con,13.1,3.840.032,3.840.032
+2.,Vốn góp liên doanh,13.2,1.688.788,1.688.788
+3.,Đầu tư dài hạn khác,,22.962,22.962
+IX.,Tài sản cố định,,9.978.145,10.222.501
+1.,Tài sản cố định hữu hình,14,5.901.915,6.017.969
+a.,Nguyên giá TSCĐ,,15.879.268,15.438.174
+b.,Hao mòn TSCĐ,,(9.977.353),(9.420.205)
+2.,Tài sản cố định vô hình,15,4.076.230,4.204.532
+a.,Nguyên giá TSCĐ,,6.642.707,6.478.776
+b.,Hao mòn TSCĐ,,(2.566.477),(2.274.244)
+X.,Tài sản Có khác,16,80.144.803,45.273.501
+1.,Các khoản phải thu,16.1,65.208.103,32.811.819
+2.,"Các khoản lãi, phí phải thu",,12.129.744,9.566.114
+3.,Tài sản Có khác,16.2,2.837.290,2.936.274
+4.,Các khoản dự phòng rủi ro cho các tài sản Có nội bằng khác,16.3,(30.334),(40.706)
+TỔNG TÀI SẢN CÓ,TỔNG TÀI SẢN CÓ,,1.793.240.351,1.515.618.388

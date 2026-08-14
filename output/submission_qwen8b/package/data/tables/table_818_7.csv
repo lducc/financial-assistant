@@ -1,0 +1,31 @@
+CHỈ TIÊU,Mã số,Thuyết minh,Năm nay,Năm trước
+A,B,C,1,2
+I. DOANH THU HOẠT ĐỘNG,I. DOANH THU HOẠT ĐỘNG,I. DOANH THU HOẠT ĐỘNG,I. DOANH THU HOẠT ĐỘNG,I. DOANH THU HOẠT ĐỘNG
+1.1. Lãi từ các tài sản tài chính ghi nhận thông qua lãi/lỗ (FVTPL),01,,(7.846.215.500),59.148.750.492
+a. Lãi bán các tài sản tài chính FVTPL,01.1,B7.33.1,4.145.753.900,163.567.392
+b. Chênh lệch tăng đánh giá lại các TSTC thông qua lãi/lỗ *,01.2,B7.33.2,(29.699.638.605),21.430.158.174
+"c. Cổ tức, tiền lãi phát sinh từ tài sản tài chính FVTPL",01.3,B7.33.3.1,17.707.669.205,37.555.024.926
+d. Chênh lệch giảm do đánh giá lại phải trả chứng quyền đang lưu hành,01.4,,,
+1.2. Lãi từ các khoản đầu tư nắm giữ đến ngày đáo han (HTM),02,,,
+1.3. Lãi từ các khoản cho vay và phải thu,03,B7.33.3.3,189.864.272.706,201.887.106.543
+1.4. Lãi từ các tài sản tài chính sẵn sàng để bán (AFS),04,,,
+1.5. Lãi từ các công cụ phải sinh phòng ngừa rủi ro,05,,,
+1.6. Doanh thu môi giới chứng khoán,06,,193.888.672.180,99.703.090.847
+"1.7. Doanh thu bảo lãnh, đại lý phát hành chứng khoán",07,,,
+1.8. Doanh thu nghiệp vụ tư vấn đầu tư chứng khoán,08,,627.071.440,179.082.453
+1.9. Doanh thu nghiệp vụ lưu ký chứng khoán,09,,8.629.355.238,8.623.537.970
+1.10. Doanh thu hoạt động tư vấn tài chính,10,,18.272.163.314,16.871.207.770
+1.11. Thu nhập hoạt động khác,11,B7.33.4,100.144.556,232.549.760
+Cộng doanh thu hoạt động (20 = 1->11),20,,403.535.463.934,386.645.325.835
+II. CHI PHÍ HOẠT ĐỘNG,II. CHI PHÍ HOẠT ĐỘNG,II. CHI PHÍ HOẠT ĐỘNG,II. CHI PHÍ HOẠT ĐỘNG,II. CHI PHÍ HOẠT ĐỘNG
+2.1. Lỗ các tài sản tài chính ghi nhận thông qua lãi lỗ (FVTPL),21,,(7.884.912),5.512.139
+a. Lỗ bán các tài sản tài chính FVTPL,21.1,B7.33.1,44.296.055,59.754.082
+b. Chênh lệch giảm đánh giá lại các TSTC FVTPL*,21.2,B7.33.2,(52.180.967),(54.241.943)
+"2.4. Chi phí dự phòng tài sản tài chính, xử lý tôn thất các khoản phải thu khó đòi và lỗ suy giảm tài sản tài chính và chi phí đi vay của các khoản cho vay",24,B7.35,19.575.194.161,21.326.065.090
+2.6. Chi phí hoạt động tự doanh,26,,30.634.619,2.162.472
+2.7. Chi phí nghiệp vụ môi giới chứng khoán,27,B7.35,102.339.002.825,66.204.214.490
+2.9. Chi phí nghiệp vụ đầu tư chứng khoán,29,B7.35,524.976.743,156.398.720
+2.10. Chi phí nghiệp vụ lưu ký chứng khoán,30,B7.35,11.944.280.170,10.665.166.105
+2.11. Chi phí hoạt động tư vấn tài chính,31,B7.35,8.851.159.688,9.215.114.524
+2.12. Chi phí các dịch vụ khác,32,,,
+Cộng chi phí hoạt động (40 = 21->32),40,,143.257.363.294,107.574.633.540

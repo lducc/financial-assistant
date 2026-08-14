@@ -1,0 +1,23 @@
+CHỈ TIÊU,Mã số,Thuyết minh,Năm nay,Năm trước
+1. Doanh thu bán hàng và cung cấp dịch vụ,01,,6.147.640.210.071,6.734.322.492.591
+2. Các khoản giảm trừ doanh thu,02,,-,747.676.768
+3. Doanh thu thuần về bán hàng và cung cấp dịch vụ (10=01-02),10,26,6.147.640.210.071,6.733.574.815.823
+4. Giá vốn hàng bán,11,27,5.301.653.916.473,5.971.112.130.559
+5. Lợi nhuận gộp về bán hàng và cung cấp dịch vụ (20=10-11),20,,845.986.293.598,762.462.685.264
+6. Doanh thu hoạt động tài chính,21,29,187.905.527.851,159.327.484.591
+7. Chi phí tài chính,22,30,160.954.653.291,150.405.149.992
+- Trong đó: Chi phí lãi vay,23,,151.581.427.633,122.947.562.199
+"8. Phăn lãi trong công ty liên doanh, liên kết",24,12,27.116.030.203,26.785.452.437
+9. Chi phí bán hàng,25,31,9.504.715.284,8.950.535.194
+10. Chi phí quản lý doanh nghiệp,26,31,232.988.068.823,226.976.152.559
+11. Lợi nhuận thuần từ hoạt động kinh doanh (30=20+(21-22)+24-(25+26)),30,,657.560.414.254,562.243.784.547
+12. Thu nhập khác,31,,21.405.197.251,42.981.024.216
+13. Chi phí khác,32,,8.057.573.188,3.269.377.445
+14. Lợi nhuận khác (40=31-32),40,32,13.347.624.063,39.711.646.771
+15. Tổng lợi nhuận kế toán trước thuế (50=30+40),50,,670.908.038.317,601.955.431.318
+16. Chi phí thuế thu nhập doanh nghiệp hiện hành,51,33,153.627.347.892,126.175.814.457
+17. Thu nhập thuế thu nhập doanh nghiệp hoãn lại,52,33,(16.405.428.406),(7.686.183.556)
+18. Lợi nhuận sau thuế thu nhập doanh nghiệp (60=50-51-52),60,,533.686.118.831,483.465.800.417
+Phân bổ cho:- Lợi nhuận sau thuế của cổ đông của Công ty mẹ,61,,450.110.653.904,415.564.502.300
+- Lợi nhuận sau thuế của cổ đông không kiểm soát,62,,83.575.464.927,67.901.298.117
+19. Lãi cơ bản trên cổ phiếu,70,34,1.436,1.326

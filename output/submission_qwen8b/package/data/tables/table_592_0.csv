@@ -1,0 +1,38 @@
+STT,CHỈ TIÊU,Thuyết minh,Số cuối năm,Số đầu năm
+A,TÀI SẢN,,,
+I.,"Tiền mặt, vàng bạc, đá quý",6,13.745.228,12.660.583
+II.,Tiền gửi tại Ngân hàng Trung ương,7,111.418.448,68.851.444
+III.,Tiền gửi tại và cho vay các TCTD khác,8,221.177.798,135.940.229
+1.,Tiền gửi tại TCTD khác,,203.466.918,112.042.988
+2.,Cho vay các TCTD khác,,17.795.874,24.026.575
+3.,Dự phòng rủi ro tiền gửi tại và cho vay các TCTD khác,9,(84.994),(129.334)
+IV.,Chứng khoán kinh doanh,10,1.701.464,6.068.913
+1.,Chứng khoán kinh doanh,,1.748.521,6.083.165
+2.,Dự phòng rủi ro chứng khoán kinh doanh,,(47.057),(14.252)
+V.,Các công cụ tài chính phải sinh và các tài sản tài chính khác,11,1.038.214,192.282
+VI.,Cho vay khách hàng,,1.483.995.823,1.325.528.925
+1.,Cho vay khách hàng,12,1.522.221.714,1.354.632.643
+2.,Dự phòng rủi ro cho vay khách hàng,13,(38.225.891),(29.103.718)
+VII.,Chứng khoán đầu tư,14,235.636.449,177.088.795
+1.,Chứng khoán đầu tư sẵn sàng để bán,,162.283.083,111.675.314
+2.,Chứng khoán đầu tư giữ đến ngày đáo hạn,,73.734.542,65.711.393
+3.,Dự phòng rủi ro chứng khoán đầu tư,,(381.176),(297.912)
+VIII.,"Gớp vốn, đầu tư dài hạn",15,2.978.193,2.847.647
+1.,Vốn góp liên doanh,15.1,2.243.217,2.134.086
+2.,Đầu tư vào công ty liên kết,15.2,628.324,595.596
+3.,"Gớp vốn, đầu tư dài hạn khác",,215.076,215.617
+4.,Dự phòng giảm giá đầu tư dài hạn,15.3,(108.424),(97.652)
+IX.,Tài sản cố định,16,10.534.119,10.741.232
+1.,Tài sản cố định hữu hình,16.1,6.097.956,6.338.050
+a.,Nguyên giá tài sản cố định,,14.594.234,14.264.308
+b.,Hao mòn tài sản cố định,,(8.496.278),(7.926.258)
+2.,Tài sản cố định vô hình,16.2,4.436.163,4.403.182
+a.,Nguyên giá tài sản cố định,,6.639.598,6.407.788
+b.,Hao mòn tài sản cố định,,(2.203.435),(2.004.606)
+X.,Tài sản Có khác,17,38.383.648,21.775.742
+1.,Các khoản phải thu,,22.728.033,7.838.680
+2.,"Các khoản lãi, phí phải thu",,13.016.124,10.901.959
+3.,Tài sản thuế thu nhập doanh nghiệp hoãn lại,,35.542,36.588
+4.,Tài sản Có khác,,3.212.892,3.567.089
+5.,Dự phòng rủi ro cho các tài sản Có nội bằng khác,,(608.943),(568.574)
+,TỔNG TÀI SẢN,,2.120.609.384,1.761.695.792
