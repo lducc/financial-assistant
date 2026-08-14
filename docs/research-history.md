@@ -272,3 +272,45 @@ execution were removed because they blurred the retrieval boundary or produced
 unverifiable confidence. The next hypothesis is that field-aware weighting of
 title, headers, row labels, periods, and units can improve table recall while
 preserving the same document gate and fixed-K submission contract.
+
+## The benchmark over-labels gold by 39%, and live told us so
+
+Live feedback on the Qwen3-Reranker-8B submission returned the per-metric
+breakdown for the first time: Tables F2 0.486 (P 0.3213, R 0.5706, MRR@5 0.5685),
+Docs F2 0.9711 (P 0.9611, R 0.9767, MRR@5 0.9792), against 4B on identical pairs
+at Tables F2 0.4553. Reranking is now worth +0.043 live over the sparse-era
+0.4431, and 8B beats 4B by 0.031.
+
+The precision-to-recall ratio identifies the organizers' gold set. Submitting k
+tables against G gold gives P/R = G/k, so the ratio is a direct read on how many
+tables they count:
+
+| gold definition | tables per question | P/R at our x2 budget |
+|---|---:|---:|
+| benchmark, after restatement completion | 4.50 | 0.764 |
+| benchmark, tables named by a row/column binding | 3.24 | 0.572 |
+| live | — | 0.563 |
+
+Binding-only gold reproduces the live ratio to within 0.009, so
+`complete_benchmark_labels.py` widened gold past what is scored — it was built to
+close a gap between 2.57 labelled tables and an inferred organizer 3.17, and it
+overshot. That is why local F2 reads 0.63 where live reads 0.486.
+
+The practical consequence is a decision reversed. Sweeping the submission budget
+against full gold picks x3 gated reports (F2 0.6392 against 0.6261 at x2); against
+binding-only gold the optimum is x2, which is what ships. The apparent gain was
+the over-labelling rewarding recall that is not scored.
+
+Ranking comparisons are unaffected: sparse < 4B < 8B and fuse > replace hold under
+both definitions. The mis-calibration moves levels, not order, so no earlier
+accept or reject changes.
+
+Docs is closed. The live split shows precision 0.9611 and recall 0.9767, and four
+candidate fixes were refuted before spending a submission: pruning to the reports
+that contributed a table (drops 63 reports, 9 of them gold), collapsing
+consecutive years (807 reports affected, but precision >= 0.87 caps non-gold at
+~390, so most must be gold), pruning reports whose OCR lacks the asked line item
+(removes 33 gold, 0 non-gold), and expanding scope-silent questions to the sibling
+statement (2 of 2,080 reports would change). Local instruments cannot measure docs
+precision at all: the gate defines the search space, the search defines the gold,
+and the gold then scores the gate.
