@@ -29,6 +29,31 @@ def unique(items: list[str]) -> list[str]:
     return list(dict.fromkeys(items))
 
 
+def gold_tables_for(annotation: dict, gold: str = "binding") -> list[str]:
+    """The gold set to score against, under one of two definitions.
+
+    `complete_benchmark_labels.py` widened gold with restatements — the same
+    figure repeated in a note, the cash-flow, the equity movement table — taking
+    it from 2.57 to 4.50 tables per question. Live says that overshot. Submitting
+    k tables against G gold gives precision/recall = G/k, and the live ratio is
+    0.563; the widened set gives 0.764 at the same budget while the tables named
+    by a row/column binding give 0.572. So `binding` is what the organizers
+    score, and it leads.
+
+    `full` is kept because the gap between the two is what exposed the problem,
+    and because a change that helps one and hurts the other is worth seeing.
+    """
+    if gold == "full":
+        return annotation["gold_tables"]
+    bound = unique([
+        binding["table"] for binding in annotation.get("row_column_bindings", [])
+        if binding.get("table")
+    ])
+    # A record with no bindings has nothing to narrow to; scoring it against an
+    # empty set would silently count it as a total miss.
+    return bound or annotation["gold_tables"]
+
+
 def prefix_score(gold_tables: list[str], ranked_tables: list[str], k: int) -> dict:
     gold = set(gold_tables)
     ranked = unique(ranked_tables)[:k]
@@ -85,9 +110,10 @@ def score_record(
     retrieval: dict | None = None,
     ranked_depth: int = max(CANDIDATE_RANKS),
     budget: int | None = None,
+    gold: str = "binding",
 ) -> dict:
     annotation = record["annotation"]
-    gold_tables = annotation["gold_tables"]
+    gold_tables = gold_tables_for(annotation, gold)
     trace = {
         "id": record["id"],
         "question": record["question"],
@@ -212,6 +238,7 @@ def production_trace(
     table_mode: str,
     reranker: str | None = None,
     table_top_k: str | int = "auto",
+    gold: str = "binding",
 ) -> dict:
     parsed = parse_question(record["question"], companies)
     if not parsed.tickers and parsed.candidate_tickers:
@@ -231,7 +258,7 @@ def production_trace(
     )
     return score_record(
         record, [table["table_id"] for table in retrieval["tables"]], docs, retrieval, ranked_depth,
-        budget=table_budget(len(docs), table_top_k),
+        budget=table_budget(len(docs), table_top_k), gold=gold,
     )
 
 
@@ -248,17 +275,21 @@ def load_submission(path: Path) -> dict[int, dict]:
     return {int(row["id"]): row for row in rows}
 
 
-def submission_traces(records: list[dict], submission: dict[int, dict], ranked_depth: int) -> list[dict]:
+def submission_traces(records: list[dict], submission: dict[int, dict], ranked_depth: int,
+                      gold: str = "binding") -> list[dict]:
     traces = []
     for record in records:
         row = submission.get(int(record["id"]))
         if row is None:
             raise ValueError(f"submission missing id={record['id']}")
-        traces.append(score_record(record, row.get("relevant_tables", []), row.get("relevant_docs", []), ranked_depth=ranked_depth))
+        traces.append(score_record(
+            record, row.get("relevant_tables", []), row.get("relevant_docs", []),
+            ranked_depth=ranked_depth, gold=gold,
+        ))
     return traces
 
 
-def write_results(output_dir: Path, name: str, traces: list[dict], split: str) -> dict:
+def write_results(output_dir: Path, name: str, traces: list[dict], split: str, gold: str = "binding") -> dict:
     output_dir.mkdir(parents=True, exist_ok=True)
     (output_dir / f"{name}_traces.jsonl").write_text(
         "".join(json.dumps(trace, ensure_ascii=False) + "\n" for trace in traces), encoding="utf-8"
@@ -266,6 +297,7 @@ def write_results(output_dir: Path, name: str, traces: list[dict], split: str) -
     summary = {
         "source": name,
         "split": split,
+        "gold": gold,
         **summarize(traces),
         "by_operation": grouped_summary(traces, "operation"),
         "by_table_count": grouped_summary(traces, "table_count"),
@@ -295,6 +327,11 @@ def main() -> None:
         help="allow archived research-only table modes in this evaluator",
     )
     parser.add_argument("--submission", type=Path, help="submission.json or its containing package directory")
+    parser.add_argument(
+        "--gold", choices=("binding", "full"), default="binding",
+        help="'binding' scores the tables named by a row/column binding, which reproduces the live "
+             "precision/recall ratio; 'full' scores the restatement-widened set",
+    )
     parser.add_argument("--output-dir", type=Path, default=ROOT / "output" / "table_retrieval_eval")
     args = parser.parse_args()
     production_modes = {"baseline", "role-coverage"}
@@ -321,15 +358,17 @@ def main() -> None:
         [
             production_trace(
                 record, table_reports, companies, doc_reports, args.ranked_depth, args.table_mode,
-                args.reranker, args.table_top_k,
+                args.reranker, args.table_top_k, args.gold,
             )
             for record in records
         ],
-        args.split,
+        args.split, args.gold,
     )]
     if args.submission:
         summaries.append(write_results(
-            args.output_dir, "submission", submission_traces(records, load_submission(args.submission), args.ranked_depth), args.split
+            args.output_dir, "submission",
+            submission_traces(records, load_submission(args.submission), args.ranked_depth, args.gold),
+            args.split, args.gold,
         ))
     print(json.dumps(summaries, ensure_ascii=False, indent=2))
 

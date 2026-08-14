@@ -602,3 +602,56 @@ def test_v2_promotion_gate_accepts_only_all_boundary_conditions():
     assert promotion_gate(summary, summary, bootstrap, trace)["passed"] is True
     bootstrap["slot_recall"]["ci95_low"] = 0.0
     assert "slot_recall_ci95_low_not_positive" in promotion_gate(summary, summary, bootstrap, trace)["failures"]
+
+
+def test_binding_gold_narrows_to_bound_tables_and_is_the_default():
+    """The gold set that reproduces live is the one named by row/column bindings.
+
+    Restatement completion widened gold from 2.57 to 4.50 tables per question,
+    but submitting k tables against G gold gives precision/recall = G/k and live
+    reads 0.563, which the bound tables match and the widened set does not. The
+    narrow definition therefore has to be what scoring uses unless asked
+    otherwise.
+    """
+    evaluate = load_script("evaluate_table_retrieval")
+    annotation = {
+        "gold_tables": ["r|1", "r|2", "r|3"],
+        "gold_reports": ["r"],
+        "row_column_bindings": [
+            {"table": "r|1", "row": 4, "column": 2},
+            {"table": "r|1", "row": 5, "column": 2},
+            {"table": "r|3", "row": 9, "column": 2},
+        ],
+    }
+    assert evaluate.gold_tables_for(annotation, "full") == ["r|1", "r|2", "r|3"]
+    # Deduplicated, and "r|2" carries no binding so it is a restatement.
+    assert evaluate.gold_tables_for(annotation, "binding") == ["r|1", "r|3"]
+    assert evaluate.gold_tables_for(annotation) == ["r|1", "r|3"]
+    record = {"id": 1, "question": "q", "annotation": annotation}
+    assert evaluate.score_record(record, ["r|1"], ["r"])["gold_tables"] == ["r|1", "r|3"]
+
+
+def test_binding_gold_falls_back_rather_than_scoring_against_nothing():
+    """A record with no bindings keeps its wide gold set.
+
+    Narrowing it to the empty set would score the question as a total miss no
+    matter what was retrieved, silently deflating every aggregate it enters.
+    """
+    evaluate = load_script("evaluate_table_retrieval")
+    annotation = {"gold_tables": ["r|1"], "gold_reports": ["r"], "row_column_bindings": []}
+    assert evaluate.gold_tables_for(annotation, "binding") == ["r|1"]
+    assert evaluate.score_record(
+        {"id": 1, "question": "q", "annotation": annotation}, ["r|1"], ["r"],
+    )["prefix"]["1"]["recall"] == 1.0
+
+
+def test_cached_traces_predating_binding_gold_still_score():
+    """Traces cached before the narrow definition existed carry only the wide set."""
+    cv = load_script("cross_validate_retrieval")
+    fresh = {"gold_tables": ["r|1", "r|2"], "gold_tables_binding": ["r|1"], "ranked_tables": ["r|1"]}
+    stale = {"gold_tables": ["r|1", "r|2"], "ranked_tables": ["r|1"]}
+    assert cv.gold_of(fresh, "binding") == ["r|1"]
+    assert cv.gold_of(fresh, "full") == ["r|1", "r|2"]
+    assert cv.gold_of(stale, "binding") == ["r|1", "r|2"]
+    assert cv.score(fresh, 1, "binding")["recall"] == 1.0
+    assert cv.score(fresh, 1, "full")["recall"] == 0.5

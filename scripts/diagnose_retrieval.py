@@ -29,18 +29,18 @@ sys.path.insert(0, str(ROOT / "src"))
 sys.path.insert(0, str(ROOT / "scripts"))
 
 from vifinqa.retrieval import table_budget
-from cross_validate_retrieval import build_traces
+from cross_validate_retrieval import build_traces, gold_of
 from evaluate_table_retrieval import prefix_score, reciprocal_rank
 
 STATES = ("hit", "rank_miss", "candidate_miss", "gate_miss")
 
 
-def classify(trace: dict, budget: int) -> dict[str, list[str]]:
+def classify(trace: dict, budget: int, gold: str = "binding") -> dict[str, list[str]]:
     ranked = list(dict.fromkeys(trace["ranked_tables"]))
     submitted, retrieved = set(ranked[:budget]), set(ranked)
     gated = set(trace["selected_docs"])
     states: dict[str, list[str]] = {state: [] for state in STATES}
-    for table in trace["gold_tables"]:
+    for table in gold_of(trace, gold):
         if table in submitted:
             states["hit"].append(table)
         elif table in retrieved:
@@ -90,6 +90,11 @@ def main() -> None:
     parser.add_argument("--table-top-k", default="auto")
     parser.add_argument("--output", type=Path, default=ROOT / "output" / "diagnostics" / "report.json")
     parser.add_argument("--refresh", action="store_true")
+    parser.add_argument(
+        "--gold", choices=("binding", "full"), default="binding",
+        help="'binding' scores the tables named by a row/column binding, which reproduces the live "
+             "precision/recall ratio; 'full' scores the restatement-widened set",
+    )
     args = parser.parse_args()
 
     records = {
@@ -110,15 +115,16 @@ def main() -> None:
     for trace in traces:
         record = records[trace["id"]]
         budget = table_budget(len(trace["selected_docs"]), args.table_top_k)
-        scores = prefix_score(trace["gold_tables"], trace["ranked_tables"], budget)
+        gold_tables = gold_of(trace, args.gold)
+        scores = prefix_score(gold_tables, trace["ranked_tables"], budget)
         rows.append({
             "id": trace["id"],
             "tier": record["tier"],
             "source": record["source"],
-            "size": bucket(len(trace["gold_tables"])),
+            "size": bucket(len(gold_tables)),
             "budget": budget,
-            "states": classify(trace, budget),
-            "mrr": reciprocal_rank(trace["gold_tables"], trace["ranked_tables"], budget),
+            "states": classify(trace, budget, args.gold),
+            "mrr": reciprocal_rank(gold_tables, trace["ranked_tables"], budget),
             **scores,
         })
 

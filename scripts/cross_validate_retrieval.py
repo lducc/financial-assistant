@@ -28,7 +28,9 @@ sys.path.insert(0, str(ROOT / "scripts"))
 
 from docs import load_companies, load_reports as load_doc_reports, parse_question, required_report_years, retrieve_docs
 from vifinqa.retrieval import load_reports, retrieve_rows, table_budget
-from evaluate_table_retrieval import connected_report_groups, prefix_score, reciprocal_rank, split_records
+from evaluate_table_retrieval import (
+    connected_report_groups, gold_tables_for, prefix_score, reciprocal_rank, split_records,
+)
 
 
 SEED = 20260812
@@ -78,7 +80,10 @@ def build_traces(labels: list[dict], dataset_root: Path, depth: int, mode: str, 
         )
         traces.append({
             "id": record["id"],
+            # Both gold definitions travel with the trace so a cached retrieval
+            # can be rescored under either without retrieving again.
             "gold_tables": record["annotation"]["gold_tables"],
+            "gold_tables_binding": gold_tables_for(record["annotation"], "binding"),
             "gold_reports": sorted(set(record["annotation"]["gold_reports"])),
             "selected_docs": docs,
             "ranked_tables": [table["table_id"] for table in retrieval["tables"]],
@@ -95,9 +100,22 @@ def cluster_of(trace: dict, cluster_by_report: dict[str, str]) -> str:
     return cluster_by_report.get(trace["gold_reports"][0], trace["gold_reports"][0])
 
 
-def score(trace: dict, budget: int) -> dict:
-    scores = prefix_score(trace["gold_tables"], trace["ranked_tables"], budget)
-    scores["mrr"] = reciprocal_rank(trace["gold_tables"], trace["ranked_tables"], budget)
+def gold_of(trace: dict, gold: str) -> list[str]:
+    """The trace's gold set under the chosen definition.
+
+    Traces cached before the binding-only definition existed carry only the wide
+    set; falling back to it keeps them readable, and the caller warns so the
+    stale cache is refreshed rather than quietly scored against the wrong gold.
+    """
+    if gold == "full":
+        return trace["gold_tables"]
+    return trace.get("gold_tables_binding") or trace["gold_tables"]
+
+
+def score(trace: dict, budget: int, gold: str = "binding") -> dict:
+    gold_tables = gold_of(trace, gold)
+    scores = prefix_score(gold_tables, trace["ranked_tables"], budget)
+    scores["mrr"] = reciprocal_rank(gold_tables, trace["ranked_tables"], budget)
     scores["k"] = budget
     return scores
 
@@ -152,6 +170,11 @@ def main() -> None:
     parser.add_argument("--baseline-policy", default="fixed-5")
     parser.add_argument("--refresh", action="store_true", help="ignore cached traces and retrieve again")
     parser.add_argument(
+        "--gold", choices=("binding", "full"), default="binding",
+        help="'binding' scores the tables named by a row/column binding, which reproduces the live "
+             "precision/recall ratio; 'full' scores the restatement-widened set",
+    )
+    parser.add_argument(
         "--split", choices=("all", "dev", "test"), default="all",
         help="'test' is the frozen holdout; use it to confirm a decision, never to make one",
     )
@@ -161,6 +184,12 @@ def main() -> None:
     if args.cache.exists() and not args.refresh:
         traces = [json.loads(line) for line in args.cache.read_text(encoding="utf-8").splitlines() if line.strip()]
         print(f"reusing {len(traces)} cached traces from {args.cache}", file=sys.stderr)
+        if args.gold == "binding" and any("gold_tables_binding" not in trace for trace in traces):
+            print(
+                "warning: cached traces predate binding-only gold and are being scored against the "
+                "wider set; rerun with --refresh to get the definition that tracks live",
+                file=sys.stderr,
+            )
     else:
         traces = build_traces(labels, args.dataset_root, args.depth, args.table_mode, args.reranker)
         args.cache.parent.mkdir(parents=True, exist_ok=True)
@@ -192,7 +221,9 @@ def main() -> None:
     per_question: dict[str, dict[int, float]] = {}
     for name, rule in POLICIES.items():
         scored = {
-            trace["id"]: score(trace, rule(len(trace["selected_docs"]), tiers.get(trace["id"], "intermediate")))
+            trace["id"]: score(
+                trace, rule(len(trace["selected_docs"]), tiers.get(trace["id"], "intermediate")), args.gold,
+            )
             for trace in traces
         }
         per_question[name] = {identifier: values["f2"] for identifier, values in scored.items()}
