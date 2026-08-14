@@ -88,9 +88,15 @@ def validate(root: Path, expected_ids: set[int] | None = None, catalog_ids: set[
         elif CONSTANT_QUERY_RE.fullmatch(query):
             errors.append(f"{prefix}: pandas_query may not be a constant result")
         else:
-            unused = [variable for variable in variables if not re.search(rf"\b{re.escape(variable)}\b", query)]
-            if unused:
-                errors.append(f"{prefix}: pandas_query does not reference evidence variable(s) {unused}")
+            # The organizers require the query to compute its answer from the
+            # submitted tables rather than return a constant, and in the private
+            # phase they read the queries by hand. They do not require every
+            # submitted table to be read: a question needing one figure from six
+            # retrieved tables legitimately touches one. Demanding all of them
+            # produced "+ 0 * df3.shape[0]" padding on 97% of rows — terms that
+            # compute nothing, on queries a human is about to inspect.
+            if not any(re.search(rf"\b{re.escape(variable)}\b", query) for variable in variables):
+                errors.append(f"{prefix}: pandas_query reads none of its evidence variables")
     if expected_ids is not None and seen_ids != expected_ids:
         errors.append("Submission IDs do not exactly match the supplied question IDs")
     return errors

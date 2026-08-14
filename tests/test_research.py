@@ -655,3 +655,34 @@ def test_cached_traces_predating_binding_gold_still_score():
     assert cv.gold_of(stale, "binding") == ["r|1", "r|2"]
     assert cv.score(fresh, 1, "binding")["recall"] == 1.0
     assert cv.score(fresh, 1, "full")["recall"] == 0.5
+
+
+def test_submission_queries_need_not_read_every_submitted_table(tmp_path):
+    """A query reads the cells it needs; padding to touch all of them is noise.
+
+    The organizers reject a constant result and read the queries by hand in the
+    private phase, so a query must compute from a submitted table — but a
+    question needing one figure out of six retrieved tables legitimately touches
+    one. Requiring all of them appended "+ 0 * dfN.shape[0]" to 97% of rows,
+    terms that compute nothing on the very queries a reviewer inspects.
+    """
+    validate = load_script("validate_submission")
+
+    def package(query: str) -> Path:
+        root = tmp_path / query[:12].replace(" ", "_").replace("=", "")
+        (root / "data" / "tables").mkdir(parents=True, exist_ok=True)
+        for name in ("t0", "t1"):
+            (root / "data" / "tables" / f"{name}.csv").write_text("a,b\n1,2\n", encoding="utf-8")
+        (root / "submission.json").write_text(json.dumps([{
+            "id": 1, "question": "q", "answer": 1.0,
+            "relevant_docs": ["r"], "relevant_tables": ["r|1", "r|2"],
+            "evidence": [{"variable": "df0", "csv_path": "data/tables/t0.csv"},
+                         {"variable": "df1", "csv_path": "data/tables/t1.csv"}],
+            "pandas_query": query,
+        }]), encoding="utf-8")
+        return root
+
+    reads_one = validate.validate(package("result = float(df0.iloc[3, 1])"))
+    assert not [error for error in reads_one if "evidence variable" in error], reads_one
+    reads_none = validate.validate(package("result = 1234.0"))
+    assert reads_none, "a query reading no submitted table must still be rejected"

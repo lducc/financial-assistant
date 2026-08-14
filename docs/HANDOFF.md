@@ -314,3 +314,24 @@ main          bb7a295  research(results): audit public top submission
 ```
 
 Tests: 33 passing. Output junk wiped. Research dump removed from repo (was 451M).
+
+## Organizer Q&A (public test round, Aug 2026)
+
+Answers from the organizers' forum, which change several assumptions:
+
+| Question | Answer |
+|---|---|
+| Size of the public test set | **506 of the 1,012 questions.** Submit all 1,012 anyway — the other 506 may be used for the private round, and over-submitting is neither invalid nor penalised. |
+| What ranks the private round | **Retrieval metrics, answer accuracy and execution together.** The public board sorts on EXECUTION alone, so it does not reflect the final ranking. |
+| Answer tolerance | Within **0.02%** of the reference. |
+| Answer units | Whatever the question asks for: a percentage question wants `90`, not `0.9`. |
+| Empty `relevant_tables` | Valid, but forfeits the retrieval score. |
+| `pandas_query` | **Read by hand in the private round.** Assigning a constant (`result = <number>`) is rejected. |
+| 14B limit | **Per model**, not summed across the system. |
+| Fine-tuning | **Permitted.** A model fine-tuned now from a base released before 2026-06-01 is valid, and it may stay unpublished. The data source and method must be described and cited. |
+| Synthetic training data | **Permitted.** Generating (question, pandas query, answer) triples over the supplied corpus is accepted when answers are verified by executing the query against the source table, no test labels are used, and only open <=14B models generate. Cite the source, describe the process, and hand the generated data to the organizers. |
+
+Two consequences worth carrying forward. The public score is measured on half the
+questions and ranks on a metric the private round does not use alone, so a public
+delta is weaker evidence than a local bootstrap interval. And execution accuracy
+counts in the private ranking, where we sit at 0.1245 against Tables F2 0.486.
