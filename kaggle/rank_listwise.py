@@ -35,11 +35,19 @@ from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
 # model, so Qwen3-14B is legal and is the upgrade if 8B ranks well but not well
 # enough; it is roughly 1.7x slower and tight on a 16 GB card.
 MODEL_NAME = os.environ.get("MODEL_NAME", "Qwen/Qwen3-8B")
+# Comma-separate to rank several window files in one session, which is how the
+# position-bias control is run: the same 233 questions presented in ranking order
+# and reversed. Each input writes its own orders file named after it, so the two
+# passes cannot overwrite each other and the resume cannot mistake one for the
+# other — both cover the same question IDs, and a shared output would make the
+# second run skip every question and exit looking successful.
 WINDOWS_PATH = os.environ.get(
-    "WINDOWS_PATH", "/kaggle/input/vifinqa-rerank-pairs/windows_bench.jsonl",
+    "WINDOWS_PATH",
+    "/kaggle/input/vifinqa-rerank-pairs/windows_bench.jsonl,"
+    "/kaggle/input/vifinqa-rerank-pairs/windows_bench_rev.jsonl",
 )
-ORDERS_PATH = os.environ.get("ORDERS_PATH", "/kaggle/working/orders.jsonl")
-RESUME_PATH = os.environ.get("RESUME_PATH")
+OUTPUT_DIR = os.environ.get("OUTPUT_DIR", "/kaggle/working")
+RESUME_DIR = os.environ.get("RESUME_DIR")
 # Windows measure ~1,643 tokens; 3072 leaves room for the longest without
 # truncating a candidate out of the comparison.
 MAX_LENGTH = 3072
@@ -128,15 +136,27 @@ def main():
     ).eval()
     print(f"{MODEL_NAME} loaded in 8-bit, max_length={MAX_LENGTH}", flush=True)
 
-    records = load_jsonl(WINDOWS_PATH)
-    done = already_done(ORDERS_PATH) | already_done(RESUME_PATH)
+    for path in [item.strip() for item in WINDOWS_PATH.split(",") if item.strip()]:
+        rank_file(path, tokenizer, model)
+
+
+def rank_file(path, tokenizer, model):
+    """Rank one window file, writing an orders file named after it."""
+    name = os.path.basename(path).replace("windows", "orders")
+    orders_path = os.path.join(OUTPUT_DIR, name)
+    resume_path = os.path.join(RESUME_DIR, name) if RESUME_DIR else None
+
+    records = load_jsonl(path)
+    done = already_done(orders_path) | already_done(resume_path)
     if done:
-        print(f"resuming, {len(done)} questions already ordered", flush=True)
+        print(f"resuming {name}, {len(done)} questions already ordered", flush=True)
     pending = [record for record in records if record["id"] not in done]
-    print(f"{len(pending)} questions to order", flush=True)
+    print(f"\n{name}: {len(pending)} questions to order", flush=True)
+    if not pending:
+        return
 
     started, complete = time.time(), 0
-    with open(ORDERS_PATH, "a", encoding="utf-8") as out:
+    with open(orders_path, "a", encoding="utf-8") as out:
         for number, record in enumerate(pending, 1):
             prompt = build_prompt(record, tokenizer)
             encoded = tokenizer(
@@ -170,7 +190,7 @@ def main():
                 )
 
     print(
-        f"wrote {ORDERS_PATH} in {(time.time() - started) / 60:.1f} min; "
+        f"wrote {orders_path} in {(time.time() - started) / 60:.1f} min; "
         f"{complete}/{len(pending)} returned a complete permutation",
         flush=True,
     )
