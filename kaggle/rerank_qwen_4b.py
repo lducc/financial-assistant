@@ -4,7 +4,7 @@ The model that worked. On the first export it gave +0.0355 F2 on the benchmark
 and +0.023 live, against BGE-reranker-v2-m3 losing 0.15 — a general web-passage
 reranker is wrong for Vietnamese financial tables, this family is not.
 
-Reads pairs_v3.jsonl and writes scores.jsonl, which `apply_rerank_scores.py`
+Reads pairs_v4.jsonl and writes scores.jsonl, which `apply_rerank_scores.py`
 fuses locally. Retrieval is untouched: only the order of already-retrieved
 candidates changes, so a bad run is discarded by deleting one file.
 
@@ -13,7 +13,7 @@ member and they run from 300 to 2,800 characters — worth 25-40% of the runtime
 Scores append per question and finished IDs are skipped, so a session that hits
 the 12-hour limit is rerun rather than restarted.
 
-Runtime for 50,335 pairs at max_length 512: roughly 3-4 h on a T4.
+Runtime for 50,335 pairs at max_length 1024: roughly 6-8 h on a T4.
 """
 
 import json
@@ -24,19 +24,26 @@ import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
 MODEL_NAME = "Qwen/Qwen3-Reranker-4B"
-PAIRS_PATH = "/kaggle/input/vifinqa-rerank-pairs/pairs_v3.jsonl"
+PAIRS_PATH = "/kaggle/input/vifinqa-rerank-pairs/pairs_v4.jsonl"
 SCORES_PATH = "/kaggle/working/scores.jsonl"
 # 16% of candidates run past 320 tokens and the line-item inventory sits early in
-# the text, so 512 keeps what decides the ranking.
-MAX_LENGTH = 512
+# the text. 1024 covers the whole inventory for all but the widest tables, so
+# nothing that decides the ranking is cut; it is what the scored runs used.
+MAX_LENGTH = 1024
 BATCH_SIZE = 16
 
 INSTRUCTION = (
-    "The company, reporting period and statement scope of every candidate have "
-    "already been verified. Judge only one thing: does this table contain the "
-    "line item the question asks for? Vietnamese accounting labels differ by a "
-    "single word and mean different figures — chi phí lãi vay is not lãi tiền "
-    "gửi, and a note restating a figure counts as containing it."
+    "Every candidate is a table from the correct company, period and statement, "
+    "so none of those separate them — the whole judgement is which table inside "
+    "that report reports the figure. Answer yes if the table holds at least one "
+    "of the line items under 'Chỉ tiêu cần tìm' as a row of its own, with a "
+    "value for the period asked; a question often needs several figures and a "
+    "table only has to supply one of them. A matching label is not enough on "
+    "its own: the same wording appears on rows that only reference the item — "
+    "related-party and subsidiary listings, movement and allocation schedules, "
+    "and rows that are column headers rather than line items. Prefer the "
+    "statement or the note that reports the figure, and count a note or segment "
+    "breakdown restating it as yes."
 )
 PREFIX = (
     "<|im_start|>system\nJudge whether the Document meets the requirements based on the Query "

@@ -16,7 +16,7 @@ discarding the result means deleting one file.
 **1. Export the pairs (local, ~35 min)**
 
 ```
-python3 scripts/export_rerank_pairs.py --output output/rerank/pairs_v2.jsonl
+python3 scripts/export_rerank_pairs.py --output output/rerank/pairs_v4.jsonl
 ```
 
 Writes one record per question with its top-50 candidates and the table
@@ -31,7 +31,7 @@ actually contains. Pass `--inventory 0` to reproduce the old representation.
 
 **2. Upload to Kaggle**
 
-Create a Dataset named `vifinqa-rerank-pairs` containing `pairs_v3.jsonl`, and
+Create a Dataset named `vifinqa-rerank-pairs` containing `pairs_v4.jsonl`, and
 set `PAIRS_PATH` at the top of the script to match. Qwen scored the first export
 at F2 +0.0355 on the benchmark and +0.023 live, so it is the model to use;
 `rerank_bge.py` is kept only to document that a general web-passage reranker
@@ -44,17 +44,28 @@ paste one script into a cell → Run. Both print throughput and an ETA, and both
 write `/kaggle/working/scores.jsonl` (~1 MB) in the same format, so step 4 does
 not care which one produced it.
 
-| Script | Model | Memory | 50,335 pairs |
+| Script | Model | Memory | 50,335 pairs at 1024 |
 |---|---|---|---|
-| `rerank_qwen_4b.py` | Qwen3-Reranker-4B, fp16 | ~8 GB | 3–4 h |
-| `rerank_qwen_8b.py` | Qwen3-Reranker-8B, 8-bit | ~8.2 GB | 9–15 h, resumable |
+| `rerank_qwen_4b.py` | Qwen3-Reranker-4B, fp16 | ~8 GB | 6–8 h |
+| `rerank_qwen_8b.py` | Qwen3-Reranker-8B, 8-bit | ~8.2 GB | two 12 h sessions, resumable |
 | `rerank_bge.py` | bge-reranker-v2-m3 | ~1 GB | kept only as the record of a failure |
 
-**Run 4B first.** It is the configuration that has actually worked here: +0.0355
-F2 on the benchmark, +0.023 live. Whether 8B beats it is an open question — on
-reranking tasks the gap between sizes is usually smaller than the gap between the
-right and wrong model family, and BGE losing 0.15 F2 is what that gap looks like.
-Measure both on the benchmark before spending a submission on either.
+**Run 8B.** Both were scored at max_length 1024 on the `pairs_v3` export, measured
+on the 233-record benchmark against the sparse ranking:
+
+| ranking | MRR@5 | recall@5 | easy | medium | intermediate | hard |
+|---|---:|---:|---:|---:|---:|---:|
+| sparse | 0.7466 | 0.7234 | 0.890 | 0.765 | 0.673 | 0.614 |
+| 4B fuse | 0.7937 | 0.7670 | 0.914 | 0.818 | 0.736 | 0.672 |
+| 8B fuse | 0.8190 | 0.7932 | 0.937 | 0.827 | 0.779 | 0.694 |
+
+Replace loses at both sizes, as it has every time on this task. Fusing 4B and 8B
+together raises MRR to 0.8250 but drops recall to 0.7855 and regresses hard from
+0.694 to 0.669, so 8B alone is the ranking to use — F2 pays for recall.
+
+The window is what unlocked this. At 512 the same family moved live F2 by only
++0.023; the 16% of candidates that overflowed were losing the line-item inventory
+that says what a table holds.
 
 **8B loads in 8-bit** because 8.19B parameters is 16.4 GB in fp16 and a T4 has
 16 GB. At int8 it is about 8.2 GB, fits one card, and stays near-lossless. It is
@@ -83,9 +94,9 @@ scored, so a session that hits the 12-hour limit can be rerun to finish the rest
 Put `scores.jsonl` in `output/rerank/`, then:
 
 ```
-python3 scripts/apply_rerank_scores.py --pairs output/rerank/pairs_v3.jsonl \
+python3 scripts/apply_rerank_scores.py --pairs output/rerank/pairs_v4.jsonl \
     --scores output/rerank/scores.jsonl
-python3 scripts/apply_rerank_scores.py --pairs output/rerank/pairs_v3.jsonl \
+python3 scripts/apply_rerank_scores.py --pairs output/rerank/pairs_v4.jsonl \
     --scores output/rerank/scores.jsonl --mode replace   # trust the model outright
 ```
 
