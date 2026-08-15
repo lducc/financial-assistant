@@ -80,6 +80,25 @@ def bucket(count: int) -> str:
     return "1 table" if count == 1 else "2 tables" if count == 2 else "3-5 tables" if count <= 5 else "6+ tables"
 
 
+def reorder(trace: dict, ranking: dict[str, list[str]]) -> dict:
+    """Re-sort a cached trace's candidates into a reranked order.
+
+    A reranker only permutes; it cannot retrieve. Intersecting the ranking with
+    the candidates the trace already holds enforces that, so a table the model
+    named but that retrieval never surfaced cannot enter, and the four-state
+    attribution keeps meaning what it says: `candidate_miss` stays a retrieval
+    failure rather than becoming a ranking one. Candidates the ranking omits keep
+    their retrieved order behind the ones it named.
+    """
+    order = ranking.get(str(trace["id"]))
+    if not order:
+        return trace
+    candidates = list(dict.fromkeys(trace["ranked_tables"]))
+    named = [table for table in dict.fromkeys(order) if table in set(candidates)]
+    rest = [table for table in candidates if table not in set(named)]
+    return {**trace, "ranked_tables": named + rest}
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--dataset-root", type=Path, default=ROOT / "data" / "raw" / "vifinqa")
@@ -90,6 +109,12 @@ def main() -> None:
     parser.add_argument("--table-top-k", default="auto")
     parser.add_argument("--output", type=Path, default=ROOT / "output" / "diagnostics" / "report.json")
     parser.add_argument("--refresh", action="store_true")
+    parser.add_argument(
+        "--ranking", type=Path,
+        help="ranking.json from apply_rerank_scores.py or apply_listwise_order.py; the cached "
+             "candidates are re-sorted into this order before scoring, so two rankings are "
+             "compared over one retrieval rather than two",
+    )
     parser.add_argument(
         "--gold", choices=("binding", "full"), default="binding",
         help="'binding' scores the tables named by a row/column binding, which reproduces the live "
@@ -111,6 +136,12 @@ def main() -> None:
             "".join(json.dumps(trace, ensure_ascii=False) + "\n" for trace in traces), encoding="utf-8"
         )
 
+    if args.ranking:
+        ranking = json.loads(args.ranking.read_text(encoding="utf-8"))
+        covered = sum(1 for trace in traces if ranking.get(str(trace["id"])))
+        traces = [reorder(trace, ranking) for trace in traces]
+        print(f"reordered {covered}/{len(traces)} traces by {args.ranking}", file=sys.stderr)
+
     rows = []
     for trace in traces:
         record = records[trace["id"]]
@@ -120,7 +151,9 @@ def main() -> None:
         rows.append({
             "id": trace["id"],
             "tier": record["tier"],
-            "source": record["source"],
+            # Label sets other than the benchmark carry no `source` split; they are
+            # one provenance throughout, which is the point of scoring against them.
+            "source": record.get("source", "unsplit"),
             "size": bucket(len(gold_tables)),
             "budget": budget,
             "states": classify(trace, budget, args.gold),
@@ -137,6 +170,8 @@ def main() -> None:
     report = {
         "table_mode": args.table_mode,
         "table_top_k": args.table_top_k,
+        "ranking": str(args.ranking) if args.ranking else None,
+        "gold": args.gold,
         "overall": summarize(rows),
         "by_tier": grouped("tier"),
         "by_source": grouped("source"),
