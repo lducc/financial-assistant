@@ -551,7 +551,33 @@ def carries_figures(table: Table) -> bool:
     """
     if max((len(row) for row in table.rows), default=0) < 2:
         return False
+    if is_contents_page(table):
+        return False
     return any(NUMERIC_CELL_RE.search(cell) for row in table.rows for cell in row[1:])
+
+
+PAGE_RANGE_RE = re.compile(r"^\s*\d{1,3}\s*[-–]\s*\d{1,3}\s*$")
+
+
+def is_contents_page(table: Table) -> bool:
+    """Whether the table is the report's index rather than a statement.
+
+    Every report opens with a contents page — "Báo cáo lưu chuyển tiền tệ hợp
+    nhất | 10 - 11" — whose row labels are the names of the statements. That is
+    the best lexical match a question about cash flow will ever find, so the
+    retriever ranks it first, and the answer path then reads a page number as the
+    figure. `carries_figures` passed it because page numbers are numeric cells.
+
+    Measured on the shipped submission: 57 of 5,938 tables, across 32 questions,
+    each one an answer that could not have been right.
+    """
+    values = [cell for row in table.rows for cell in row[1:] if cell.strip()]
+    if not values:
+        return False
+    if any(tokenize(cell) == ["trang"] for row in table.rows for cell in row[1:]):
+        return True
+    # A page column is ranges and small integers; a statement column is not.
+    return sum(1 for cell in values if PAGE_RANGE_RE.match(cell)) / len(values) >= 0.5
 
 
 def materialize_candidate_rows(candidates: list[Report]) -> tuple[list[Table], list[tuple[Table, int, str]]]:
