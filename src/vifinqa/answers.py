@@ -202,10 +202,32 @@ def line_item_phrases() -> tuple[str, ...]:
 
 
 def answer_plan(question: str, values: list[EvidenceValue]) -> tuple[float, str] | None:
+    """The answer and a Pandas expression that reproduces it.
+
+    Both halves are scored, separately: `answer` against the organizers' figure,
+    and the query's own result against it again through execution. So the two
+    have to agree, and they did not. `present` rounds to two decimals because the
+    scorer compares within 0.02%, while the expression was emitted unrounded — on
+    a figure of 1.42 the query returned 1.4229, which is 0.20% out and fails by
+    ten times the tolerance. It cost 231 of 1,012 questions: executing the
+    shipped queries against their own CSVs reproduced the submitted answer 738
+    times, and 967 with the rounding applied.
+
+    Wrapping here rather than in each branch keeps it true of every operation,
+    including any added later.
+    """
+    plan = _unrounded_plan(question, values)
+    if plan is None:
+        return None
+    value, expression = plan
+    return value, f"round({expression}, 2)"
+
+
+def _unrounded_plan(question: str, values: list[EvidenceValue]) -> tuple[float, str] | None:
     """Plan only common arithmetic when every operand is source-bound evidence.
 
     The returned figure is in the unit the question asks for and rounded to two
-    decimals, because the scorer compares against that within 0.02%.
+    decimals; the expression is not, and `answer_plan` rounds it.
     """
     if not values:
         return None
