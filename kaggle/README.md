@@ -104,6 +104,45 @@ Writes `output/rerank/ranking.json`. Fusion is the default because on this task
 every replacement has lost and every fusion that earned its place has won;
 `--mode replace` exists so the difference can be measured rather than assumed.
 
+## Score both cells of an A/B in one session
+
+Scores are not reproducible across sessions: the same model, prompt and candidate
+text scored twice agree on 138 of 11,592 pairs, and rebuilding the ranking from
+the other run's scores moves benchmark F2 by +0.0076, CI [-0.0063, +0.0235]. int8
+is not batch-invariant — bitsandbytes decomposes outlier features per batch, and
+batches are packed from whatever candidate set the run holds. So a control from
+one session and a treatment from another differ by more than the treatment.
+
+Two things fix it, and the next run should use both. Take **GPU T4 x2** and set
+`QUANTIZATION=fp16`: at 16.4 GB the 8B model does not fit one T4 but does fit
+across two, and fp16 is exact as well as 1.5-2x faster than int8 on Turing. Then
+run both cells in the same notebook, changing only the factor under test:
+
+```
+PAIRS_PATH=.../pairs_bench_v4.jsonl QUANTIZATION=fp16 \
+  PER_ITEM=0 SCORES_PATH=/kaggle/working/scores_bench_fp16.jsonl          # 11,592 pairs
+PAIRS_PATH=.../pairs_bench_v4.jsonl QUANTIZATION=fp16 \
+  PER_ITEM=1 SCORES_PATH=/kaggle/working/scores_bench_fp16_peritem.jsonl  # 16,383 pairs
+```
+
+Then locally:
+
+```
+python3 scripts/compare_rerank_runs.py --pairs output/rerank/pairs_bench_v4.jsonl \
+    --control output/rerank/scores_bench_fp16.jsonl \
+    --treatment output/rerank/scores_bench_fp16_peritem.jsonl
+```
+
+It reports the raw agreement, an A/A stratum — the 150 of 233 questions whose
+prompt is byte-identical under both settings, so their difference is drift — and
+the 83 treated questions. The treated stratum has to clear the A/A stratum before
+any of it is the method.
+
+`SKIP_PATH` is the other half of not wasting a session: point it at a finished
+score file and its (question, table) pairs are not judged again, so scoring
+`pairs_v4_d100.jsonl` on top of `scores_v4.jsonl` costs 40,391 pairs rather than
+90,726. `apply_rerank_scores.py --scores a --scores b` unions them back together.
+
 ## Testing a prompt without burning a full run
 
 The instruction and the query shape matter as much as the model here. Scoring all

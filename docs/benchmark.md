@@ -121,6 +121,27 @@ cross-validated mean improves, the bootstrap CI on the delta excludes zero, and
 no difficulty tier regresses. Report the interval, never the point estimate
 alone.
 
+**Cross-encoder scores are not reproducible, so pair the runs.** The same model,
+prompt and candidate text scored in two Kaggle sessions agree on 138 of 11,592
+pairs, mean |delta| 0.0098 and max 0.389. Rebuilding the ranking from the other
+run's scores moves F2 by +0.0076, CI [-0.0063, +0.0235] — a third of the
+interval above, bought by changing nothing.
+
+So a comparison whose two sides come from different sessions is not a comparison
+of methods. Either score both cells in one session, or report the drift beside
+the effect:
+
+```
+python3 scripts/compare_rerank_runs.py --pairs output/rerank/pairs_bench_v4.jsonl \
+    --control <baseline scores> --treatment <scores under test>
+```
+
+It prints the raw agreement, an A/A stratum of the questions whose prompt is
+identical under both settings, and the treated stratum. The treated stratum has
+to beat the A/A stratum before any of the difference is the method. Passing
+`--aa-items 99` makes the whole set an A/A, which is how to measure drift on
+purpose.
+
 ## What it can and cannot resolve
 
 Resampling gives a CI half-width of roughly 0.023 F2 overall, so effects above

@@ -457,3 +457,71 @@ The constraint is the ruler, not the ranker. `benchmark_hard_deferred.jsonl`
 carries 93 `branch_unresolved` and 80 `needs_review` questions; resolving them is
 the highest-value work left, because it is what would let any of the rejections
 above be revisited with enough resolution to mean something.
+
+## The reranker does not score the same pair twice
+
+`scores_bench_v4.jsonl` and `scores_bench_d100.jsonl` overlap on 11,592
+(question, table) pairs. The candidate text is byte-identical on all 11,592 —
+checked, not assumed — and both were scored by Qwen3-Reranker-8B in int8 with the
+same prompt. **138 of the scores agree.** Mean |delta| is 0.0098 and the maximum
+is 0.389.
+
+Rebuilding the ranking from the same 50 candidates but the other run's scores
+moves benchmark F2 by **+0.0076, CI [-0.0063, +0.0235]**. Nothing changed but the
+session.
+
+The cause is that int8 is not batch-invariant: bitsandbytes decomposes outlier
+features per batch, and the batches are packed from whatever candidate set the
+run holds, so a deeper export repacks the shallower one's pairs into different
+batches. `QUANTIZATION=fp16` is exact and, on Turing, 1.5-2x faster; it has never
+been used here because it needs a T4 x2 rather than the single card, which Kaggle
+offers.
+
+### What it costs the record
+
+The depth-100 result was measured across two sessions and is therefore two
+things at once. Decomposed:
+
+| | benchmark F2 | vs the row above |
+|---|---:|---|
+| depth-50 pool, depth-50 run | 0.6508 | — |
+| depth-50 pool, depth-100 run | 0.6584 | **+0.0076**, CI [-0.0063, +0.0235] — drift |
+| depth-100 pool, depth-100 run | 0.6650 | **+0.0066**, CI [-0.0006, +0.0150] — the candidates |
+
+So depth 100 is worth +0.0066, not the +0.0100 recorded in `ASSESSMENT.md` or the
++0.0142 the end-to-end comparison reads. The mechanism agrees: depth 100 adds
+9,158 candidates of which 58 are gold (0.6%), only **3** ever reach the submitted
+budget, and of the +16 net gold tables gained inside budget, **14 come from
+re-ordering the original 50** — that is, from the drift. Deeper retrieval is
+nearly all ceiling and almost no floor: the extra gold sits at sparse ranks
+51-100 and the reranker does not lift it.
+
+Every cross-session comparison in this file inherits the same ~0.008. The
+4B-versus-8B result (+0.0088) is no longer distinguishable from it. The
+v3-versus-v4 representation result (+0.0428) is large enough to survive.
+Same-session comparisons — every fusion weight, budget rule, tier switch and
+selection policy, all scored offline from one cached score file — are unaffected,
+which is most of what this file records.
+
+### The rule that follows
+
+A ranking comparison is valid only when both sides come from one session, or when
+the drift is measured beside it. `scripts/compare_rerank_runs.py` does the second:
+raw agreement, an A/A stratum of the questions whose prompt is identical under
+both settings, and the treated stratum. For `PER_ITEM` the split is free —
+`build_queries` returns a byte-identical prompt for questions naming zero or one
+line item, 150 of the benchmark's 233 — so the noise floor is measured inside the
+real run at no extra cost.
+
+That the strata are not self-evidently safe is worth seeing: on the pure-drift
+pair above, the A/A stratum reads +0.0028 while the treated stratum reads
++0.0163. Both are noise. A treated-stratum gain is only a result once it clears
+the A/A stratum measured in the same pair of runs.
+
+### Why this is the most useful thing in the file
+
+The ~+/-0.02 resolution that closed most of the ideas above was treated as a
+property of a 233-record benchmark, and so as something only more labels could
+fix. A third of it is drift, and drift is fixable in an afternoon by scoring both
+cells in one fp16 session. That reopens effects in the 0.01-0.025 band, which is
+where `PER_ITEM` sits at a +0.0254 ceiling.

@@ -12,7 +12,7 @@ hypothesis that motivated the work.
 |---|---|
 | Does the v4 candidate representation beat the v3 one that produced live 0.486? | Yes. +0.0301 F2, CI excludes zero, no tier regresses. **Submitted as `output/submission_v4`.** |
 | Does listwise reranking help on top of it? | No. −0.0458 F2, CI excludes zero, every tier down. Rejected; no package built. |
-| What should the next GPU run be? | Pointwise at depth 100 over the full corpus, not `windows_full`. Depth 100 is +0.0100 with the CI excluding zero, and it attacks the one loss reranking cannot reach. |
+| What should the next GPU run be? | Pointwise at depth 100 over the full corpus, not `windows_full`. Depth 100 is +0.0100 with the CI excluding zero, and it attacks the one loss reranking cannot reach. **Superseded by §8:** +0.0100 is +0.0066 of depth and +0.0076 of cross-session drift, so the next run is the `PER_ITEM` A/B in one fp16 session. |
 
 ---
 
@@ -173,6 +173,11 @@ it is now the only listwise route left. **`windows_full.jsonl` and
 measured regression to all 1,012 questions.
 
 ### Depth 100 — ACCEPT the finding, but it is not buildable today
+
+> **Corrected in §7.** This comparison puts a depth-50 run against a depth-100
+> run, and cross-encoder scores are not reproducible across Kaggle sessions. The
+> drift alone is worth +0.0076; the depth-100 candidates are worth **+0.0066**.
+> Everything below is the sum of the two.
 
 | | delta F2 | CI95 |
 |---|---:|---|
@@ -366,6 +371,21 @@ Only the last clears the standing rule, and it needs the depth-100 scores. That
 changes what the depth-100 run is for: not the +0.0100 it is worth alone, but the
 thing that makes this combination decidable.
 
+**Corrected in §7.** The last row compares scores from two Kaggle sessions; the
+rows above it are all scored offline from one file and are unaffected. Holding
+the policy fixed at replace-on-hard+intermediate and moving only the scores:
+
+| | benchmark F2 | vs the row above |
+|---|---:|---|
+| depth-50 pool, depth-50 run | 0.6700 | — |
+| depth-50 pool, depth-100 run | 0.6763 | +0.0062, CI [−0.0059, +0.0206] — drift |
+| depth-100 pool, depth-100 run | 0.6847 | +0.0084, CI [−0.0017, **+0.0212**] — candidates |
+
+The depth component does not clear zero. The +0.0298 above is measured against
+plain fuse at depth 50, so it is the policy, the depth and the drift together;
+none of the three is established on its own by it, and the combination is not
+shipped.
+
 **Stated plainly because it matters more than the headline:** the policy was
 chosen after looking at tier deltas on this data. On the frozen test half — 65
 records, never used to choose anything — the same policy is worth **+0.0087**,
@@ -458,8 +478,10 @@ kaggle/rerank_qwen_8b.py            ADAPTER_PATH re-scores the pool with the
    fuse, and compare against `ranking_v4_fuse.json` on the benchmark under the
    standing rule. This is where +0.147 of oracle headroom lives.
 2. **Run pointwise 8B over `pairs_v4_d100.jsonl`** if GPU time is spare. Measured
-   +0.0100; the only lever that touches `candidate_miss`, and the only one that
-   raises the oracle ceiling (0.8020 → 0.8255).
+   +0.0100 — corrected to **+0.0066** in §7, the rest being cross-session drift;
+   the only lever that touches `candidate_miss`, and the only one that raises the
+   oracle ceiling (0.8020 → 0.8255). It raises the ceiling far more than the
+   floor: 3 of the 9,158 candidates it adds reach the submitted budget.
 3. **Do not run `windows_full*.jsonl`.** Listwise is measured negative.
 4. **Narrow `accepted.jsonl`'s gold** if it is ever to be used as a ruler rather
    than as training data — see §4b.
@@ -513,3 +535,53 @@ near-duplicate tables from inside one filing. The 173 deferred questions in
 `annotations/benchmark_hard_deferred.jsonl` are the highest-value remaining work,
 because a benchmark that resolves better than ±0.02 is what would make any further
 ranking decision possible.
+
+## 8. The reranker is not reproducible, and it re-reads several rows above
+
+Corrects §5 item 2, the depth-100 section, and the tier-conditional table.
+
+`scores_bench_v4.jsonl` and `scores_bench_d100.jsonl` share 11,592
+(question, table) pairs. The candidate text is byte-identical on all of them and
+both were scored by the same model in int8 with the same prompt. **138 of the
+scores agree**, mean |delta| 0.0098, max 0.389. Rebuilding the ranking from the
+same 50 candidates but the other run's scores moves benchmark F2 by **+0.0076,
+CI [-0.0063, +0.0235]**.
+
+§1 already noticed this and put it at 0.0041 F2, unpaired, as a caveat on future
+deltas. Paired per question it is +0.0076, and the point of §8 is that the caveat
+was never applied: the depth-100 result on which §5's GPU plan rests is a
+cross-session comparison and spends most of that on drift.
+
+int8 is not batch-invariant — bitsandbytes decomposes outlier features per batch,
+and batches are packed from whatever candidate set a run holds — so a deeper
+export repacks the shallower one's pairs. `QUANTIZATION=fp16` is exact and
+1.5-2x faster on Turing; it has never been used here only because it needs a
+T4 x2, which Kaggle offers.
+
+What it changes:
+
+- **Depth 100 is +0.0066, not +0.0100.** The rest was drift. Under the
+  tier-conditional policy the depth component is +0.0084, CI [-0.0017, +0.0212],
+  which does not clear zero.
+- **Depth 100 raises the ceiling far more than the floor.** It adds 9,158
+  candidates of which 58 are gold (0.6%); 3 reach the submitted budget; and of
+  the +16 net gold tables gained inside budget, 14 come from re-ordering the
+  original 50 rather than from any new candidate.
+- **4B versus 8B (+0.0088) is no longer distinguishable from drift.** v3 versus
+  v4 (+0.0428) is.
+- Everything scored offline from a single score file — every fusion weight,
+  budget rule, tier switch, selection policy and the listwise result — is
+  unaffected. That is most of §5.
+
+`scripts/compare_rerank_runs.py` is the instrument: raw agreement, an A/A stratum
+of the questions whose prompt is identical under both settings, and the treated
+stratum. On the pure-drift pair above the A/A stratum reads +0.0028 and the
+treated stratum +0.0163, both noise — which is why the treated stratum has to
+clear the A/A stratum measured in the same pair before it counts.
+
+The consequence is larger than any single correction. The ~±0.02 resolution that
+closed most of this project's ideas was treated as a property of a 233-record
+benchmark, fixable only with more labels. A third of it is drift, removable by
+scoring both cells in one fp16 session. That reopens the 0.01-0.025 band, which
+is where `PER_ITEM` sits at a +0.0254 ceiling — so the next run is that A/B, not
+a bigger model and not more depth.

@@ -24,8 +24,14 @@ any pairs export; only the candidate *text* the model saw differs between them.
 
 `scores_v4.jsonl` and `scores_bench_v4.jsonl` are the same representation but not
 the same run: no question has an identical ordering, top-1 agrees on 189 of 233,
-and the two fuse to 0.6549 and 0.6508 respectively. Treat 0.004 F2 as the floor
-of what a re-run alone can move.
+and the two fuse to 0.6549 and 0.6508 respectively.
+
+That floor is higher than it looks and it is not a property of these two files.
+Paired per question, re-scoring the identical pairs in another session is worth
+**+0.0076 F2, CI [-0.0063, +0.0235]** — 138 of 11,592 scores agree, mean |delta|
+0.0098. int8 is not batch-invariant. So no score file here may be compared with
+another as if the difference were method; see `docs/ASSESSMENT.md` §8 and use
+`scripts/compare_rerank_runs.py`, or score both cells in one fp16 session.
 
 ## Rebuilding everything else
 
@@ -93,6 +99,11 @@ Benchmark F2 under `--gold binding` at the shipped budget, via
 | `ranking_v4_fuse.json` | 0.6549 |
 | `ranking_listwise_bench.json` | 0.6050 |
 | `ranking_bench_d100.json`, on a depth-100 cache | 0.6650 |
+
+`ranking_bench_d100.json` scores 0.6646 against the committed depth-50 cache,
+because `reorder` cannot submit a table retrieval did not return; 0.6650 needs
+the depth-100 candidates. The difference between the two is the whole realized
+value of the extra candidates — 3 of the 9,158 reach the submitted budget.
 
 Earlier revisions of this file claimed 0.6562 and 0.6692 for the second and last
 of those. Those figures came from inline commands that no longer exist and do not
