@@ -341,3 +341,119 @@ are chasing are ~0.02. The gate existed to prevent talking ourselves past it.
 The proposals are kept at `annotations/train/` — queue, proposals and accepted,
 each carrying a `report_disjoint` flag — so the decision can be revisited without
 recomputing anything.
+
+## The instrument became the constraint
+
+A session spent on retrieval closed roughly twenty lines and opened one. The
+common cause is not that the ideas were bad. It is that the 233-record benchmark
+resolves a paired cluster-bootstrap delta to about **±0.02**, and almost
+everything left to try is smaller than that. What follows is recorded so none of
+it is run twice.
+
+Live Tables F2 over four submissions, all on the same candidate sets:
+
+| submission | rule | Tables F2 |
+|---|---|---:|
+| `submission_v4` | v4 representation, unweighted RRF | 0.5118 |
+| `submission_v4_tiered` | tier-conditional replace | **0.5221** |
+| `submission_v4_w03` | weighted RRF, w=0.3 | 0.5167 |
+| `submission_v4_w00` | model order alone, w=0 | 0.5192 |
+
+### Measured and rejected
+
+- **Listwise reranking**, Borda over both presentation orders: −0.0458.
+- **Fusion weight.** A swept `w=0.3` beat the shipped `w=0.5` on the benchmark
+  and lost live, 0.5167 against 0.5221. The curve it was fitted from is jagged
+  and the inner cross-validation folds overlap 75%, so "stable in four of five
+  folds" was never the evidence it appeared to be. The live number settles it.
+- **Ensembling** the 4B and 8B rankings, four variants: none clears the interval.
+- **Coverage and submodular selection.** Only 3 of 233 questions have a budget
+  whose composition could be improved by trading a redundant table for a missing
+  one, which caps the whole idea below the noise floor.
+- **Slot reallocation** between reports inside a fixed budget: +0.0044.
+- **Budget by named line-item count**, five formulas. A swept version gave
+  +0.0178; the principled version, predicting gold as
+  `1.2 x reports + 1.0 x items`, gave **−0.0124**. The swept gain was noise.
+- **Adaptive budget on score confidence**, and **per-report retrieval depth**:
+  both inside the interval.
+- **Period metadata** as a ranking signal: gold tables are 1.08x more likely to
+  match the asked period than non-gold, which is not a usable margin.
+- **Statement-type staging.** Routing by statement type is worth +0.0673 with an
+  oracle label and **−0.1009** with the classifier we can actually build. This is
+  the standing proof that an oracle bound motivates nothing on its own.
+- **The proposer as a retriever.** `propose_multihop_labels.py` searches raw OCR
+  with no retriever in the loop, so it is an independent ranker; scored as one it
+  reaches 0.5632 to 0.6874 against the shipped pipeline's 0.7050 on the same
+  questions.
+- **A dense head over frozen E5 embeddings** — see the commit; the gold-to-non-gold
+  cosine gap is +0.0160 and no head recovers a signal that small.
+- **A hard-only gold set** as a sharper instrument: 14 records, and their gold is
+  systematically wider than the main benchmark's.
+
+### Two claims withdrawn
+
+The tier-conditional rule is live-validated at +0.0103 and the *mechanism* offered
+for it was not. Sparse score dispersion is flat across tiers (0.0049 to 0.0054)
+and the gain from `replace` is non-monotonic in gated report count, so "the model
+should take over where the sparse signal is weakest" is a story the data does not
+tell. The rule ships on its measured result alone.
+
+A filter dropping tables whose cells are all small integers was proposed as junk
+removal. Inspection of what it caught showed subsidiary-ownership tables and
+reserve-ratio tables, whose values are legitimately percentages. Withdrawn.
+
+### Decomposition is stage-dependent, and 566fd47 does not close it
+
+`566fd47` rejected lexicon query decomposition at −0.0302 F2, CI [−0.0553,
+−0.0059], with intermediate at −0.1053 and only hard gaining. It is easy to read
+that as "decomposition does not work here". It measured something narrower: the
+sub-queries were fused into the *retrieval* ranking, and its own diagnosis —
+reciprocal rank weights every signal identically, so a merely good signal dilutes
+better ones — is dilution at the fusion stage.
+
+arXiv 2606.08577 reports the same effect as a general finding, and separates it
+by stage: decomposition during initial retrieval frequently harms retrieval
+through semantic dilution, yet substantially improves reranking by enabling
+finer-grained constraint verification. Their framework keeps the monolithic query
+at retrieval and uses sub-queries only at reranking. Under that reading `566fd47`
+is a confirmation, not a refutation, and the reranking-stage version — `PER_ITEM`
+in `kaggle/rerank_qwen_8b.py`, one query per named line item reduced by `max` —
+has never been run.
+
+One difference matters. Their constraints are conjunctive, so they aggregate by
+min or product; ours is disjunctive at table level, because a table counts if it
+supplies any one of the named items. The stage finding transfers; the aggregation
+does not, and `max` is what the task requires.
+
+The headroom is small. On the benchmark, F2 by named item count is 0.6923 at one
+item (n=149), 0.6115 at two (n=70) and 0.6731 at three (n=13), so the optimistic
+ceiling — two- and three-item questions rising to the one-item level, nothing
+regressing — is **+0.0254**, which is the resolution limit. `build_queries`
+returns a byte-identical string for zero- and one-item questions under both
+settings, so exactly 83 of 233 benchmark questions can move at all. That is why
+the run goes straight to the full corpus and is judged live on 506 questions
+rather than gated here.
+
+Note that the corpus-wide gradient quoted while this was being planned (0.653 /
+0.471 / 0.384 for one, two and three items) does not reproduce on the benchmark,
+where three-item scores above two-item.
+
+### What is actually binding
+
+Representation beats capacity: changing the candidate representation was worth
++0.0428, doubling the model from 4B to 8B +0.0088. And the benchmark flatters
+progress — it captures 43.6% of the oracle gap against 29.9% on retriever-free
+labels — though the oracle *level* generalises (0.8020 against 0.7846), so it
+still bounds correctly even where it over-credits movement.
+
+FinRank (arXiv 2608.07400) measures hard-negative discrimination as a task in its
+own right. Every model family drops from 88-96% pairwise accuracy on random
+negatives to 70-80% on curated hard negatives. Their hard negatives are 80%
+cross-company; ours are near-duplicate tables inside a single filing, which is
+strictly harder. Nobody has solved this, so a large local gain from a better
+ranker is not the reasonable expectation.
+
+The constraint is the ruler, not the ranker. `benchmark_hard_deferred.jsonl`
+carries 93 `branch_unresolved` and 80 `needs_review` questions; resolving them is
+the highest-value work left, because it is what would let any of the rejections
+above be revisited with enough resolution to mean something.
