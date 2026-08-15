@@ -113,10 +113,18 @@ is not batch-invariant — bitsandbytes decomposes outlier features per batch, a
 batches are packed from whatever candidate set the run holds. So a control from
 one session and a treatment from another differ by more than the treatment.
 
-Two things fix it, and the next run should use both. Take **GPU T4 x2** and set
-`QUANTIZATION=fp16`: at 16.4 GB the 8B model does not fit one T4 but does fit
-across two, and fp16 is exact as well as 1.5-2x faster than int8 on Turing. Then
-run both cells in the same notebook, changing only the factor under test:
+**The fix that always works is running both cells in one session**, changing only
+the factor under test. Do that first; it costs nothing and needs no new code
+path.
+
+`QUANTIZATION=fp16` on **GPU T4 x2** is the optional upgrade. 16.4 GB does not
+fit one T4 but splits across two, and dropping the int8 outlier path should
+shrink the drift — not to zero, since fp16 matmuls are not batch-invariant
+either. Two caveats before spending a session on it: nothing here has ever run
+it, and the 1.5-2x speed figure is a single-card int8-versus-fp16 comparison, not
+a measurement of this model split across two cards, where the layers run as a
+pipeline and one card idles while the other computes. If it misbehaves, fall back
+to int8 and keep both cells in the one session.
 
 ```
 PAIRS_PATH=.../pairs_bench_v4.jsonl QUANTIZATION=fp16 \

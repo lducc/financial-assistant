@@ -554,9 +554,16 @@ cross-session comparison and spends most of that on drift.
 
 int8 is not batch-invariant — bitsandbytes decomposes outlier features per batch,
 and batches are packed from whatever candidate set a run holds — so a deeper
-export repacks the shallower one's pairs. `QUANTIZATION=fp16` is exact and
-1.5-2x faster on Turing; it has never been used here only because it needs a
-T4 x2, which Kaggle offers.
+export repacks the shallower one's pairs. `QUANTIZATION=fp16` drops that path and
+should shrink the drift a long way, but it does not remove it: fp16 matmuls are
+not batch-invariant either, since cuBLAS selects kernels by shape and the
+accumulation order moves with batch composition. It also has never been run here
+— it needs the T4 x2 Kaggle offers, and the 1.5-2x speed figure is the
+single-card bitsandbytes comparison, not a measurement of this workload split
+across two cards as pipeline parallelism.
+
+So fp16 sharpens the instrument and does not guarantee it. What guarantees it is
+the A/A stratum, which measures whatever drift survives inside the run itself.
 
 What it changes:
 

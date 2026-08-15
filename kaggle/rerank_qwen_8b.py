@@ -71,8 +71,12 @@ RERANK_DEPTH = 100
 # int8 is the setting that has been measured here, and it stays. The task turns
 # on separating labels that differ by one word, where the yes-probabilities sit
 # close together, and that is the first thing coarser quantization blurs. "nf4"
-# is faster on Turing and "fp16" is both faster and exact but needs a T4 x2 to
-# hold 16.4 GB; neither has been scored, so neither is the default.
+# is faster on Turing; "fp16" runs the released weights without the int8 outlier
+# path, which is the largest source of the run-to-run drift measured in
+# docs/ASSESSMENT.md §8, but it needs a T4 x2 to hold 16.4 GB and then runs as a
+# pipeline across the two cards, so it is not simply the single-card 1.5-2x. It
+# would also not make scoring reproducible: fp16 matmuls are not batch-invariant
+# either. Neither has been scored, so neither is the default.
 QUANTIZATION = os.environ.get("QUANTIZATION", "int8")
 # Score each named line item as its own query and keep the best, instead of one
 # query listing all of them. 550 of 1,012 questions name two or three items, and
@@ -300,11 +304,12 @@ def main():
 
     tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME, padding_side="left")
     if QUANTIZATION == "fp16":
-        # 16.4 GB does not fit one 16 GB T4, but it fits across two, and layer
-        # splitting costs only a transfer at each boundary. That buys back more
-        # than it costs: bitsandbytes int8 computes outlier features in higher
-        # precision and runs 1.5-2x slower than fp16 on Turing. Faster and
-        # lossless, so it needs GPU T4 x2 rather than P100.
+        # 16.4 GB does not fit one 16 GB T4, but it fits across two. Accelerate
+        # splits it by layer, so the cards run as a pipeline: one computes while
+        # the other waits, and a hidden state crosses at each boundary. Against
+        # that, bitsandbytes int8 computes outlier features in higher precision
+        # and runs 1.5-2x slower than fp16 per card. Which way the two effects
+        # net out on this workload is unmeasured. Needs GPU T4 x2, not P100.
         config, placement = None, "auto"
     elif QUANTIZATION == "nf4":
         config = BitsAndBytesConfig(

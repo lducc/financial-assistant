@@ -473,9 +473,11 @@ session.
 The cause is that int8 is not batch-invariant: bitsandbytes decomposes outlier
 features per batch, and the batches are packed from whatever candidate set the
 run holds, so a deeper export repacks the shallower one's pairs into different
-batches. `QUANTIZATION=fp16` is exact and, on Turing, 1.5-2x faster; it has never
-been used here because it needs a T4 x2 rather than the single card, which Kaggle
-offers.
+batches. `QUANTIZATION=fp16` drops that path and should shrink the drift, though
+not to zero — fp16 matmuls are not batch-invariant either, since cuBLAS picks
+kernels by shape. It has never been run here: it needs the T4 x2 Kaggle offers,
+and the 1.5-2x speed figure is a single-card comparison rather than a measurement
+of this model split across two cards, where one idles while the other computes.
 
 ### What it costs the record
 
