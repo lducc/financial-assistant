@@ -1,0 +1,291 @@
+{"id": 36, "reason": "item_dropped_as_generic"}
+{"id": 111, "reason": "item_dropped_as_generic"}
+{"id": 125, "reason": "no_match"}
+{"id": 210, "reason": "item_dropped_as_generic"}
+{"id": 229, "reason": "no_match"}
+{"id": 234, "reason": "no_match"}
+{"id": 247, "reason": "item_dropped_as_generic"}
+{"id": 281, "reason": "no_match"}
+{"id": 289, "reason": "item_dropped_as_generic"}
+{"id": 323, "reason": "no_match"}
+{"id": 362, "reason": "branch_unresolved", "gated_reports": 7, "note": "the question selects among these reports; which ones it needs is not derivable from the row-label search and is not guessed"}
+{"id": 364, "reason": "branch_unresolved", "gated_reports": 8, "note": "the question selects among these reports; which ones it needs is not derivable from the row-label search and is not guessed"}
+{"id": 367, "reason": "branch_unresolved", "gated_reports": 10, "note": "the question selects among these reports; which ones it needs is not derivable from the row-label search and is not guessed"}
+{"id": 368, "reason": "no_match"}
+{"id": 369, "reason": "item_dropped_as_generic"}
+{"id": 370, "reason": "branch_unresolved", "gated_reports": 9, "note": "the question selects among these reports; which ones it needs is not derivable from the row-label search and is not guessed"}
+{"id": 371, "reason": "item_dropped_as_generic"}
+{"id": 372, "reason": "item_dropped_as_generic"}
+{"id": 373, "reason": "branch_unresolved", "gated_reports": 16, "note": "the question selects among these reports; which ones it needs is not derivable from the row-label search and is not guessed"}
+{"id": 374, "reason": "needs_review"}
+{"id": 375, "reason": "item_dropped_as_generic"}
+{"id": 376, "reason": "needs_review"}
+{"id": 377, "reason": "branch_unresolved", "gated_reports": 12, "note": "the question selects among these reports; which ones it needs is not derivable from the row-label search and is not guessed"}
+{"id": 378, "reason": "branch_unresolved", "gated_reports": 8, "note": "the question selects among these reports; which ones it needs is not derivable from the row-label search and is not guessed"}
+{"id": 379, "reason": "item_dropped_as_generic"}
+{"id": 381, "reason": "branch_unresolved", "gated_reports": 7, "note": "the question selects among these reports; which ones it needs is not derivable from the row-label search and is not guessed"}
+{"id": 383, "reason": "item_dropped_as_generic"}
+{"id": 385, "reason": "branch_unresolved", "gated_reports": 10, "note": "the question selects among these reports; which ones it needs is not derivable from the row-label search and is not guessed"}
+{"id": 387, "reason": "item_dropped_as_generic"}
+{"id": 389, "reason": "needs_review"}
+{"id": 391, "reason": "branch_unresolved", "gated_reports": 8, "note": "the question selects among these reports; which ones it needs is not derivable from the row-label search and is not guessed"}
+{"id": 393, "reason": "branch_unresolved", "gated_reports": 6, "note": "the question selects among these reports; which ones it needs is not derivable from the row-label search and is not guessed"}
+{"id": 394, "reason": "needs_review"}
+{"id": 395, "reason": "needs_review"}
+{"id": 396, "reason": "needs_review"}
+{"id": 397, "reason": "branch_unresolved", "gated_reports": 8, "note": "the question selects among these reports; which ones it needs is not derivable from the row-label search and is not guessed"}
+{"id": 399, "reason": "branch_unresolved", "gated_reports": 14, "note": "the question selects among these reports; which ones it needs is not derivable from the row-label search and is not guessed"}
+{"id": 400, "reason": "branch_unresolved", "gated_reports": 6, "note": "the question selects among these reports; which ones it needs is not derivable from the row-label search and is not guessed"}
+{"id": 401, "reason": "branch_unresolved", "gated_reports": 10, "note": "the question selects among these reports; which ones it needs is not derivable from the row-label search and is not guessed"}
+{"id": 402, "reason": "needs_review"}
+{"id": 405, "reason": "needs_review"}
+{"id": 406, "reason": "branch_unresolved", "gated_reports": 6, "note": "the question selects among these reports; which ones it needs is not derivable from the row-label search and is not guessed"}
+{"id": 407, "reason": "item_dropped_as_generic"}
+{"id": 408, "reason": "branch_unresolved", "gated_reports": 6, "note": "the question selects among these reports; which ones it needs is not derivable from the row-label search and is not guessed"}
+{"id": 409, "reason": "needs_review"}
+{"id": 410, "reason": "branch_unresolved", "gated_reports": 6, "note": "the question selects among these reports; which ones it needs is not derivable from the row-label search and is not guessed"}
+{"id": 411, "reason": "needs_review"}
+{"id": 412, "reason": "needs_review"}
+{"id": 413, "reason": "branch_unresolved", "gated_reports": 8, "note": "the question selects among these reports; which ones it needs is not derivable from the row-label search and is not guessed"}
+{"id": 414, "reason": "needs_review"}
+{"id": 417, "reason": "no_match"}
+{"id": 418, "reason": "branch_unresolved", "gated_reports": 12, "note": "the question selects among these reports; which ones it needs is not derivable from the row-label search and is not guessed"}
+{"id": 420, "reason": "branch_unresolved", "gated_reports": 12, "note": "the question selects among these reports; which ones it needs is not derivable from the row-label search and is not guessed"}
+{"id": 421, "reason": "no_match"}
+{"id": 422, "reason": "needs_review"}
+{"id": 423, "reason": "item_dropped_as_generic"}
+{"id": 425, "reason": "item_dropped_as_generic"}
+{"id": 426, "reason": "no_match"}
+{"id": 429, "reason": "item_dropped_as_generic"}
+{"id": 430, "reason": "branch_unresolved", "gated_reports": 15, "note": "the question selects among these reports; which ones it needs is not derivable from the row-label search and is not guessed"}
+{"id": 431, "reason": "needs_review"}
+{"id": 432, "reason": "item_dropped_as_generic"}
+{"id": 433, "reason": "needs_review"}
+{"id": 434, "reason": "item_dropped_as_generic"}
+{"id": 435, "reason": "item_dropped_as_generic"}
+{"id": 437, "reason": "needs_review"}
+{"id": 438, "reason": "needs_review"}
+{"id": 439, "reason": "branch_unresolved", "gated_reports": 8, "note": "the question selects among these reports; which ones it needs is not derivable from the row-label search and is not guessed"}
+{"id": 440, "reason": "item_dropped_as_generic"}
+{"id": 441, "reason": "branch_unresolved", "gated_reports": 8, "note": "the question selects among these reports; which ones it needs is not derivable from the row-label search and is not guessed"}
+{"id": 442, "reason": "branch_unresolved", "gated_reports": 18, "note": "the question selects among these reports; which ones it needs is not derivable from the row-label search and is not guessed"}
+{"id": 443, "reason": "branch_unresolved", "gated_reports": 12, "note": "the question selects among these reports; which ones it needs is not derivable from the row-label search and is not guessed"}
+{"id": 444, "reason": "needs_review"}
+{"id": 445, "reason": "needs_review"}
+{"id": 446, "reason": "branch_unresolved", "gated_reports": 6, "note": "the question selects among these reports; which ones it needs is not derivable from the row-label search and is not guessed"}
+{"id": 447, "reason": "item_dropped_as_generic"}
+{"id": 448, "reason": "item_dropped_as_generic"}
+{"id": 449, "reason": "branch_unresolved", "gated_reports": 6, "note": "the question selects among these reports; which ones it needs is not derivable from the row-label search and is not guessed"}
+{"id": 450, "reason": "branch_unresolved", "gated_reports": 5, "note": "the question selects among these reports; which ones it needs is not derivable from the row-label search and is not guessed"}
+{"id": 451, "reason": "branch_unresolved", "gated_reports": 16, "note": "the question selects among these reports; which ones it needs is not derivable from the row-label search and is not guessed"}
+{"id": 452, "reason": "branch_unresolved", "gated_reports": 4, "note": "the question selects among these reports; which ones it needs is not derivable from the row-label search and is not guessed"}
+{"id": 453, "reason": "branch_unresolved", "gated_reports": 4, "note": "the question selects among these reports; which ones it needs is not derivable from the row-label search and is not guessed"}
+{"id": 454, "reason": "needs_review"}
+{"id": 455, "reason": "branch_unresolved", "gated_reports": 16, "note": "the question selects among these reports; which ones it needs is not derivable from the row-label search and is not guessed"}
+{"id": 456, "reason": "needs_review"}
+{"id": 457, "reason": "needs_review"}
+{"id": 458, "reason": "branch_unresolved", "gated_reports": 7, "note": "the question selects among these reports; which ones it needs is not derivable from the row-label search and is not guessed"}
+{"id": 459, "reason": "item_dropped_as_generic"}
+{"id": 460, "reason": "branch_unresolved", "gated_reports": 5, "note": "the question selects among these reports; which ones it needs is not derivable from the row-label search and is not guessed"}
+{"id": 462, "reason": "branch_unresolved", "gated_reports": 6, "note": "the question selects among these reports; which ones it needs is not derivable from the row-label search and is not guessed"}
+{"id": 463, "reason": "branch_unresolved", "gated_reports": 6, "note": "the question selects among these reports; which ones it needs is not derivable from the row-label search and is not guessed"}
+{"id": 465, "reason": "item_dropped_as_generic"}
+{"id": 466, "reason": "branch_unresolved", "gated_reports": 10, "note": "the question selects among these reports; which ones it needs is not derivable from the row-label search and is not guessed"}
+{"id": 467, "reason": "branch_unresolved", "gated_reports": 8, "note": "the question selects among these reports; which ones it needs is not derivable from the row-label search and is not guessed"}
+{"id": 468, "reason": "branch_unresolved", "gated_reports": 6, "note": "the question selects among these reports; which ones it needs is not derivable from the row-label search and is not guessed"}
+{"id": 471, "reason": "item_dropped_as_generic"}
+{"id": 472, "reason": "branch_unresolved", "gated_reports": 15, "note": "the question selects among these reports; which ones it needs is not derivable from the row-label search and is not guessed"}
+{"id": 473, "reason": "item_dropped_as_generic"}
+{"id": 475, "reason": "branch_unresolved", "gated_reports": 12, "note": "the question selects among these reports; which ones it needs is not derivable from the row-label search and is not guessed"}
+{"id": 476, "reason": "branch_unresolved", "gated_reports": 6, "note": "the question selects among these reports; which ones it needs is not derivable from the row-label search and is not guessed"}
+{"id": 478, "reason": "item_dropped_as_generic"}
+{"id": 479, "reason": "branch_unresolved", "gated_reports": 12, "note": "the question selects among these reports; which ones it needs is not derivable from the row-label search and is not guessed"}
+{"id": 480, "reason": "branch_unresolved", "gated_reports": 6, "note": "the question selects among these reports; which ones it needs is not derivable from the row-label search and is not guessed"}
+{"id": 482, "reason": "branch_unresolved", "gated_reports": 8, "note": "the question selects among these reports; which ones it needs is not derivable from the row-label search and is not guessed"}
+{"id": 483, "reason": "branch_unresolved", "gated_reports": 6, "note": "the question selects among these reports; which ones it needs is not derivable from the row-label search and is not guessed"}
+{"id": 484, "reason": "branch_unresolved", "gated_reports": 8, "note": "the question selects among these reports; which ones it needs is not derivable from the row-label search and is not guessed"}
+{"id": 487, "reason": "branch_unresolved", "gated_reports": 6, "note": "the question selects among these reports; which ones it needs is not derivable from the row-label search and is not guessed"}
+{"id": 488, "reason": "item_dropped_as_generic"}
+{"id": 489, "reason": "branch_unresolved", "gated_reports": 15, "note": "the question selects among these reports; which ones it needs is not derivable from the row-label search and is not guessed"}
+{"id": 490, "reason": "item_dropped_as_generic"}
+{"id": 491, "reason": "branch_unresolved", "gated_reports": 6, "note": "the question selects among these reports; which ones it needs is not derivable from the row-label search and is not guessed"}
+{"id": 493, "reason": "item_dropped_as_generic"}
+{"id": 494, "reason": "needs_review"}
+{"id": 495, "reason": "item_dropped_as_generic"}
+{"id": 496, "reason": "branch_unresolved", "gated_reports": 4, "note": "the question selects among these reports; which ones it needs is not derivable from the row-label search and is not guessed"}
+{"id": 497, "reason": "needs_review"}
+{"id": 498, "reason": "no_match"}
+{"id": 499, "reason": "branch_unresolved", "gated_reports": 5, "note": "the question selects among these reports; which ones it needs is not derivable from the row-label search and is not guessed"}
+{"id": 501, "reason": "item_dropped_as_generic"}
+{"id": 502, "reason": "needs_review"}
+{"id": 503, "reason": "branch_unresolved", "gated_reports": 6, "note": "the question selects among these reports; which ones it needs is not derivable from the row-label search and is not guessed"}
+{"id": 505, "reason": "branch_unresolved", "gated_reports": 5, "note": "the question selects among these reports; which ones it needs is not derivable from the row-label search and is not guessed"}
+{"id": 506, "reason": "branch_unresolved", "gated_reports": 5, "note": "the question selects among these reports; which ones it needs is not derivable from the row-label search and is not guessed"}
+{"id": 507, "reason": "needs_review"}
+{"id": 509, "reason": "branch_unresolved", "gated_reports": 4, "note": "the question selects among these reports; which ones it needs is not derivable from the row-label search and is not guessed"}
+{"id": 510, "reason": "needs_review"}
+{"id": 511, "reason": "needs_review"}
+{"id": 512, "reason": "item_dropped_as_generic"}
+{"id": 513, "reason": "needs_review"}
+{"id": 515, "reason": "needs_review"}
+{"id": 517, "reason": "branch_unresolved", "gated_reports": 5, "note": "the question selects among these reports; which ones it needs is not derivable from the row-label search and is not guessed"}
+{"id": 520, "reason": "needs_review"}
+{"id": 522, "reason": "branch_unresolved", "gated_reports": 4, "note": "the question selects among these reports; which ones it needs is not derivable from the row-label search and is not guessed"}
+{"id": 523, "reason": "branch_unresolved", "gated_reports": 5, "note": "the question selects among these reports; which ones it needs is not derivable from the row-label search and is not guessed"}
+{"id": 524, "reason": "needs_review"}
+{"id": 525, "reason": "item_dropped_as_generic"}
+{"id": 527, "reason": "needs_review"}
+{"id": 530, "reason": "item_dropped_as_generic"}
+{"id": 531, "reason": "branch_unresolved", "gated_reports": 5, "note": "the question selects among these reports; which ones it needs is not derivable from the row-label search and is not guessed"}
+{"id": 532, "reason": "needs_review"}
+{"id": 533, "reason": "needs_review"}
+{"id": 534, "reason": "needs_review"}
+{"id": 535, "reason": "branch_unresolved", "gated_reports": 6, "note": "the question selects among these reports; which ones it needs is not derivable from the row-label search and is not guessed"}
+{"id": 536, "reason": "needs_review"}
+{"id": 537, "reason": "item_dropped_as_generic"}
+{"id": 538, "reason": "needs_review"}
+{"id": 539, "reason": "needs_review"}
+{"id": 540, "reason": "branch_unresolved", "gated_reports": 6, "note": "the question selects among these reports; which ones it needs is not derivable from the row-label search and is not guessed"}
+{"id": 542, "reason": "branch_unresolved", "gated_reports": 8, "note": "the question selects among these reports; which ones it needs is not derivable from the row-label search and is not guessed"}
+{"id": 543, "reason": "branch_unresolved", "gated_reports": 12, "note": "the question selects among these reports; which ones it needs is not derivable from the row-label search and is not guessed"}
+{"id": 547, "reason": "branch_unresolved", "gated_reports": 15, "note": "the question selects among these reports; which ones it needs is not derivable from the row-label search and is not guessed"}
+{"id": 549, "reason": "branch_unresolved", "gated_reports": 12, "note": "the question selects among these reports; which ones it needs is not derivable from the row-label search and is not guessed"}
+{"id": 551, "reason": "branch_unresolved", "gated_reports": 9, "note": "the question selects among these reports; which ones it needs is not derivable from the row-label search and is not guessed"}
+{"id": 552, "reason": "item_dropped_as_generic"}
+{"id": 554, "reason": "needs_review"}
+{"id": 556, "reason": "branch_unresolved", "gated_reports": 12, "note": "the question selects among these reports; which ones it needs is not derivable from the row-label search and is not guessed"}
+{"id": 557, "reason": "needs_review"}
+{"id": 558, "reason": "branch_unresolved", "gated_reports": 12, "note": "the question selects among these reports; which ones it needs is not derivable from the row-label search and is not guessed"}
+{"id": 559, "reason": "branch_unresolved", "gated_reports": 6, "note": "the question selects among these reports; which ones it needs is not derivable from the row-label search and is not guessed"}
+{"id": 560, "reason": "branch_unresolved", "gated_reports": 8, "note": "the question selects among these reports; which ones it needs is not derivable from the row-label search and is not guessed"}
+{"id": 563, "reason": "branch_unresolved", "gated_reports": 6, "note": "the question selects among these reports; which ones it needs is not derivable from the row-label search and is not guessed"}
+{"id": 565, "reason": "branch_unresolved", "gated_reports": 6, "note": "the question selects among these reports; which ones it needs is not derivable from the row-label search and is not guessed"}
+{"id": 567, "reason": "item_dropped_as_generic"}
+{"id": 568, "reason": "item_dropped_as_generic"}
+{"id": 569, "reason": "branch_unresolved", "gated_reports": 4, "note": "the question selects among these reports; which ones it needs is not derivable from the row-label search and is not guessed"}
+{"id": 570, "reason": "branch_unresolved", "gated_reports": 12, "note": "the question selects among these reports; which ones it needs is not derivable from the row-label search and is not guessed"}
+{"id": 571, "reason": "branch_unresolved", "gated_reports": 6, "note": "the question selects among these reports; which ones it needs is not derivable from the row-label search and is not guessed"}
+{"id": 572, "reason": "branch_unresolved", "gated_reports": 9, "note": "the question selects among these reports; which ones it needs is not derivable from the row-label search and is not guessed"}
+{"id": 573, "reason": "branch_unresolved", "gated_reports": 16, "note": "the question selects among these reports; which ones it needs is not derivable from the row-label search and is not guessed"}
+{"id": 574, "reason": "branch_unresolved", "gated_reports": 9, "note": "the question selects among these reports; which ones it needs is not derivable from the row-label search and is not guessed"}
+{"id": 575, "reason": "branch_unresolved", "gated_reports": 12, "note": "the question selects among these reports; which ones it needs is not derivable from the row-label search and is not guessed"}
+{"id": 576, "reason": "branch_unresolved", "gated_reports": 6, "note": "the question selects among these reports; which ones it needs is not derivable from the row-label search and is not guessed"}
+{"id": 617, "reason": "no_match"}
+{"id": 620, "reason": "needs_review"}
+{"id": 636, "reason": "item_dropped_as_generic"}
+{"id": 647, "reason": "item_dropped_as_generic"}
+{"id": 691, "reason": "item_dropped_as_generic"}
+{"id": 711, "reason": "item_dropped_as_generic"}
+{"id": 733, "reason": "no_match"}
+{"id": 764, "reason": "no_match"}
+{"id": 769, "reason": "needs_review"}
+{"id": 791, "reason": "needs_review"}
+{"id": 806, "reason": "no_match"}
+{"id": 808, "reason": "no_match"}
+{"id": 812, "reason": "no_match"}
+{"id": 813, "reason": "branch_unresolved", "gated_reports": 4, "note": "the question selects among these reports; which ones it needs is not derivable from the row-label search and is not guessed"}
+{"id": 819, "reason": "item_dropped_as_generic"}
+{"id": 822, "reason": "needs_review"}
+{"id": 823, "reason": "needs_review"}
+{"id": 824, "reason": "needs_review"}
+{"id": 826, "reason": "item_dropped_as_generic"}
+{"id": 827, "reason": "needs_review"}
+{"id": 828, "reason": "no_match"}
+{"id": 829, "reason": "needs_review"}
+{"id": 830, "reason": "item_dropped_as_generic"}
+{"id": 833, "reason": "item_dropped_as_generic"}
+{"id": 836, "reason": "branch_unresolved", "gated_reports": 4, "note": "the question selects among these reports; which ones it needs is not derivable from the row-label search and is not guessed"}
+{"id": 837, "reason": "needs_review"}
+{"id": 839, "reason": "item_dropped_as_generic"}
+{"id": 842, "reason": "no_match"}
+{"id": 849, "reason": "branch_unresolved", "gated_reports": 4, "note": "the question selects among these reports; which ones it needs is not derivable from the row-label search and is not guessed"}
+{"id": 850, "reason": "item_dropped_as_generic"}
+{"id": 851, "reason": "needs_review"}
+{"id": 853, "reason": "needs_review"}
+{"id": 861, "reason": "needs_review"}
+{"id": 863, "reason": "item_dropped_as_generic"}
+{"id": 864, "reason": "needs_review"}
+{"id": 865, "reason": "needs_review"}
+{"id": 868, "reason": "needs_review"}
+{"id": 869, "reason": "no_match"}
+{"id": 870, "reason": "item_dropped_as_generic"}
+{"id": 871, "reason": "item_dropped_as_generic"}
+{"id": 873, "reason": "no_match"}
+{"id": 874, "reason": "needs_review"}
+{"id": 876, "reason": "item_dropped_as_generic"}
+{"id": 878, "reason": "item_dropped_as_generic"}
+{"id": 880, "reason": "needs_review"}
+{"id": 881, "reason": "item_dropped_as_generic"}
+{"id": 882, "reason": "needs_review"}
+{"id": 884, "reason": "no_match"}
+{"id": 885, "reason": "needs_review"}
+{"id": 886, "reason": "item_dropped_as_generic"}
+{"id": 887, "reason": "no_match"}
+{"id": 888, "reason": "item_dropped_as_generic"}
+{"id": 889, "reason": "no_match"}
+{"id": 890, "reason": "item_dropped_as_generic"}
+{"id": 892, "reason": "item_dropped_as_generic"}
+{"id": 893, "reason": "item_dropped_as_generic"}
+{"id": 894, "reason": "needs_review"}
+{"id": 895, "reason": "item_dropped_as_generic"}
+{"id": 896, "reason": "item_dropped_as_generic"}
+{"id": 898, "reason": "needs_review"}
+{"id": 901, "reason": "item_dropped_as_generic"}
+{"id": 905, "reason": "branch_unresolved", "gated_reports": 4, "note": "the question selects among these reports; which ones it needs is not derivable from the row-label search and is not guessed"}
+{"id": 907, "reason": "no_match"}
+{"id": 909, "reason": "branch_unresolved", "gated_reports": 4, "note": "the question selects among these reports; which ones it needs is not derivable from the row-label search and is not guessed"}
+{"id": 910, "reason": "no_match"}
+{"id": 911, "reason": "item_dropped_as_generic"}
+{"id": 912, "reason": "no_match"}
+{"id": 913, "reason": "item_dropped_as_generic"}
+{"id": 918, "reason": "no_match"}
+{"id": 919, "reason": "needs_review"}
+{"id": 921, "reason": "item_dropped_as_generic"}
+{"id": 924, "reason": "item_dropped_as_generic"}
+{"id": 926, "reason": "item_dropped_as_generic"}
+{"id": 928, "reason": "item_dropped_as_generic"}
+{"id": 929, "reason": "item_dropped_as_generic"}
+{"id": 931, "reason": "item_dropped_as_generic"}
+{"id": 932, "reason": "needs_review"}
+{"id": 934, "reason": "needs_review"}
+{"id": 935, "reason": "item_dropped_as_generic"}
+{"id": 936, "reason": "item_dropped_as_generic"}
+{"id": 937, "reason": "item_dropped_as_generic"}
+{"id": 938, "reason": "needs_review"}
+{"id": 939, "reason": "needs_review"}
+{"id": 945, "reason": "needs_review"}
+{"id": 950, "reason": "item_dropped_as_generic"}
+{"id": 951, "reason": "item_dropped_as_generic"}
+{"id": 953, "reason": "item_dropped_as_generic"}
+{"id": 955, "reason": "item_dropped_as_generic"}
+{"id": 956, "reason": "needs_review"}
+{"id": 965, "reason": "needs_review"}
+{"id": 967, "reason": "branch_unresolved", "gated_reports": 5, "note": "the question selects among these reports; which ones it needs is not derivable from the row-label search and is not guessed"}
+{"id": 968, "reason": "branch_unresolved", "gated_reports": 5, "note": "the question selects among these reports; which ones it needs is not derivable from the row-label search and is not guessed"}
+{"id": 970, "reason": "item_dropped_as_generic"}
+{"id": 971, "reason": "no_match"}
+{"id": 973, "reason": "needs_review"}
+{"id": 975, "reason": "needs_review"}
+{"id": 976, "reason": "needs_review"}
+{"id": 978, "reason": "no_match"}
+{"id": 979, "reason": "needs_review"}
+{"id": 980, "reason": "branch_unresolved", "gated_reports": 4, "note": "the question selects among these reports; which ones it needs is not derivable from the row-label search and is not guessed"}
+{"id": 982, "reason": "branch_unresolved", "gated_reports": 5, "note": "the question selects among these reports; which ones it needs is not derivable from the row-label search and is not guessed"}
+{"id": 984, "reason": "item_dropped_as_generic"}
+{"id": 985, "reason": "item_dropped_as_generic"}
+{"id": 989, "reason": "needs_review"}
+{"id": 990, "reason": "no_match"}
+{"id": 991, "reason": "needs_review"}
+{"id": 992, "reason": "item_dropped_as_generic"}
+{"id": 993, "reason": "needs_review"}
+{"id": 995, "reason": "item_dropped_as_generic"}
+{"id": 1002, "reason": "item_dropped_as_generic"}
+{"id": 1003, "reason": "needs_review"}
+{"id": 1004, "reason": "branch_unresolved", "gated_reports": 5, "note": "the question selects among these reports; which ones it needs is not derivable from the row-label search and is not guessed"}
+{"id": 1005, "reason": "needs_review"}
+{"id": 1006, "reason": "item_dropped_as_generic"}
+{"id": 1007, "reason": "item_dropped_as_generic"}
+{"id": 1008, "reason": "item_dropped_as_generic"}
+{"id": 1009, "reason": "branch_unresolved", "gated_reports": 4, "note": "the question selects among these reports; which ones it needs is not derivable from the row-label search and is not guessed"}
+{"id": 1010, "reason": "needs_review"}
+{"id": 1011, "reason": "item_dropped_as_generic"}
