@@ -579,3 +579,21 @@ a statement or a note. That is a decision the model can make if it sees the
 position and is not told the answer, which is the next GPU run — `pairs_bench_v5`
 carries a position line, INSTRUCTION_V2 removes the note clause and states the
 statement-or-note rule by item type.
+
+## The proposer against the benchmark: the labels look right
+
+The one clean local check on the benchmark's labels is a labeller that never saw
+our retriever. `propose_multihop_labels.py` run over the 233 benchmark questions
+proposes on 203, and against binding gold: 80 identical, 109 overlapping, 14
+disjoint. It proposes 5.17 tables a question against gold's 3.26, 464 tables gold
+does not carry and 76 gold tables it cannot find.
+
+The 76 are, on inspection, proposer failures and not label errors: "lãi vay"
+against a row reading "Trong đó: Chi phí lãi vay"; "dự phòng" too generic to
+match; hard questions whose gold spans the balance sheet and income statement of
+five reports while the proposer follows one phrase. The 464 extras are the
+restatement net the widened gold definition already rejected. So the audit does
+not find the benchmark wrong. It also cannot find it right — a labeller weaker
+than the one under audit only bounds the disagreement from one side. Whether the
+organizers' gold is ours remains unmeasurable without submitting labels, which is
+not a system and is not done.
