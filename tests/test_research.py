@@ -99,7 +99,62 @@ def test_emitted_query_reproduces_the_answer_through_pandas(tmp_path):
 
     namespace = {"df0": pd.read_csv(path)}
     exec(f"result = {expression}", namespace)  # noqa: S102 - mirrors the evaluator
-    assert round(namespace["result"], 2) == answer
+    # Compared raw. An earlier version of this test rounded the result before
+    # comparing, which is exactly what the query failed to do, so it passed while
+    # 231 of 1,012 submitted queries returned a figure 0.2% from their own answer
+    # against a 0.02% tolerance.
+    assert namespace["result"] == answer
+
+
+def test_emitted_query_rounds_the_way_the_answer_does(tmp_path):
+    """A figure that does not round cleanly is where answer and query diverge."""
+    import csv as csv_module
+
+    import pandas as pd
+
+    grid = [["", "2018VND"], ["Doanh thu", "1.422.900.000"]]
+    path = tmp_path / "table.csv"
+    with path.open("w", encoding="utf-8", newline="") as handle:
+        csv_module.writer(handle).writerows(grid)
+
+    value = EvidenceValue("df0", 1, 1, 1_422_900_000.0, "R")
+    answer, expression = answer_plan("Doanh thu năm 2018 là bao nhiêu tỷ đồng?", [value])
+    assert answer == 1.42
+
+    namespace = {"df0": pd.read_csv(path)}
+    exec(f"result = {expression}", namespace)  # noqa: S102 - mirrors the evaluator
+    # Unrounded this returns 1.4229, which is 0.20% out — ten times the tolerance.
+    assert namespace["result"] == answer
+
+
+def test_contents_page_is_not_a_candidate():
+    """The index page is the best lexical match a question will ever find.
+
+    Its row labels are the names of the statements, so a question about cash flow
+    ranks it first, and the answer path then reads a page number as the figure.
+    It cost 57 submitted tables across 32 questions, none of which could be right.
+    """
+    from vifinqa.retrieval import Table, is_contents_page
+
+    def table(rows):
+        return Table(
+            "R|1", "R", 1, 1, tuple(tuple(row) for row in rows), "t", (), (), (), "",
+        )
+
+    assert is_contents_page(table([
+        ["Bảng cân đối kế toán hợp nhất", "6 - 8"],
+        ["Báo cáo lưu chuyển tiền tệ hợp nhất", "10 - 11"],
+        ["Thuyết minh báo cáo tài chính", "12 - 57"],
+    ]))
+    # The header form, where a column is literally named "Trang".
+    assert is_contents_page(table([["Chỉ tiêu", "Trang"], ["Bảng cân đối kế toán", "9"]]))
+    # A statement is not rejected, and neither is a table of small ratios, which
+    # would be the obvious false positive for a rule keyed on figure size.
+    assert not is_contents_page(table([
+        ["Doanh thu", "208.253.201.298", "69.917.578.051"],
+        ["Giá vốn", "1.422.900.000", "1.000.000"],
+    ]))
+    assert not is_contents_page(table([["ROE", "15,2", "14,8"], ["ROA", "5,1", "4,9"]]))
 
 
 def test_operator_routing_ignores_line_item_words():
@@ -763,3 +818,123 @@ def test_agreement_separates_a_judging_model_from_a_drifting_one():
     # Degenerate inputs must not raise.
     assert agreement(["a"], ["a"]) == 1.0
     assert agreement([], []) == 1.0
+
+
+def test_scoring_a_ranking_reorders_candidates_without_admitting_any():
+    """A reranker permutes what retrieval found; it cannot retrieve.
+
+    If a ranking could introduce a table the trace never held, `candidate_miss`
+    would silently turn into a ranking success and the attribution that decides
+    where to work would be wrong.
+    """
+    diagnose = load_script("diagnose_retrieval")
+    trace = {"id": 7, "ranked_tables": ["r|1", "r|2", "r|3"], "selected_docs": ["r"]}
+    assert diagnose.reorder(trace, {"7": ["r|3", "r|1", "r|2"]})["ranked_tables"] == ["r|3", "r|1", "r|2"]
+    # A table the ranking names but retrieval never surfaced stays out.
+    assert diagnose.reorder(trace, {"7": ["r|9", "r|2"]})["ranked_tables"] == ["r|2", "r|1", "r|3"]
+    # Candidates the ranking omits keep their retrieved order behind the named ones.
+    assert diagnose.reorder(trace, {"7": ["r|3"]})["ranked_tables"] == ["r|3", "r|1", "r|2"]
+    # A question the ranking does not cover is scored exactly as retrieved.
+    assert diagnose.reorder(trace, {"8": ["r|3"]}) is trace
+    assert diagnose.reorder(trace, {})["ranked_tables"] == trace["ranked_tables"]
+
+
+def test_fusion_mode_can_be_chosen_per_difficulty_tier(tmp_path):
+    """Easy questions keep the sparse prior; hard ones take the model's order.
+
+    BM25 matches an easy question's one table by label and its rank is real
+    information; on a hard question spanning many gated reports it is close to
+    arbitrary, and fusing it only dilutes the cross-encoder.
+    """
+    apply_scores = load_script("apply_rerank_scores")
+    candidates = [
+        {"table_id": "r|1", "sparse_rank": 1},
+        {"table_id": "r|2", "sparse_rank": 2},
+        {"table_id": "r|3", "sparse_rank": 3},
+    ]
+    scores = {"r|1": 0.1, "r|2": 0.2, "r|3": 0.9}
+    # The model's order alone.
+    assert apply_scores.fuse(candidates, scores, "replace") == ["r|3", "r|2", "r|1"]
+    # Fused, the sparse rank keeps the model's third choice from jumping the queue.
+    assert apply_scores.fuse(candidates, scores, "fuse")[0] in {"r|1", "r|3"}
+
+    # The weight interpolates between the two orders rather than switching, so the
+    # endpoints have to agree with the modes they generalize.
+    assert apply_scores.fuse(candidates, scores, "fuse", 0.0) == ["r|3", "r|2", "r|1"]
+    assert apply_scores.fuse(candidates, scores, "fuse", 1.0) == ["r|1", "r|2", "r|3"]
+
+    pairs = tmp_path / "pairs.jsonl"
+    pairs.write_text("".join(
+        json.dumps({"id": identifier, "candidates": candidates}, ensure_ascii=False) + "\n"
+        for identifier in (1, 2)
+    ), encoding="utf-8")
+    score_file = tmp_path / "scores.jsonl"
+    score_file.write_text("".join(
+        json.dumps({"id": identifier, "scores": scores}, ensure_ascii=False) + "\n"
+        for identifier in (1, 2)
+    ), encoding="utf-8")
+    tiers = tmp_path / "tiers.jsonl"
+    tiers.write_text(
+        json.dumps({"id": 1, "tier": "easy"}) + "\n" + json.dumps({"id": 2, "tier": "hard"}) + "\n",
+        encoding="utf-8",
+    )
+    output = tmp_path / "ranking.json"
+    sys.argv = ["apply", "--pairs", str(pairs), "--scores", str(score_file), "--output", str(output),
+                "--replace-tiers", "hard", "--tiers", str(tiers)]
+    apply_scores.main()
+    ranking = json.loads(output.read_text(encoding="utf-8"))
+    assert ranking["2"] == ["r|3", "r|2", "r|1"]
+    assert ranking["1"] != ranking["2"]
+
+
+def test_training_export_keeps_hard_negatives_and_drops_unreachable_gold(tmp_path):
+    """Gold retrieval never surfaced has no text to train on, and must not be counted.
+
+    Treating it as a positive would report a positive rate the training file does
+    not contain, and would hide a candidate-generation gap behind a ranking one.
+    """
+    export = load_script("export_rerank_training")
+    labels = tmp_path / "labels.jsonl"
+    labels.write_text(json.dumps({
+        "id": 1, "question": "q",
+        "annotation": {
+            "gold_tables": ["r|1", "r|99"], "gold_reports": ["r"],
+            "row_column_bindings": [{"table": "r|1"}, {"table": "r|99"}],
+        },
+    }, ensure_ascii=False) + "\n", encoding="utf-8")
+    pairs = tmp_path / "pairs.jsonl"
+    pairs.write_text(json.dumps({
+        "id": 1, "question": "q", "line_items": ["doanh thu"],
+        "candidates": [
+            {"table_id": "r|1", "sparse_rank": 1, "text": "gold"},
+            {"table_id": "r|2", "sparse_rank": 2, "text": "hard negative"},
+            {"table_id": "r|3", "sparse_rank": 3, "text": "easy negative"},
+        ],
+    }, ensure_ascii=False) + "\n", encoding="utf-8")
+    output = tmp_path / "training.jsonl"
+    sys.argv = ["export", "--labels", str(labels), "--pairs", str(pairs),
+                "--output", str(output), "--negatives", "1"]
+    export.main()
+    rows = [json.loads(line) for line in output.read_text(encoding="utf-8").splitlines()]
+    # r|99 is gold but was never retrieved, so it contributes no row at all.
+    assert [row["table_id"] for row in rows] == ["r|1", "r|2"]
+    assert [row["label"] for row in rows] == [1, 0]
+    # The negative kept is the best-ranked one, which is the comparison that decides.
+    assert rows[1]["document"] == "hard negative"
+    # The query carries the line item, exactly as the scoring notebook builds it.
+    assert rows[0]["query"] == "q\nChỉ tiêu cần tìm: doanh thu"
+
+
+def test_ranking_comparison_pairs_per_question_and_splits_by_tier():
+    """The comparison has to see a reordering that helps and one that does not."""
+    compare = load_script("compare_rankings")
+    traces = [
+        {"id": 1, "selected_docs": ["r"], "ranked_tables": ["r|1", "r|2"], "gold_tables_binding": ["r|2"]},
+        {"id": 2, "selected_docs": ["r"], "ranked_tables": ["r|1", "r|2"], "gold_tables_binding": ["r|1"]},
+    ]
+    sparse = compare.scored(traces, None, 1, "binding")
+    promoted = compare.scored(traces, {"1": ["r|2", "r|1"]}, 1, "binding")
+    assert sparse[1]["recall"] == 0.0 and promoted[1]["recall"] == 1.0
+    # Question 2 is untouched by that ranking, so the pairing isolates the change.
+    assert promoted[2] == sparse[2]
+    assert compare.means(promoted, [1])["f2"] == 1.0

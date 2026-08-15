@@ -4,6 +4,10 @@ version = "0.1.0"
 requires-python = ">=3.12"
 dependencies = [
   "numpy>=2",
+  # The evaluator reads submitted CSVs with pandas and executes the emitted
+  # query against them, so a test does the same; without it declared the suite
+  # arrives one test short on a clean machine.
+  "pandas>=2",
   "pytest>=8,<9",
   "sentencepiece>=0.2",
   "torch>=2.6",
