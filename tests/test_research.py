@@ -32,6 +32,26 @@ def load_script(name: str):
     return module
 
 
+def load_kaggle(name: str, **environment):
+    """Import a kaggle/ notebook script, whose settings are read at import time."""
+    import os
+
+    previous = {key: os.environ.get(key) for key in environment}
+    os.environ.update(environment)
+    try:
+        spec = importlib.util.spec_from_file_location(name, ROOT / "kaggle" / f"{name}.py")
+        module = importlib.util.module_from_spec(spec)
+        assert spec.loader
+        spec.loader.exec_module(module)
+        return module
+    finally:
+        for key, value in previous.items():
+            if value is None:
+                os.environ.pop(key, None)
+            else:
+                os.environ[key] = value
+
+
 def test_html_spans_expand_grid():
     html = '<table><tr><th rowspan="2">Metric</th><th colspan="2">Balance</th></tr><tr><td>2024</td><td>2023</td></tr></table>'
     assert parse_table_rows(html) == [["Metric", "Balance", "Balance"], ["Metric", "2024", "2023"]]
@@ -155,6 +175,62 @@ def test_contents_page_is_not_a_candidate():
         ["Giá vốn", "1.422.900.000", "1.000.000"],
     ]))
     assert not is_contents_page(table([["ROE", "15,2", "14,8"], ["ROA", "5,1", "4,9"]]))
+
+
+def test_per_item_only_changes_questions_that_name_several_items():
+    """The control and the treatment must differ on exactly the multi-item half.
+
+    A question naming zero or one line item has to produce a byte-identical
+    prompt under both settings, or the full-corpus comparison against
+    scores_v4.jsonl is confounded by questions that were never meant to move.
+    """
+    off = load_kaggle("rerank_qwen_8b", PER_ITEM="0")
+    on = load_kaggle("rerank_qwen_8b", PER_ITEM="1")
+    assert not off.PER_ITEM and on.PER_ITEM
+
+    bare = {"question": "Doanh thu 2024?", "line_items": []}
+    single = {"question": "Doanh thu 2024?", "line_items": ["doanh thu"]}
+    double = {"question": "Doanh thu và giá vốn 2024?", "line_items": ["doanh thu", "giá vốn"]}
+
+    assert on.build_queries(bare) == off.build_queries(bare)
+    assert on.build_queries(single) == off.build_queries(single)
+    assert len(off.build_queries(double)) == 1
+    assert len(on.build_queries(double)) == 2
+    # The joined query names both items, so it is a different string entirely.
+    assert on.build_queries(double) != off.build_queries(double)
+
+
+def test_per_item_writes_a_matrix_whose_max_is_the_shipped_score():
+    """The matrix is additive: `scores` must stay exactly what it was."""
+    module = load_kaggle("rerank_qwen_8b", PER_ITEM="1")
+    record = {
+        "id": 7,
+        "question": "Doanh thu và giá vốn 2024?",
+        "line_items": ["doanh thu", "giá vốn"],
+        "candidates": [
+            {"table_id": "R|1", "sparse_rank": 1, "text": "a"},
+            {"table_id": "R|2", "sparse_rank": 2, "text": "b"},
+            # Past RERANK_DEPTH, so it is left to the sparse order entirely.
+            {"table_id": "R|3", "sparse_rank": module.RERANK_DEPTH + 1, "text": "c"},
+        ],
+    }
+    matrix = {0: [0.9, 0.1], 1: [0.2, 0.8]}
+    values = [0.9, 0.8, 0.0]
+
+    payload = module.score_payload(record, values, matrix, per_item=True)
+    assert payload["scores"] == {"R|1": 0.9, "R|2": 0.8}
+    assert payload["line_items"] == ["doanh thu", "giá vốn"]
+    assert payload["per_item"] == {"R|1": [0.9, 0.1], "R|2": [0.2, 0.8]}
+    for table_id, row in payload["per_item"].items():
+        assert max(row) == payload["scores"][table_id]
+
+    # With the flag off the line is what every committed score file already is.
+    assert module.score_payload(record, values, matrix, per_item=False) == {
+        "id": 7, "scores": {"R|1": 0.9, "R|2": 0.8},
+    }
+    # A question naming no item has nothing to decompose, so no matrix is written.
+    bare = {**record, "line_items": []}
+    assert "per_item" not in module.score_payload(bare, values, {0: [0.9], 1: [0.8]}, per_item=True)
 
 
 def test_operator_routing_ignores_line_item_words():

@@ -70,7 +70,16 @@ QUANTIZATION = os.environ.get("QUANTIZATION", "int8")
 # Score each named line item as its own query and keep the best, instead of one
 # query listing all of them. 550 of 1,012 questions name two or three items, and
 # 66.5% of the gold tables for those carry only one — so the combined query asks
-# the right table for figures it never held. Costs ~1.45x the pairs.
+# the right table for figures it never held. Costs 1.77x the pairs on the full
+# corpus, 88,864 against 50,335.
+#
+# arXiv 2606.08577 is why this is worth the GPU time after 566fd47 rejected
+# decomposition at -0.0302: it finds decomposition harms at the retrieval stage
+# through semantic dilution and helps at the reranking stage, and 566fd47 fused
+# its sub-queries into retrieval. Same idea, different stage.
+#
+# Also writes the unreduced per-(item, candidate) matrix, which costs nothing
+# here and is the only way to test a set-level coverage objective later.
 PER_ITEM = os.environ.get("PER_ITEM", "0") == "1"
 
 INSTRUCTION = (
@@ -171,12 +180,17 @@ def score_question(record, tokenizer, model, prefix_ids, suffix_ids, yes_id, no_
     # that it is cheaper to leave it to the sparse ranking than to judge it.
     scored = [i for i, candidate in enumerate(candidates)
               if candidate.get("sparse_rank", i + 1) <= RERANK_DEPTH]
-    # One row per (candidate, query); rows are reduced back to a per-candidate
-    # best after scoring, so the output format never changes with PER_ITEM.
-    rows = [(index, query) for index in scored for query in queries]
+    # One row per (candidate, query), keyed by query position rather than by the
+    # query text so two identical line items stay two rows. Rows are reduced back
+    # to a per-candidate best after scoring, so the output format never changes
+    # with PER_ITEM; the unreduced matrix is kept beside it because a set-level
+    # coverage objective needs to know which item each score belongs to, and
+    # recovering that later would cost another full pass on the GPU.
+    matrix = {index: [0.0] * len(queries) for index in scored}
+    rows = [(index, position) for index in scored for position in range(len(queries))]
     prompts = [
-        f"<Instruct>: {INSTRUCTION}\n<Query>: {query}\n<Document>: {candidates[index]['text']}"
-        for index, query in rows
+        f"<Instruct>: {INSTRUCTION}\n<Query>: {queries[position]}\n<Document>: {candidates[index]['text']}"
+        for index, position in rows
     ]
     encoded = {
         row: prefix_ids + ids + suffix_ids
@@ -210,9 +224,44 @@ def score_question(record, tokenizer, model, prefix_ids, suffix_ids, yes_id, no_
         pair = torch.stack([logits[:, no_id], logits[:, yes_id]], dim=1).float()
         # Best query wins: a table that holds one of several named items should
         # score on that item, not be averaged down by the ones it does not hold.
-        for (index, _), value in zip(chunk, torch.log_softmax(pair, dim=1)[:, 1].exp().cpu().tolist()):
+        # The reduction is max rather than the min or product the decomposition
+        # literature uses, because our constraint is disjunctive — a table counts
+        # if it supplies any one of the named items, not all of them.
+        for (index, position), value in zip(chunk, torch.log_softmax(pair, dim=1)[:, 1].exp().cpu().tolist()):
+            matrix[index][position] = value
             scores[index] = max(scores[index], value)
-    return scores, len(rows)
+    return scores, matrix, len(rows)
+
+
+def score_payload(record, values, matrix, per_item=None):
+    """The scores.jsonl line for one question.
+
+    Candidates past RERANK_DEPTH are left out rather than written as zero: a zero
+    is a score, and would rank them below everything the model disliked instead
+    of leaving them to the sparse order.
+    """
+    per_item = PER_ITEM if per_item is None else per_item
+    kept = [
+        (index, candidate) for index, candidate in enumerate(record["candidates"])
+        if candidate.get("sparse_rank", index + 1) <= RERANK_DEPTH
+    ]
+    payload = {
+        "id": record["id"],
+        "scores": {candidate["table_id"]: round(values[index], 6) for index, candidate in kept},
+    }
+    items = record.get("line_items") or []
+    if per_item and items:
+        # One list per candidate, positionally aligned with `line_items` — echoed
+        # here so a consumer never has to re-derive it from the pairs file and
+        # risk a different lexicon. Questions naming no item are scored on the
+        # bare question and so have no matrix to write; there is nothing to
+        # decompose, and there are 20 of them in 1,012.
+        payload["line_items"] = items
+        payload["per_item"] = {
+            candidate["table_id"]: [round(value, 6) for value in matrix[index]]
+            for index, candidate in kept
+        }
+    return payload
 
 
 def main():
@@ -274,20 +323,10 @@ def main():
     started, scored = time.time(), 0
     with open(SCORES_PATH, "a", encoding="utf-8") as out:
         for record in pending:
-            values, judged = score_question(
+            values, matrix, judged = score_question(
                 record, tokenizer, model, prefix_ids, suffix_ids, yes_id, no_id, budget,
             )
-            # Candidates past RERANK_DEPTH are left out rather than written as
-            # zero: a zero is a score, and would rank them below everything the
-            # model disliked instead of leaving them to the sparse order.
-            out.write(json.dumps({
-                "id": record["id"],
-                "scores": {
-                    candidate["table_id"]: round(value, 6)
-                    for index, (candidate, value) in enumerate(zip(record["candidates"], values))
-                    if candidate.get("sparse_rank", index + 1) <= RERANK_DEPTH
-                },
-            }, ensure_ascii=False) + "\n")
+            out.write(json.dumps(score_payload(record, values, matrix), ensure_ascii=False) + "\n")
             out.flush()
             scored += judged
             if scored % 1000 < MAX_BATCH:
