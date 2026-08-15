@@ -31,18 +31,17 @@ actually contains. Pass `--inventory 0` to reproduce the old representation.
 
 **2. Upload to Kaggle**
 
-Create a Dataset named `vifinqa-rerank-pairs` containing `pairs_v4.jsonl`, and
-set `PAIRS_PATH` at the top of the script to match. Qwen scored the first export
+Create a Dataset named `vifinqa-rerank-pairs` containing `pairs_v4.jsonl` and
+`pairs_bench_v4.jsonl`, then point `PAIRS_PATH` at the one you want. Qwen scored the first export
 at F2 +0.0355 on the benchmark and +0.023 live, so it is the model to use;
 `rerank_bge.py` is kept only to document that a general web-passage reranker
 loses 0.15 F2 here.
 
 **3. Run one of the notebooks (Kaggle)**
 
-New notebook → Accelerator: **GPU T4 x2** or **P100** → attach the dataset →
-paste one script into a cell → Run. Both print throughput and an ETA, and both
-write `/kaggle/working/scores.jsonl` (~1 MB) in the same format, so step 4 does
-not care which one produced it.
+New notebook → Accelerator: **GPU T4** (or **T4 x2** for fp16) → attach the
+dataset → set the environment variables in a cell → paste the script below it →
+Run. It prints throughput and an ETA and writes `SCORES_PATH` (~1 MB).
 
 | Script | Model | Memory | 50,335 pairs at 1024 |
 |---|---|---|---|
@@ -91,10 +90,9 @@ the slower of the two models by more than the parameter count suggests:
 bitsandbytes computes outlier features in higher precision, roughly 1.5–2× fp16
 on Turing.
 
-Both Qwen scripts sort candidates by length before batching, since a batch costs
-its longest member — worth 25–40% of the runtime — and both append per question,
-skipping IDs already done, so a session that hits the 12-hour limit is rerun
-rather than restarted.
+Candidates are sorted by length before batching, since a batch costs its longest
+member — worth 25–40% of the runtime — and scores append per question, so a
+session that hits the 12-hour limit is rerun rather than restarted.
 
 All models are open, inside the 14B limit, and released before the 2026-06-01
 cutoff. Kaggle needs internet enabled to download them.
@@ -104,8 +102,6 @@ classification head, so its logit is the score directly. Qwen3-Reranker is a
 causal model asked whether the document answers the query, and the score is the
 probability it answers "yes" — which needs a specific prompt format and left
 padding so the final position is the real one in every row of a batch.
-`rerank_qwen.py` also appends to `scores.jsonl` and skips questions it already
-scored, so a session that hits the 12-hour limit can be rerun to finish the rest.
 
 **4. Download and fuse (local, seconds)**
 
