@@ -176,6 +176,11 @@ def build_queries(record):
     return [f"{record['question']}\nChỉ tiêu cần tìm: {'; '.join(items)}"]
 
 
+def pair_count(record, skip=frozenset()):
+    """Forward passes this record costs: one per (candidate, query)."""
+    return len(to_judge(record, skip)) * len(build_queries(record))
+
+
 def packed_batches(lengths, order):
     """Groups of length-sorted rows, each costing at most TOKEN_BUDGET tokens.
 
@@ -265,10 +270,10 @@ def score_question(record, tokenizer, model, prefix_ids, suffix_ids, yes_id, no_
         for (index, position), value in zip(chunk, torch.log_softmax(pair, dim=1)[:, 1].exp().cpu().tolist()):
             matrix[index][position] = value
             scores[index] = max(scores[index], value)
-    return scores, matrix, scored, len(rows)
+    return scores, matrix, scored
 
 
-def score_payload(record, values, matrix, judged=None, per_item=None):
+def score_payload(record, values, matrix, judged, per_item):
     """The scores.jsonl line for one question.
 
     Only the candidates this run judged are written. Everything else is left out
@@ -276,9 +281,7 @@ def score_payload(record, values, matrix, judged=None, per_item=None):
     below everything the model disliked instead of leaving it to the sparse order
     or to the earlier file it was already scored in.
     """
-    per_item = PER_ITEM if per_item is None else per_item
-    indices = to_judge(record) if judged is None else judged
-    kept = [(index, record["candidates"][index]) for index in indices]
+    kept = [(index, record["candidates"][index]) for index in judged]
     payload = {
         "id": record["id"],
         "scores": {candidate["table_id"]: round(values[index], 6) for index, candidate in kept},
@@ -350,24 +353,21 @@ def main():
     if skip:
         print(f"skipping {sum(len(s) for s in skip.values())} pairs from {SKIP_PATH}", flush=True)
     pending = [record for record in records if record["id"] not in done]
-    total = sum(
-        len(to_judge(record, skip.get(record["id"], frozenset()))) * len(build_queries(record))
-        for record in pending
-    )
+    skipped = lambda record: skip.get(record["id"], frozenset())
+    total = sum(pair_count(record, skipped(record)) for record in pending)
     print(f"{len(pending)} questions, {total} pairs to score, per_item={PER_ITEM}", flush=True)
 
     started, scored = time.time(), 0
     with open(SCORES_PATH, "a", encoding="utf-8") as out:
         for record in pending:
-            values, matrix, indices, judged = score_question(
+            values, matrix, judged = score_question(
                 record, tokenizer, model, prefix_ids, suffix_ids, yes_id, no_id, budget,
-                skip.get(record["id"], frozenset()),
+                skipped(record),
             )
-            out.write(
-                json.dumps(score_payload(record, values, matrix, indices), ensure_ascii=False) + "\n"
-            )
+            payload = score_payload(record, values, matrix, judged, PER_ITEM)
+            out.write(json.dumps(payload, ensure_ascii=False) + "\n")
             out.flush()
-            scored += judged
+            scored += pair_count(record, skipped(record))
             if scored % 1000 < MAX_BATCH:
                 rate = scored / (time.time() - started)
                 print(f"{scored}/{total} pairs, {rate:.1f}/s, eta {(total - scored) / rate / 60:.0f} min", flush=True)

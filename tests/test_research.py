@@ -216,8 +216,10 @@ def test_per_item_writes_a_matrix_whose_max_is_the_shipped_score():
     }
     matrix = {0: [0.9, 0.1], 1: [0.2, 0.8]}
     values = [0.9, 0.8, 0.0]
+    judged = module.to_judge(record)
+    assert judged == [0, 1], "the third candidate is past RERANK_DEPTH"
 
-    payload = module.score_payload(record, values, matrix, per_item=True)
+    payload = module.score_payload(record, values, matrix, judged, per_item=True)
     assert payload["scores"] == {"R|1": 0.9, "R|2": 0.8}
     assert payload["line_items"] == ["doanh thu", "giá vốn"]
     assert payload["per_item"] == {"R|1": [0.9, 0.1], "R|2": [0.2, 0.8]}
@@ -225,12 +227,14 @@ def test_per_item_writes_a_matrix_whose_max_is_the_shipped_score():
         assert max(row) == payload["scores"][table_id]
 
     # With the flag off the line is what every committed score file already is.
-    assert module.score_payload(record, values, matrix, per_item=False) == {
+    assert module.score_payload(record, values, matrix, judged, per_item=False) == {
         "id": 7, "scores": {"R|1": 0.9, "R|2": 0.8},
     }
     # A question naming no item has nothing to decompose, so no matrix is written.
     bare = {**record, "line_items": []}
-    assert "per_item" not in module.score_payload(bare, values, {0: [0.9], 1: [0.8]}, per_item=True)
+    assert "per_item" not in module.score_payload(
+        bare, values, {0: [0.9], 1: [0.8]}, judged, per_item=True
+    )
 
 
 def test_operator_routing_ignores_line_item_words():

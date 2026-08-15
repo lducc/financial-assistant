@@ -1,111 +1,113 @@
 {
   "table_mode": "report-coverage",
   "table_top_k": "auto",
+  "ranking": "output/rerank/ranking_v4_tiered.json",
+  "gold": "binding",
   "overall": {
-    "questions": 192,
-    "gold_tables": 493,
+    "questions": 233,
+    "gold_tables": 755,
     "counts": {
-      "hit": 291,
-      "rank_miss": 99,
-      "candidate_miss": 103,
+      "hit": 482,
+      "rank_miss": 148,
+      "candidate_miss": 125,
       "gate_miss": 0
     },
     "share": {
-      "hit": 0.5903,
-      "rank_miss": 0.2008,
-      "candidate_miss": 0.2089,
+      "hit": 0.6384,
+      "rank_miss": 0.196,
+      "candidate_miss": 0.1656,
       "gate_miss": 0.0
     },
-    "mean_f2": 0.5457,
-    "mean_recall": 0.7536,
-    "mean_precision": 0.2657,
-    "mrr": 0.6122,
-    "fully_covered": 0.651
+    "mean_f2": 0.6676,
+    "mean_recall": 0.7823,
+    "mean_precision": 0.4521,
+    "mrr": 0.7775,
+    "fully_covered": 0.6481
   },
   "by_tier": {
     "easy": {
       "questions": 63,
       "gold_tables": 65,
       "counts": {
-        "hit": 60,
-        "rank_miss": 5,
+        "hit": 57,
+        "rank_miss": 8,
         "candidate_miss": 0,
         "gate_miss": 0
       },
       "share": {
-        "hit": 0.9231,
-        "rank_miss": 0.0769,
+        "hit": 0.8769,
+        "rank_miss": 0.1231,
         "candidate_miss": 0.0,
         "gate_miss": 0.0
       },
-      "mean_f2": 0.672,
-      "mean_recall": 0.9365,
-      "mean_precision": 0.3175,
-      "mrr": 0.7831,
-      "fully_covered": 0.9365
+      "mean_f2": 0.7487,
+      "mean_recall": 0.8968,
+      "mean_precision": 0.4524,
+      "mrr": 0.8413,
+      "fully_covered": 0.8889
     },
     "hard": {
-      "questions": 27,
-      "gold_tables": 165,
+      "questions": 51,
+      "gold_tables": 353,
       "counts": {
-        "hit": 64,
-        "rank_miss": 34,
-        "candidate_miss": 67,
+        "hit": 183,
+        "rank_miss": 89,
+        "candidate_miss": 81,
         "gate_miss": 0
       },
       "share": {
-        "hit": 0.3879,
-        "rank_miss": 0.2061,
-        "candidate_miss": 0.4061,
+        "hit": 0.5184,
+        "rank_miss": 0.2521,
+        "candidate_miss": 0.2295,
         "gate_miss": 0.0
       },
-      "mean_f2": 0.387,
-      "mean_recall": 0.5309,
-      "mean_precision": 0.1918,
-      "mrr": 0.3583,
-      "fully_covered": 0.3333
+      "mean_f2": 0.5441,
+      "mean_recall": 0.6072,
+      "mean_precision": 0.4542,
+      "mrr": 0.6835,
+      "fully_covered": 0.2941
     },
     "intermediate": {
-      "questions": 54,
-      "gold_tables": 166,
+      "questions": 71,
+      "gold_tables": 240,
       "counts": {
-        "hit": 97,
-        "rank_miss": 33,
-        "candidate_miss": 36,
+        "hit": 162,
+        "rank_miss": 34,
+        "candidate_miss": 44,
         "gate_miss": 0
       },
       "share": {
-        "hit": 0.5843,
-        "rank_miss": 0.1988,
-        "candidate_miss": 0.2169,
+        "hit": 0.675,
+        "rank_miss": 0.1417,
+        "candidate_miss": 0.1833,
         "gate_miss": 0.0
       },
-      "mean_f2": 0.4777,
-      "mean_recall": 0.6713,
-      "mean_precision": 0.2253,
-      "mrr": 0.5393,
-      "fully_covered": 0.5556
+      "mean_f2": 0.6526,
+      "mean_recall": 0.7704,
+      "mean_precision": 0.4356,
+      "mrr": 0.767,
+      "fully_covered": 0.6197
     },
     "medium": {
       "questions": 48,
       "gold_tables": 97,
       "counts": {
-        "hit": 70,
-        "rank_miss": 27,
+        "hit": 80,
+        "rank_miss": 17,
         "candidate_miss": 0,
         "gate_miss": 0
       },
       "share": {
-        "hit": 0.7216,
-        "rank_miss": 0.2784,
+        "hit": 0.8247,
+        "rank_miss": 0.1753,
         "candidate_miss": 0.0,
         "gate_miss": 0.0
       },
-      "mean_f2": 0.5457,
-      "mean_recall": 0.7313,
-      "mean_precision": 0.2847,
-      "mrr": 0.6128,
-      "fully_covered": 0.5625
+      "mean_f2": 0.7144,
+      "mean_recall": 0.8354,
+      "mean_precision": 0.474,
+      "mrr": 0.809,
+      "fully_covered": 0.75
     }
   },
   "by_source": {
@@ -113,137 +115,170 @@
       "questions": 150,
       "gold_tables": 420,
       "counts": {
-        "hit": 247,
-        "rank_miss": 75,
-        "candidate_miss": 98,
-        "gate_miss": 0
-      },
-      "share": {
-        "hit": 0.5881,
-        "rank_miss": 0.1786,
-        "candidate_miss": 0.2333,
-        "gate_miss": 0.0
-      },
-      "mean_f2": 0.5532,
-      "mean_recall": 0.7637,
-      "mean_precision": 0.2701,
-      "mrr": 0.6245,
-      "fully_covered": 0.6533
-    },
-    "v3": {
-      "questions": 42,
-      "gold_tables": 73,
-      "counts": {
-        "hit": 44,
-        "rank_miss": 24,
-        "candidate_miss": 5,
-        "gate_miss": 0
-      },
-      "share": {
-        "hit": 0.6027,
-        "rank_miss": 0.3288,
-        "candidate_miss": 0.0685,
-        "gate_miss": 0.0
-      },
-      "mean_f2": 0.5192,
-      "mean_recall": 0.7175,
-      "mean_precision": 0.2497,
-      "mrr": 0.5683,
-      "fully_covered": 0.6429
-    }
-  },
-  "by_question_size": {
-    "1 table": {
-      "questions": 76,
-      "gold_tables": 76,
-      "counts": {
-        "hit": 71,
-        "rank_miss": 5,
-        "candidate_miss": 0,
-        "gate_miss": 0
-      },
-      "share": {
-        "hit": 0.9342,
-        "rank_miss": 0.0658,
-        "candidate_miss": 0.0,
-        "gate_miss": 0.0
-      },
-      "mean_f2": 0.6673,
-      "mean_recall": 0.9342,
-      "mean_precision": 0.3114,
-      "mrr": 0.7807,
-      "fully_covered": 0.9342
-    },
-    "2 tables": {
-      "questions": 59,
-      "gold_tables": 118,
-      "counts": {
-        "hit": 84,
-        "rank_miss": 34,
-        "candidate_miss": 0,
-        "gate_miss": 0
-      },
-      "share": {
-        "hit": 0.7119,
-        "rank_miss": 0.2881,
-        "candidate_miss": 0.0,
-        "gate_miss": 0.0
-      },
-      "mean_f2": 0.5243,
-      "mean_recall": 0.7119,
-      "mean_precision": 0.2679,
-      "mrr": 0.5743,
-      "fully_covered": 0.5593
-    },
-    "3-5 tables": {
-      "questions": 50,
-      "gold_tables": 199,
-      "counts": {
-        "hit": 125,
-        "rank_miss": 53,
-        "candidate_miss": 21,
-        "gate_miss": 0
-      },
-      "share": {
-        "hit": 0.6281,
-        "rank_miss": 0.2663,
-        "candidate_miss": 0.1055,
-        "gate_miss": 0.0
-      },
-      "mean_f2": 0.4443,
-      "mean_recall": 0.6143,
-      "mean_precision": 0.2141,
-      "mrr": 0.4576,
-      "fully_covered": 0.42
-    },
-    "6+ tables": {
-      "questions": 7,
-      "gold_tables": 100,
-      "counts": {
-        "hit": 11,
-        "rank_miss": 7,
+        "hit": 293,
+        "rank_miss": 45,
         "candidate_miss": 82,
         "gate_miss": 0
       },
       "share": {
-        "hit": 0.11,
-        "rank_miss": 0.07,
-        "candidate_miss": 0.82,
+        "hit": 0.6976,
+        "rank_miss": 0.1071,
+        "candidate_miss": 0.1952,
         "gate_miss": 0.0
       },
-      "mean_f2": 0.13,
-      "mean_recall": 0.1381,
-      "mean_precision": 0.119,
-      "mrr": 0.2071,
+      "mean_f2": 0.705,
+      "mean_recall": 0.839,
+      "mean_precision": 0.4459,
+      "mrr": 0.8021,
+      "fully_covered": 0.74
+    },
+    "v3": {
+      "questions": 83,
+      "gold_tables": 335,
+      "counts": {
+        "hit": 189,
+        "rank_miss": 103,
+        "candidate_miss": 43,
+        "gate_miss": 0
+      },
+      "share": {
+        "hit": 0.5642,
+        "rank_miss": 0.3075,
+        "candidate_miss": 0.1284,
+        "gate_miss": 0.0
+      },
+      "mean_f2": 0.5999,
+      "mean_recall": 0.6797,
+      "mean_precision": 0.4634,
+      "mrr": 0.7329,
+      "fully_covered": 0.4819
+    }
+  },
+  "by_question_size": {
+    "1 table": {
+      "questions": 80,
+      "gold_tables": 80,
+      "counts": {
+        "hit": 72,
+        "rank_miss": 8,
+        "candidate_miss": 0,
+        "gate_miss": 0
+      },
+      "share": {
+        "hit": 0.9,
+        "rank_miss": 0.1,
+        "candidate_miss": 0.0,
+        "gate_miss": 0.0
+      },
+      "mean_f2": 0.75,
+      "mean_recall": 0.9,
+      "mean_precision": 0.45,
+      "mrr": 0.8438,
+      "fully_covered": 0.9
+    },
+    "2 tables": {
+      "questions": 62,
+      "gold_tables": 124,
+      "counts": {
+        "hit": 100,
+        "rank_miss": 24,
+        "candidate_miss": 0,
+        "gate_miss": 0
+      },
+      "share": {
+        "hit": 0.8065,
+        "rank_miss": 0.1935,
+        "candidate_miss": 0.0,
+        "gate_miss": 0.0
+      },
+      "mean_f2": 0.6822,
+      "mean_recall": 0.8065,
+      "mean_precision": 0.4489,
+      "mrr": 0.7836,
+      "fully_covered": 0.7097
+    },
+    "3-5 tables": {
+      "questions": 61,
+      "gold_tables": 245,
+      "counts": {
+        "hit": 189,
+        "rank_miss": 39,
+        "candidate_miss": 17,
+        "gate_miss": 0
+      },
+      "share": {
+        "hit": 0.7714,
+        "rank_miss": 0.1592,
+        "candidate_miss": 0.0694,
+        "gate_miss": 0.0
+      },
+      "mean_f2": 0.6578,
+      "mean_recall": 0.7768,
+      "mean_precision": 0.4221,
+      "mrr": 0.7094,
+      "fully_covered": 0.5738
+    },
+    "6+ tables": {
+      "questions": 30,
+      "gold_tables": 306,
+      "counts": {
+        "hit": 121,
+        "rank_miss": 77,
+        "candidate_miss": 108,
+        "gate_miss": 0
+      },
+      "share": {
+        "hit": 0.3954,
+        "rank_miss": 0.2516,
+        "candidate_miss": 0.3529,
+        "gate_miss": 0.0
+      },
+      "mean_f2": 0.4373,
+      "mean_recall": 0.4294,
+      "mean_precision": 0.5254,
+      "mrr": 0.7264,
       "fully_covered": 0.0
     }
   },
   "worst_questions": [
     {
+      "id": 60,
+      "tier": "intermediate",
+      "f2": 0.0,
+      "budget": 2,
+      "missed": {
+        "rank_miss": [
+          "VSF_financial_statements_2022_separate|479"
+        ]
+      }
+    },
+    {
+      "id": 66,
+      "tier": "easy",
+      "f2": 0.0,
+      "budget": 2,
+      "missed": {
+        "rank_miss": [
+          "NKG_financial_statements_2021_consolidated|194"
+        ]
+      }
+    },
+    {
+      "id": 84,
+      "tier": "intermediate",
+      "f2": 0.0,
+      "budget": 2,
+      "missed": {
+        "rank_miss": [
+          "DTK_financial_statements_2024_separate|345"
+        ]
+      }
+    },
+    {
       "id": 98,
       "tier": "easy",
       "f2": 0.0,
-      "budget": 3,
+      "budget": 2,
       "missed": {
         "rank_miss": [
           "HUT_financial_statements_2024_separate|328"
@@ -251,24 +286,35 @@
       }
     },
     {
-      "id": 123,
-      "tier": "intermediate",
+      "id": 100,
+      "tier": "easy",
       "f2": 0.0,
-      "budget": 3,
+      "budget": 2,
       "missed": {
         "rank_miss": [
-          "SSI_financial_statements_2016_consolidated|227"
+          "BVH_financial_statements_2018_consolidated|2249"
         ]
       }
     },
     {
-      "id": 175,
-      "tier": "intermediate",
+      "id": 131,
+      "tier": "easy",
       "f2": 0.0,
-      "budget": 3,
+      "budget": 2,
       "missed": {
         "rank_miss": [
-          "VGT_financial_statements_2020_consolidated|168"
+          "HUT_financial_statements_2025_separate|305"
+        ]
+      }
+    },
+    {
+      "id": 206,
+      "tier": "intermediate",
+      "f2": 0.0,
+      "budget": 2,
+      "missed": {
+        "rank_miss": [
+          "GEX_financial_statements_2021_consolidated|351"
         ]
       }
     },
@@ -276,7 +322,7 @@
       "id": 287,
       "tier": "easy",
       "f2": 0.0,
-      "budget": 3,
+      "budget": 2,
       "missed": {
         "rank_miss": [
           "VIF_financial_statements_2021_separate|1771"
@@ -284,100 +330,27 @@
       }
     },
     {
-      "id": 290,
-      "tier": "easy",
-      "f2": 0.0,
-      "budget": 3,
-      "missed": {
-        "rank_miss": [
-          "AAA_financial_statements_2023_separate|254"
-        ]
-      }
-    },
-    {
       "id": 363,
       "tier": "hard",
       "f2": 0.0,
-      "budget": 15,
+      "budget": 10,
       "missed": {
         "candidate_miss": [
+          "KBC_financial_statements_2016_consolidated|276",
           "KBC_financial_statements_2016_consolidated|243",
           "KBC_financial_statements_2016_consolidated|258",
-          "KBC_financial_statements_2016_consolidated|276",
+          "KBC_financial_statements_2017_consolidated|301",
           "KBC_financial_statements_2017_consolidated|255",
           "KBC_financial_statements_2017_consolidated|270",
-          "KBC_financial_statements_2017_consolidated|301",
+          "KBC_financial_statements_2018_consolidated|302",
           "KBC_financial_statements_2018_consolidated|252",
           "KBC_financial_statements_2018_consolidated|269",
-          "KBC_financial_statements_2018_consolidated|302",
+          "KBC_financial_statements_2019_consolidated|276",
           "KBC_financial_statements_2019_consolidated|232",
           "KBC_financial_statements_2019_consolidated|247",
-          "KBC_financial_statements_2019_consolidated|276",
-          "KBC_financial_statements_2020_consolidated|248",
-          "KBC_financial_statements_2020_consolidated|265",
-          "KBC_financial_statements_2020_consolidated|296"
-        ]
-      }
-    },
-    {
-      "id": 365,
-      "tier": "intermediate",
-      "f2": 0.0,
-      "budget": 21,
-      "missed": {
-        "candidate_miss": [
-          "KBC_financial_statements_2016_consolidated|276",
-          "KBC_financial_statements_2016_consolidated|300",
-          "KBC_financial_statements_2017_consolidated|301",
-          "KBC_financial_statements_2017_consolidated|328",
-          "KBC_financial_statements_2018_consolidated|302",
-          "KBC_financial_statements_2018_consolidated|337",
-          "KBC_financial_statements_2019_consolidated|276",
-          "KBC_financial_statements_2019_consolidated|305",
           "KBC_financial_statements_2020_consolidated|296",
-          "KBC_financial_statements_2020_consolidated|331",
-          "KBC_financial_statements_2021_consolidated|328",
-          "KBC_financial_statements_2021_consolidated|355"
-        ]
-      }
-    },
-    {
-      "id": 380,
-      "tier": "hard",
-      "f2": 0.0,
-      "budget": 24,
-      "missed": {
-        "candidate_miss": [
-          "DIG_financial_statements_2024_consolidated|316",
-          "DIG_financial_statements_2024_consolidated|350",
-          "DIG_financial_statements_2024_consolidated|371",
-          "HPX_financial_statements_2024_consolidated|302",
-          "HPX_financial_statements_2024_consolidated|323",
-          "HPX_financial_statements_2024_consolidated|365",
-          "KBC_financial_statements_2024_consolidated|331",
-          "KBC_financial_statements_2024_consolidated|369",
-          "KBC_financial_statements_2024_consolidated|386",
-          "KBC_financial_statements_2024_consolidated|401",
-          "NVL_financial_statements_2024_consolidated|454",
-          "NVL_financial_statements_2024_consolidated|492",
-          "NVL_financial_statements_2024_consolidated|513",
-          "NVL_financial_statements_2024_consolidated|538",
-          "SCR_financial_statements_2024_consolidated|253",
-          "SCR_financial_statements_2024_consolidated|287",
-          "SCR_financial_statements_2024_consolidated|304",
-          "SCR_financial_statements_2024_consolidated|337",
-          "VIC_financial_statements_2024_consolidated|220",
-          "VIC_financial_statements_2024_consolidated|251",
-          "VIC_financial_statements_2024_consolidated|266",
-          "VIC_financial_statements_2024_consolidated|292",
-          "VPI_financial_statements_2024_consolidated|283",
-          "VPI_financial_statements_2024_consolidated|313",
-          "VPI_financial_statements_2024_consolidated|330",
-          "VPI_financial_statements_2024_consolidated|360",
-          "VRE_financial_statements_2024_consolidated|208",
-          "VRE_financial_statements_2024_consolidated|252",
-          "VRE_financial_statements_2024_consolidated|279",
-          "VRE_financial_statements_2024_consolidated|311"
+          "KBC_financial_statements_2020_consolidated|248",
+          "KBC_financial_statements_2020_consolidated|265"
         ]
       }
     },
@@ -385,7 +358,7 @@
       "id": 582,
       "tier": "medium",
       "f2": 0.0,
-      "budget": 6,
+      "budget": 4,
       "missed": {
         "rank_miss": [
           "MCH_financial_statements_2021_consolidated|1333",
@@ -394,14 +367,14 @@
       }
     },
     {
-      "id": 631,
+      "id": 588,
       "tier": "intermediate",
       "f2": 0.0,
-      "budget": 12,
+      "budget": 4,
       "missed": {
         "rank_miss": [
-          "IJC_financial_statements_2015_separate|355",
-          "IJC_financial_statements_2018_separate|392"
+          "SAB_financial_statements_2023_separate|1112",
+          "SAB_financial_statements_2019_separate|913"
         ]
       }
     },
@@ -409,11 +382,23 @@
       "id": 662,
       "tier": "easy",
       "f2": 0.0,
-      "budget": 3,
+      "budget": 2,
       "missed": {
         "rank_miss": [
-          "CEO_financial_statements_2016_consolidated|199",
-          "CEO_financial_statements_2016_consolidated|269"
+          "CEO_financial_statements_2016_consolidated|269",
+          "CEO_financial_statements_2016_consolidated|199"
+        ]
+      }
+    },
+    {
+      "id": 672,
+      "tier": "medium",
+      "f2": 0.0,
+      "budget": 2,
+      "missed": {
+        "rank_miss": [
+          "MBS_financial_statements_2022|1312",
+          "MBS_financial_statements_2022|1387"
         ]
       }
     },
@@ -421,23 +406,11 @@
       "id": 709,
       "tier": "medium",
       "f2": 0.0,
-      "budget": 3,
+      "budget": 2,
       "missed": {
         "rank_miss": [
-          "MSR_financial_statements_2022_consolidated|1588",
-          "MSR_financial_statements_2022_consolidated|357"
-        ]
-      }
-    },
-    {
-      "id": 721,
-      "tier": "intermediate",
-      "f2": 0.0,
-      "budget": 3,
-      "missed": {
-        "rank_miss": [
-          "VIF_financial_statements_2020_consolidated|1162",
-          "VIF_financial_statements_2020_consolidated|1262"
+          "MSR_financial_statements_2022_consolidated|357",
+          "MSR_financial_statements_2022_consolidated|1588"
         ]
       }
     },
@@ -445,23 +418,11 @@
       "id": 731,
       "tier": "medium",
       "f2": 0.0,
-      "budget": 3,
+      "budget": 2,
       "missed": {
         "rank_miss": [
           "HDB_financial_statements_2025_consolidated|196",
           "HDB_financial_statements_2025_consolidated|221"
-        ]
-      }
-    },
-    {
-      "id": 762,
-      "tier": "medium",
-      "f2": 0.0,
-      "budget": 6,
-      "missed": {
-        "rank_miss": [
-          "GEX_financial_statements_2019_consolidated|315",
-          "SAM_financial_statements_2019_consolidated|202"
         ]
       }
     }

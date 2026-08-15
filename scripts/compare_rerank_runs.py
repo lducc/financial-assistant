@@ -43,11 +43,8 @@ sys.path.insert(0, str(ROOT / "scripts"))
 from vifinqa.retrieval import table_budget
 from cross_validate_retrieval import cluster_bootstrap, cluster_of, gold_of
 from evaluate_table_retrieval import connected_report_groups, prefix_score, reciprocal_rank
-from apply_rerank_scores import fuse
-
-
-def load_jsonl(path: Path) -> list[dict]:
-    return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+from apply_rerank_scores import load_jsonl, load_scores, rankings
+from compare_rankings import means
 
 
 def agreement(control: dict, treatment: dict) -> dict:
@@ -71,7 +68,7 @@ def agreement(control: dict, treatment: dict) -> dict:
     }
 
 
-def strata(pairs: dict, ids, aa_items: int) -> tuple[list, list]:
+def strata(pairs: dict, ids: list[int], aa_items: int) -> tuple[list[int], list[int]]:
     """Split questions into the ones whose prompt is unchanged and the rest.
 
     The number of named line items is what decides it, because that is what
@@ -84,44 +81,24 @@ def strata(pairs: dict, ids, aa_items: int) -> tuple[list, list]:
     )
 
 
-def rank(pairs: dict, scores: dict, mode: str, weight: float, replace_tiers: set, tier_of: dict) -> dict:
-    """One ranking per question, under the shipped fusion."""
-    ranking = {}
-    for identifier, record in pairs.items():
-        order = [candidate["table_id"] for candidate in record["candidates"]]
-        if identifier in scores:
-            question_mode = "replace" if tier_of.get(identifier) in replace_tiers else mode
-            order = fuse(record["candidates"], scores[identifier], question_mode, weight)
-        ranking[identifier] = order
-    return ranking
-
-
-def score(traces: list[dict], ranking: dict, top_k: str, gold: str) -> dict:
+def score(traces: list[dict], ranking: dict[str, list[str]], top_k: str, gold: str) -> dict[int, dict]:
     """Per-question F2 at the shipped budget, over each run's own candidates."""
     rows = {}
     for trace in traces:
-        identifier = trace["id"]
-        candidates = ranking.get(identifier) or list(dict.fromkeys(trace["ranked_tables"]))
+        order = ranking.get(str(trace["id"])) or list(dict.fromkeys(trace["ranked_tables"]))
         budget = table_budget(len(trace["selected_docs"]), top_k)
         gold_tables = gold_of(trace, gold)
-        rows[identifier] = {
-            **prefix_score(gold_tables, candidates, budget),
-            "mrr": reciprocal_rank(gold_tables, candidates, budget),
+        rows[trace["id"]] = {
+            **prefix_score(gold_tables, order, budget),
+            "mrr": reciprocal_rank(gold_tables, order, budget),
         }
     return rows
 
 
-def means(rows: dict, ids=None) -> dict:
-    selected = [rows[key] for key in (ids if ids is not None else rows)]
-    if not selected:
-        return {}
-    return {
-        metric: round(sum(row[metric] for row in selected) / len(selected), 4)
-        for metric in ("f2", "recall", "precision", "mrr")
-    }
-
-
-def interval(control: dict, treatment: dict, clusters: dict, ids: list, iterations: int) -> dict:
+def interval(
+    control: dict, treatment: dict, clusters: dict, ids: list[int], iterations: int,
+) -> dict:
+    """Means either side and the paired cluster bootstrap on the delta."""
     if not ids:
         return {}
     return {
@@ -166,20 +143,14 @@ def main() -> None:
     if any("gold_tables_binding" not in trace for trace in traces) and args.gold == "binding":
         raise SystemExit(f"{args.cache} predates the binding gold definition; rerun --refresh")
     pairs = {record["id"]: record for record in load_jsonl(args.pairs)}
-    scores = {}
-    for name, path in (("control", args.control), ("treatment", args.treatment)):
-        scores[name] = defaultdict(dict)
-        for record in load_jsonl(path):
-            scores[name][record["id"]].update(record["scores"])
+    control_scores = load_scores([args.control])
+    treatment_scores = load_scores([args.treatment])
 
     replace_tiers = {tier.strip() for tier in args.replace_tiers.split(",") if tier.strip()}
     tier_of = {r["id"]: r["tier"] for r in load_jsonl(args.tiers)} if replace_tiers else {}
-    ranked = {
-        name: rank(pairs, scores[name], args.mode, args.weight, replace_tiers, tier_of)
-        for name in scores
-    }
-    control = score(traces, ranked["control"], args.table_top_k, args.gold)
-    treatment = score(traces, ranked["treatment"], args.table_top_k, args.gold)
+    order = lambda scored: rankings(pairs, scored, args.mode, args.weight, replace_tiers, tier_of)
+    control = score(traces, order(control_scores), args.table_top_k, args.gold)
+    treatment = score(traces, order(treatment_scores), args.table_top_k, args.gold)
 
     cluster_by_report = {
         report: group[0] for group in connected_report_groups(list(records.values())) for report in group
@@ -196,7 +167,7 @@ def main() -> None:
         "treatment": str(args.treatment),
         "gold": args.gold,
         "fusion": {"mode": args.mode, "weight": args.weight, "replace_tiers": sorted(replace_tiers)},
-        "agreement": agreement(scores["control"], scores["treatment"]),
+        "agreement": agreement(control_scores, treatment_scores),
         "overall": interval(control, treatment, clusters, list(control), args.iterations),
         # The A/A stratum is the floor: whatever it reads, the treated stratum has
         # to beat it before any of the difference can be called the method.

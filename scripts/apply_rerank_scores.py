@@ -60,6 +60,41 @@ def fuse(
     )
 
 
+def load_scores(paths: list[Path]) -> dict[int, dict[str, float]]:
+    """Merge score files, inside the per-question dict as well as across it.
+
+    Sharded Kaggle runs write one file per GPU and never share a question, so a
+    union over questions was enough. A depth extension does share questions and
+    differs only in which candidates it judged, so the union has to reach inside;
+    on disjoint shards that is the same thing.
+    """
+    scored: dict[int, dict[str, float]] = defaultdict(dict)
+    for path in paths:
+        for record in load_jsonl(path):
+            scored[record["id"]].update(record["scores"])
+    return scored
+
+
+def rankings(
+    pairs: dict, scored: dict, mode: str, weight: float, replace_tiers: set, tier_of: dict,
+) -> dict[str, list[str]]:
+    """The shipped ordering rule, keyed by question ID as ranking.json is.
+
+    Lives here rather than in each caller so that a comparison against the
+    shipped ranking cannot drift away from what actually ships.
+    """
+    ranking = {}
+    for identifier, record in pairs.items():
+        order = [candidate["table_id"] for candidate in record["candidates"]]
+        if identifier in scored:
+            # A question with no tier keeps the default; the classifier covers all
+            # 1,012, so this only fires on label sets it has not been run over.
+            question_mode = "replace" if tier_of.get(identifier) in replace_tiers else mode
+            order = fuse(record["candidates"], scored[identifier], question_mode, weight)
+        ranking[str(identifier)] = order
+    return ranking
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     root = Path(__file__).resolve().parents[1]
@@ -86,39 +121,16 @@ def main() -> None:
     args = parser.parse_args()
 
     pairs = {record["id"]: record for record in load_jsonl(args.pairs)}
-    # Sharded Kaggle runs write one file per GPU and never share a question, so a
-    # union over questions was enough. A depth extension does share questions and
-    # differs only in which candidates it judged, so the union has to reach inside
-    # the per-question dict; on disjoint shards that is the same thing.
-    score_paths = args.scores or [args.pairs.parent / "scores.jsonl"]
-    scored: dict[int, dict[str, float]] = defaultdict(dict)
-    for path in score_paths:
-        for record in load_jsonl(path):
-            scored[record["id"]].update(record["scores"])
-    missing = sorted(set(pairs) - set(scored))
+    scored = load_scores(args.scores or [args.pairs.parent / "scores.jsonl"])
     replace_tiers = {tier.strip() for tier in args.replace_tiers.split(",") if tier.strip()}
-    tier_of = {}
-    if replace_tiers:
-        tier_of = {
-            record["id"]: record["tier"] for record in load_jsonl(args.tiers)
-        }
+    tier_of = {record["id"]: record["tier"] for record in load_jsonl(args.tiers)} if replace_tiers else {}
+    ranking = rankings(pairs, scored, args.mode, args.weight, replace_tiers, tier_of)
 
-    ranking = {}
-    moved = defaultdict(int)
-    modes = defaultdict(int)
-    for identifier, record in pairs.items():
-        order = [candidate["table_id"] for candidate in record["candidates"]]
-        if identifier in scored:
-            # A question with no tier keeps the default; the classifier covers all
-            # 1,012, so this only fires on label sets it has not been run over.
-            mode = "replace" if tier_of.get(identifier) in replace_tiers else args.mode
-            modes[mode] += 1
-            fused = fuse(record["candidates"], scored[identifier], mode, args.weight)
-            moved[fused[0] != order[0]] += 1
-            ranking[str(identifier)] = fused
-        else:
-            ranking[str(identifier)] = order
-
+    replaced = sum(1 for i in pairs if i in scored and tier_of.get(i) in replace_tiers)
+    moved = sum(
+        1 for identifier, record in pairs.items()
+        if ranking[str(identifier)][0] != record["candidates"][0]["table_id"]
+    )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(ranking, ensure_ascii=False), encoding="utf-8")
     print(json.dumps({
@@ -126,12 +138,12 @@ def main() -> None:
         "mode": args.mode,
         "replace_tiers": sorted(replace_tiers),
         "weight": args.weight,
-        "questions_by_mode": dict(modes),
         "questions": len(ranking),
         "scored": len(scored),
-        "unscored_kept_as_is": len(missing),
-        "top_table_changed": moved[True],
-        "top_table_unchanged": moved[False],
+        "unscored_kept_as_is": len(set(pairs) - set(scored)),
+        "questions_replaced_by_tier": replaced,
+        "top_table_changed": moved,
+        "top_table_unchanged": len(ranking) - moved,
     }, ensure_ascii=False, indent=2))
 
 
