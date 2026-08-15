@@ -1,9 +1,11 @@
 """Kaggle GPU notebook: score candidate pairs with a Qwen3 reranker.
 
 Paste into a notebook with a GPU accelerator and the exported pairs attached as
-a dataset, then run. It writes scores.jsonl for `scripts/apply_rerank_scores.py`
-to fuse locally. Every setting is an environment variable, so the same file runs
-unchanged at 4B or 8B, on a rented GPU, or twice in one session for an A/B.
+a dataset, edit the settings block, run. It writes scores.jsonl for
+`scripts/apply_rerank_scores.py` to fuse locally.
+
+To A/B two settings, paste it twice in one session and change the one line that
+differs plus SCORES_PATH. Two runs in different sessions are not comparable.
 
 Retrieval is untouched — only the order of already-retrieved candidates changes,
 so discarding a run means deleting one file.
@@ -20,16 +22,19 @@ import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
 
 
-MODEL_NAME = os.environ.get("MODEL_NAME", "Qwen/Qwen3-Reranker-8B")
-ADAPTER_PATH = os.environ.get("ADAPTER_PATH", "")
-PAIRS_PATH = os.environ.get("PAIRS_PATH", "/kaggle/input/vifinqa-rerank-pairs/pairs_bench_v4.jsonl")
-SCORES_PATH = os.environ.get("SCORES_PATH", "/kaggle/working/scores.jsonl")
-RESUME_PATH = os.environ.get("RESUME_PATH", "")   # a downloaded scores.jsonl: skips whole questions
-SKIP_PATH = os.environ.get("SKIP_PATH", "")       # a finished scores.jsonl: skips individual candidates
-QUANTIZATION = os.environ.get("QUANTIZATION", "int8")
-PER_ITEM = os.environ.get("PER_ITEM", "") == "1"
-MAX_LENGTH = int(os.environ.get("MAX_LENGTH", "1024"))
-RERANK_DEPTH = int(os.environ.get("RERANK_DEPTH", "100"))
+# ---- edit these, then run ----------------------------------------------------
+MODEL_NAME = "Qwen/Qwen3-Reranker-8B"      # or Qwen/Qwen3-Reranker-4B
+PAIRS_PATH = "/kaggle/input/vifinqa-rerank-pairs/pairs_bench_v4.jsonl"
+SCORES_PATH = "/kaggle/working/scores.jsonl"
+PER_ITEM = False        # True scores each named line item as its own query
+QUANTIZATION = "int8"   # "fp16" needs GPU T4 x2; "nf4" is faster and unscored
+RESUME_PATH = ""        # a downloaded scores.jsonl: skips whole questions
+SKIP_PATH = ""          # a finished scores.jsonl: skips individual candidates
+ADAPTER_PATH = ""       # a LoRA adapter from train_reranker.py
+# ------------------------------------------------------------------------------
+
+MAX_LENGTH = 1024
+RERANK_DEPTH = 100
 MAX_BATCH = 16
 
 INSTRUCTION = (

@@ -48,32 +48,29 @@ repeat at 8B.
 
 import json
 import math
-import os
 import random
 
 import torch
 from torch.nn.utils.rnn import pad_sequence
 from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
 
-MODEL_NAME = os.environ.get("MODEL_NAME", "Qwen/Qwen3-Reranker-4B")
-TRAINING_PATH = os.environ.get(
-    "TRAINING_PATH", "/kaggle/input/vifinqa-rerank-training/training.jsonl"
-)
-OUTPUT_DIR = os.environ.get("OUTPUT_DIR", "/kaggle/working/adapter")
+MODEL_NAME = "Qwen/Qwen3-Reranker-4B"
+TRAINING_PATH = "/kaggle/input/vifinqa-rerank-training/training.jsonl"
+OUTPUT_DIR = "/kaggle/working/adapter"
 # Held-out questions for a loss curve that means something. Groups are split by
 # question, never by row: two rows from one question in different splits would
 # leak the document text across the boundary.
-VALIDATION_SHARE = float(os.environ.get("VALIDATION_SHARE", "0.15"))
-MAX_LENGTH = int(os.environ.get("MAX_LENGTH", "1024"))
-EPOCHS = int(os.environ.get("EPOCHS", "2"))
-LEARNING_RATE = float(os.environ.get("LEARNING_RATE", "1e-4"))
+VALIDATION_SHARE = 0.15
+MAX_LENGTH = 1024
+EPOCHS = 2
+LEARNING_RATE = 1e-4
 # One optimiser step covers one question: its positives against its hard
 # negatives. The loss is a softmax over the candidates of a single question, so
 # the group has to arrive intact.
-GROUPS_PER_STEP = int(os.environ.get("GROUPS_PER_STEP", "1"))
-MAX_GROUP = int(os.environ.get("MAX_GROUP", "12"))
-LORA_RANK = int(os.environ.get("LORA_RANK", "16"))
-QUANTIZATION = os.environ.get("QUANTIZATION", "fp16")  # "fp16" for 4B, "nf4" for 8B
+GROUPS_PER_STEP = 1
+MAX_GROUP = 12
+LORA_RANK = 16
+QUANTIZATION = "fp16"  # "fp16" for 4B, "nf4" for 8B
 SEED = 20260814
 
 # Identical to rerank_qwen_8b.py. If either copy changes, both must.

@@ -34,20 +34,19 @@ from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
 # 2026-06-01 cutoff, and 8.2 GB in int8 so a T4 has room. The 14B cap is per
 # model, so Qwen3-14B is legal and is the upgrade if 8B ranks well but not well
 # enough; it is roughly 1.7x slower and tight on a 16 GB card.
-MODEL_NAME = os.environ.get("MODEL_NAME", "Qwen/Qwen3-8B")
+MODEL_NAME = "Qwen/Qwen3-8B"
 # Comma-separate to rank several window files in one session, which is how the
 # position-bias control is run: the same 233 questions presented in ranking order
 # and reversed. Each input writes its own orders file named after it, so the two
 # passes cannot overwrite each other and the resume cannot mistake one for the
 # other — both cover the same question IDs, and a shared output would make the
 # second run skip every question and exit looking successful.
-WINDOWS_PATH = os.environ.get(
-    "WINDOWS_PATH",
+WINDOWS_PATH = (
     "/kaggle/input/vifinqa-rerank-pairs/windows_bench.jsonl,"
-    "/kaggle/input/vifinqa-rerank-pairs/windows_bench_rev.jsonl",
+    "/kaggle/input/vifinqa-rerank-pairs/windows_bench_rev.jsonl"
 )
-OUTPUT_DIR = os.environ.get("OUTPUT_DIR", "/kaggle/working")
-RESUME_DIR = os.environ.get("RESUME_DIR")
+OUTPUT_DIR = "/kaggle/working"
+RESUME_DIR = ""
 # Windows measure ~1,643 tokens; 3072 leaves room for the longest without
 # truncating a candidate out of the comparison.
 MAX_LENGTH = 3072
@@ -64,7 +63,7 @@ MAX_NEW_TOKENS = 160
 # makes bitsandbytes int8 slow on Turing, and the run is generation-bound, so it
 # is the setting that buys the most time for the least risk. Set "int8" to
 # compare, or "fp16" on a card with 24 GB.
-QUANTIZATION = os.environ.get("QUANTIZATION", "nf4")
+QUANTIZATION = "nf4"
 
 INSTRUCTION = (
     "Bạn xếp hạng các bảng trong báo cáo tài chính. Mọi bảng dưới đây đều thuộc "

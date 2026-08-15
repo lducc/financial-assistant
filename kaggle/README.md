@@ -40,7 +40,7 @@ loses 0.15 F2 here.
 **3. Run one of the notebooks (Kaggle)**
 
 New notebook → Accelerator: **GPU T4** (or **T4 x2** for fp16) → attach the
-dataset → set the environment variables in a cell → paste the script below it →
+dataset → paste the script into a cell → edit the settings block at the top →
 Run. It prints throughput and an ETA and writes `SCORES_PATH` (~1 MB).
 
 | Script | Model | Memory | 50,335 pairs at 1024 |
@@ -52,20 +52,22 @@ One script covers both sizes: `MODEL_NAME=Qwen/Qwen3-Reranker-4B` runs 4B in
 6–8 h. The separate `rerank_qwen.py` and `rerank_qwen_4b.py` were the same
 loop with the settings hard-coded and are gone.
 
-Every setting is an environment variable, read at import:
+The settings block at the top of the script:
 
-| variable | default | what it does |
+| setting | default | what it does |
 |---|---|---|
 | `MODEL_NAME` | `Qwen/Qwen3-Reranker-8B` | any Qwen3 reranker |
 | `PAIRS_PATH` | `pairs_bench_v4.jsonl` | the export to score |
 | `SCORES_PATH` | `/kaggle/working/scores.jsonl` | appended per question |
+| `PER_ITEM` | `False` | one query per named line item, reduced by max |
 | `QUANTIZATION` | `int8` | `fp16` needs T4 x2; `nf4` is faster and unscored |
-| `PER_ITEM` | off | one query per named line item, reduced by max |
-| `RESUME_PATH` | — | a downloaded scores.jsonl: skips whole questions |
-| `SKIP_PATH` | — | a finished scores.jsonl: skips individual candidates |
-| `MAX_LENGTH` | 1024 | 512 lost the line-item inventory and cost 0.023 live |
-| `RERANK_DEPTH` | 100 | above the deepest export, so nothing is cut by accident |
-| `ADAPTER_PATH` | — | a LoRA adapter from `train_reranker.py` |
+| `RESUME_PATH` | `""` | a downloaded scores.jsonl: skips whole questions |
+| `SKIP_PATH` | `""` | a finished scores.jsonl: skips individual candidates |
+| `ADAPTER_PATH` | `""` | a LoRA adapter from `train_reranker.py` |
+
+Below the block, `MAX_LENGTH = 1024` and `RERANK_DEPTH = 100` are settled: 512
+lost the line-item inventory and cost 0.023 live, and 100 sits above the deepest
+export so nothing is cut by accident.
 
 **Run 8B.** Both were scored at max_length 1024 on the `pairs_v3` export, measured
 on the 233-record benchmark against the sparse ranking:
@@ -140,12 +142,16 @@ a measurement of this model split across two cards, where the layers run as a
 pipeline and one card idles while the other computes. If it misbehaves, fall back
 to int8 and keep both cells in the one session.
 
+Paste the script into two cells and change two lines between them:
+
+```python
+# cell 1, the control                 # cell 2, the treatment
+SCORES_PATH = ".../scores_ctrl.jsonl"   SCORES_PATH = ".../scores_peritem.jsonl"
+PER_ITEM = False                        PER_ITEM = True
 ```
-PAIRS_PATH=.../pairs_bench_v4.jsonl QUANTIZATION=fp16 \
-  PER_ITEM=0 SCORES_PATH=/kaggle/working/scores_bench_fp16.jsonl          # 11,592 pairs
-PAIRS_PATH=.../pairs_bench_v4.jsonl QUANTIZATION=fp16 \
-  PER_ITEM=1 SCORES_PATH=/kaggle/working/scores_bench_fp16_peritem.jsonl  # 16,383 pairs
-```
+
+11,592 pairs then 16,383. The model frees when the first cell returns, so the
+second reloads it without running out of memory.
 
 Then locally:
 

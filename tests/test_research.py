@@ -32,24 +32,16 @@ def load_script(name: str):
     return module
 
 
-def load_kaggle(name: str, **environment):
-    """Import a kaggle/ notebook script, whose settings are read at import time."""
-    import os
-
-    previous = {key: os.environ.get(key) for key in environment}
-    os.environ.update(environment)
-    try:
-        spec = importlib.util.spec_from_file_location(name, ROOT / "kaggle" / f"{name}.py")
-        module = importlib.util.module_from_spec(spec)
-        assert spec.loader
-        spec.loader.exec_module(module)
-        return module
-    finally:
-        for key, value in previous.items():
-            if value is None:
-                os.environ.pop(key, None)
-            else:
-                os.environ[key] = value
+def load_kaggle(name: str, **settings):
+    """Import a kaggle/ notebook script, overriding its hard-coded settings."""
+    spec = importlib.util.spec_from_file_location(name, ROOT / "kaggle" / f"{name}.py")
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader
+    spec.loader.exec_module(module)
+    for key, value in settings.items():
+        assert hasattr(module, key), f"{name} has no setting {key}"
+        setattr(module, key, value)
+    return module
 
 
 def test_html_spans_expand_grid():
@@ -184,8 +176,8 @@ def test_per_item_only_changes_questions_that_name_several_items():
     prompt under both settings, or the full-corpus comparison against
     scores_v4.jsonl is confounded by questions that were never meant to move.
     """
-    off = load_kaggle("rerank_qwen_8b", PER_ITEM="0")
-    on = load_kaggle("rerank_qwen_8b", PER_ITEM="1")
+    off = load_kaggle("rerank_qwen_8b", PER_ITEM=False)
+    on = load_kaggle("rerank_qwen_8b", PER_ITEM=True)
     assert not off.PER_ITEM and on.PER_ITEM
 
     bare = {"question": "Doanh thu 2024?", "line_items": []}
@@ -202,7 +194,7 @@ def test_per_item_only_changes_questions_that_name_several_items():
 
 def test_per_item_writes_a_matrix_whose_max_is_the_shipped_score():
     """The matrix is additive: `scores` must stay exactly what it was."""
-    module = load_kaggle("rerank_qwen_8b", PER_ITEM="1")
+    module = load_kaggle("rerank_qwen_8b", PER_ITEM=True)
     record = {
         "id": 7,
         "question": "Doanh thu và giá vốn 2024?",
