@@ -31,13 +31,18 @@ QUANTIZATION = "int8"   # "fp16" needs GPU T4 x2; "nf4" is faster and unscored
 RESUME_PATH = ""        # a downloaded scores.jsonl: skips whole questions
 SKIP_PATH = ""          # a finished scores.jsonl: skips individual candidates
 ADAPTER_PATH = ""       # a LoRA adapter from train_reranker.py
+PROMPT = "v1"           # "v2" lets the model decide statement or note; use with pairs_bench_v5
 # ------------------------------------------------------------------------------
 
 MAX_LENGTH = 1024
 RERANK_DEPTH = 100
 MAX_BATCH = 16
 
-INSTRUCTION = (
+# The instruction shipped with every score file so far. It ends by counting a
+# note that restates a figure as yes, and on the benchmark that is what fills
+# the slots after the first gold table: gold sits in the primary statements 60%
+# of the time, the non-gold we submit does 34%.
+INSTRUCTION_V1 = (
     "Every candidate is a table from the correct company, period and statement, "
     "so none of those separate them — the whole judgement is which table inside "
     "that report reports the figure. Answer yes if the table holds at least one "
@@ -50,6 +55,28 @@ INSTRUCTION = (
     "statement or the note that reports the figure, and count a note or segment "
     "breakdown restating it as yes."
 )
+# The revision: the model decides statement or note from the item itself, and a
+# restatement is no. Pairs with the position line in the v5 candidate text.
+INSTRUCTION_V2 = (
+    "Every candidate is a table from the correct company, period and statement, "
+    "so none of those separate them — the whole judgement is which table inside "
+    "that report is the source of the figure. Answer yes if the table holds at "
+    "least one of the line items under 'Chỉ tiêu cần tìm' as a row of its own, "
+    "with a value for the period asked; a question often needs several figures "
+    "and a table only has to supply one of them. A report presents its primary "
+    "statements first — balance sheet, income statement, cash flow, equity — and "
+    "the notes after them; the table's position in the report says which it is. "
+    "A line item that belongs to a primary statement is sourced there, and a note "
+    "that repeats or breaks it down is no. A line item that only a note reports — "
+    "an ownership share, a credit limit, a term deposit, a fair value, a tax "
+    "component — is sourced in that note, and the statement it rolls up into is "
+    "no. A matching label is not enough on its own: the same wording appears on "
+    "rows that only reference the item — related-party and subsidiary listings, "
+    "movement and allocation schedules, and rows that are column headers rather "
+    "than line items."
+)
+INSTRUCTION = INSTRUCTION_V2 if PROMPT == "v2" else INSTRUCTION_V1
+
 PREFIX = (
     "<|im_start|>system\nJudge whether the Document meets the requirements based on the Query "
     'and the Instruct provided. Note that the answer can only be "yes" or "no".<|im_end|>\n'

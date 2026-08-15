@@ -64,6 +64,7 @@ def main() -> None:
     parser.add_argument("--limit", type=int)
     parser.add_argument("--inventory", type=int, default=600, help="characters of the table's line-item list to include; 0 keeps the matched row alone")
     parser.add_argument("--progress-every", type=int, default=100)
+    parser.add_argument("--position", action="store_true", help="tell the model where each table sits in its report")
     args = parser.parse_args()
 
     path = args.questions or args.dataset_root / "questions" / "questions.jsonl"
@@ -100,15 +101,17 @@ def main() -> None:
             candidates = []
             for rank, table in enumerate(result["tables"], 1):
                 report = by_id[table["report_id"]]
-                match = next(
-                    (item for item in report_tables_cached(report) if item.table_id == table["table_id"]), None
-                )
-                if match is None:
+                tables = report_tables_cached(report)
+                ordinal = next((n for n, item in enumerate(tables) if item.table_id == table["table_id"]), None)
+                if ordinal is None:
                     continue
                 candidates.append({
                     "table_id": table["table_id"],
                     "sparse_rank": rank,
-                    "text": table_representation(match, table["row_index"], inventory=args.inventory),
+                    "text": table_representation(
+                        tables[ordinal], table["row_index"], inventory=args.inventory,
+                        position=(ordinal, len(tables)) if args.position else None,
+                    ),
                 })
             handle.write(json.dumps({
                 "id": question["id"],

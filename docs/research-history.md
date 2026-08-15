@@ -527,3 +527,55 @@ property of a 233-record benchmark, and so as something only more labels could
 fix. A third of it is drift, and drift is fixable in an afternoon by scoring both
 cells in one fp16 session. That reopens effects in the 0.01-0.025 band, which is
 where `PER_ITEM` sits at a +0.0254 ceiling.
+
+## The cap was break-even, and it measured the tail
+
+Three live submissions truncating the shipped table list at 20, 16 and 12:
+
+| | Tables F2 | precision | recall |
+|---|---:|---:|---:|
+| uncapped, `min(30, 2 x reports)` | 0.5221 | 0.3468 | 0.6129 |
+| cap 20 | 0.5223 | 0.3490 | 0.6119 |
+| cap 16 | 0.5214 | 0.3506 | 0.6101 |
+| cap 12 | 0.5186 | 0.3534 | 0.6058 |
+
+The prediction was +0.016 to +0.030 and it was wrong by that much. The identity
+F2 = 5h/(4G+k) was applied to corpus means, but the metric is macro and the
+questions being cut are exactly the ones with large G, so the per-question rule
+is what holds: cutting k to c pays only when the share of hits lost is below
+(k-c)/(4G+k). For a k=30, G~7.9 question cut to 12 that tolerates losing 29% of
+hits, and roughly that is what was lost. Break-even by construction.
+
+What the three points bought is the first measurement of the population the
+benchmark cannot see. Implied gold rate of the tables removed: positions 21-30
+0.035, 17-20 0.076, 13-16 0.116. The tail is thin, and it still does not pay to
+cut it, because 4G swamps the k removed. The budget rule is right; precision
+has to come from ranking gold higher, not from submitting less.
+
+## Where gold sits in a report
+
+Ordinal position of each table within its report, benchmark, shipped ranking:
+
+| | n | first fifth | rest |
+|---|---:|---:|---:|
+| gold we submit | 482 | 0.60 | 0.40 |
+| non-gold we submit | 614 | 0.34 | 0.66 |
+| gold we miss | 273 | 0.59 | 0.41 |
+
+Primary statements come first, notes after. Gold is a statement 60% of the time;
+the non-gold we submit is a note 66% of the time. And the shipped INSTRUCTION
+ends "count a note or segment breakdown restating it as yes" — it asks for
+exactly the tables that fill the slots after the first gold. By tier, gold in
+the first fifth is easy 0.57, medium 0.44, intermediate 0.62, hard 0.62; the
+medium gold in notes is ownership shares, credit limits, term deposits, fair
+values, tax components — items no statement carries.
+
+A single log-odds prior of +1.08 for first-fifth tables, measured on what we
+submit and not swept, scores +0.0183, CI [+0.0038, +0.0350], easy +0.021,
+intermediate +0.033, hard +0.022 — and medium -0.010. Gating it on whether the
+model already ranks a statement in its top three does not rescue medium. So the
+prior is real and a global rule for it is wrong: the item decides whether gold is
+a statement or a note. That is a decision the model can make if it sees the
+position and is not told the answer, which is the next GPU run — `pairs_bench_v5`
+carries a position line, INSTRUCTION_V2 removes the note clause and states the
+statement-or-note rule by item type.

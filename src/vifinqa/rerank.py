@@ -17,7 +17,9 @@ MODEL_NAME = "cross-encoder/mmarco-mMiniLMv2-L12-H384-v1"
 MAX_LENGTH = 192
 
 
-def table_representation(table: "Table", row_index: int, *, inventory: int = 0) -> str:
+def table_representation(
+    table: "Table", row_index: int, *, inventory: int = 0, position: tuple[int, int] | None = None,
+) -> str:
     """Build one deterministic, non-repeated table representation.
 
     With `inventory`, the table is described by its line items rather than by the
@@ -25,6 +27,11 @@ def table_representation(table: "Table", row_index: int, *, inventory: int = 0) 
     look relevant, so showing only it asks the reranker to judge a table through
     the weaker ranker's choice, and it cannot recover when that choice is wrong.
     Listing the row labels tells the model what the table actually contains.
+
+    `position` is (ordinal, count) within the report. Primary statements come
+    first and notes after, and gold sits in the first fifth 60% of the time
+    against 34% for the non-gold tables we submit — but 40% of gold is a note,
+    so it is a fact for the model to weigh per question, not a rule.
     """
     headers = " | ".join(" | ".join(row) for row in table.headers)
     periods = " | ".join(table.periods)
@@ -40,7 +47,8 @@ def table_representation(table: "Table", row_index: int, *, inventory: int = 0) 
     # truncation eats: the median representation is 621 characters and 16% run past
     # a 320-token window. Title and matched row identify the table, the inventory
     # says what else it holds, and the header and period boilerplate goes last.
-    parts = [table.title, row, f"Các chỉ tiêu: {listed}" if listed else "", headers, periods, table.unit]
+    where = f"Vị trí: bảng {position[0] + 1}/{position[1]} trong báo cáo" if position else ""
+    parts = [table.title, where, row, f"Các chỉ tiêu: {listed}" if listed else "", headers, periods, table.unit]
     return "\n".join(part for part in dict.fromkeys(part.strip() for part in parts) if part)
 
 
