@@ -21,10 +21,12 @@ data/raw/vifinqa/
   financial_statements/<TICKER>/<YEAR>/<REPORT_ID>/<REPORT_ID>_extracted.txt
 ```
 
-Install the only test dependency in an environment you control:
+Install the package in an environment you control. It has to be installed,
+not just cloned: `scripts/` and `tests/` import `vifinqa`, and an editable
+install is what puts it on the path.
 
 ```bash
-python3 -m pip install -r requirements.txt
+python3 -m pip install -e .
 ```
 
 Run the compact checks:

@@ -18,19 +18,12 @@ import argparse
 from collections import Counter
 import json
 from pathlib import Path
-import sys
-
-
-ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT / "src"))
-sys.path.insert(0, str(ROOT / "scripts"))
 
 from vifinqa.evaluation_v2 import corpus_tree_hash, sha256_text
-from evaluate_table_retrieval import connected_report_groups
+from vifinqa.jsonl import load_jsonl
+from vifinqa.scoring import connected_report_groups
 
-
-def load_jsonl(path: Path) -> list[dict]:
-    return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+ROOT = Path(__file__).resolve().parents[1]
 
 
 def tier_weights(records: list[dict], corpus: Counter) -> dict[str, float]:

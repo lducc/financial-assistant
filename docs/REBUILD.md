@@ -81,10 +81,14 @@ python3 scripts/validate_submission.py output/submission_v4/package
 
 Use `.venv/bin/python`; the system interpreter has neither pytest nor torch.
 
+Run `.venv/bin/pip install -e .` once in a fresh checkout. Scripts used to
+prepend `src/` to `sys.path` themselves; they import `vifinqa` now, so without
+the install every one of them fails at its first import.
+
 ## Checks that should pass afterwards
 
 ```bash
-.venv/bin/python -m pytest -q                  # 54 passing
+.venv/bin/python -m pytest -q                  # 63 passing
 python3 scripts/verify_benchmark.py            # VALID
 python3 scripts/audit_entity_resolution.py     # 0 unsupported resolutions
 ```
@@ -121,5 +125,8 @@ Answer and execution accuracy have not moved with any of it; see
 `docs/ASSESSMENT.md` §4e.
 Closed: listwise reranking, measured at −0.0458 and rejected — do not run
 `windows_full*.jsonl`. See `docs/ASSESSMENT.md`.
-Next GPU run: pointwise 8B over `pairs_v4_d100.jsonl`; depth 100 is +0.0100 with
-the CI excluding zero and halves `candidate_miss`.
+Next GPU run: the `PER_ITEM` A/B, both cells in one session over
+`pairs_bench_v4.jsonl`. Depth 100 is **not** next: +0.0100 was measured across
+two sessions and is +0.0066 of candidates on +0.0076 of scoring drift, and only
+3 of the 9,158 candidates it adds reach the submitted budget. See
+`docs/ASSESSMENT.md` §8.

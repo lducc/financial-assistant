@@ -4,16 +4,13 @@ import argparse
 import inspect
 import json
 from pathlib import Path
-import sys
-
-
-ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT / "src"))
 
 from vifinqa.evaluation_v2 import (
     SAMPLE_SEED, build_frame, corpus_tree_hash, hash_file, manifest,
     read_legacy_ids, read_question_file, sample_splits, sha256_text,
 )
+
+ROOT = Path(__file__).resolve().parents[1]
 from docs import load_companies, parse_question
 
 

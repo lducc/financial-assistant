@@ -7,14 +7,12 @@ from pathlib import Path
 import subprocess
 import sys
 
-
-ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT / "src"))
-
 from vifinqa.evaluation_v2 import (
     atomic_write_run, corpus_tree_hash, evaluate_v2_predictions, load_jsonl, paired_cluster_bootstrap,
     promotion_gate, summarize_v2_traces, validate_annotation_batch,
 )
+
+ROOT = Path(__file__).resolve().parents[1]
 
 
 def read_run_traces(prediction_dir: Path) -> list[dict]:

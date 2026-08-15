@@ -15,12 +15,11 @@ import json
 from pathlib import Path
 import sys
 
+from vifinqa.evaluation_v2 import corpus_tree_hash, sha256_text
+from vifinqa.jsonl import load_jsonl
+from vifinqa.review import source_report_catalog, validate_source_bindings
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT / "src"))
-
-from vifinqa.evaluation_v2 import corpus_tree_hash, sha256_text
-from vifinqa.review import source_report_catalog, validate_source_bindings
 
 REQUIRED = ("id", "question", "tier", "source", "taxonomy", "provenance", "annotation")
 TIERS = {"easy", "medium", "intermediate", "hard", "unclassified"}
@@ -59,8 +58,7 @@ def main() -> None:
     parser.add_argument("--skip-corpus-hash", action="store_true", help="skip the slow corpus tree hash")
     args = parser.parse_args()
 
-    text = args.benchmark.read_text(encoding="utf-8")
-    records = [json.loads(line) for line in text.splitlines() if line.strip()]
+    records = load_jsonl(args.benchmark)
     reports = source_report_catalog(args.dataset_root)
 
     failures: dict[int, list[str]] = {}
@@ -75,7 +73,7 @@ def main() -> None:
     drift = []
     if manifest["records"] != len(records):
         drift.append(f"manifest records={manifest['records']} file={len(records)}")
-    if manifest["benchmark_sha256"] != sha256_text(text):
+    if manifest["benchmark_sha256"] != sha256_text(args.benchmark.read_text(encoding="utf-8")):
         drift.append("benchmark_sha256 does not match the file; rebuild the manifest")
     if not args.skip_corpus_hash and manifest["corpus_tree_hash"] != corpus_tree_hash(args.dataset_root):
         drift.append("corpus_tree_hash does not match this corpus; results are not comparable")

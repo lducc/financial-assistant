@@ -14,26 +14,24 @@ policy alongside the per-fold spread.
 """
 
 import argparse
-from collections import defaultdict
 import json
-import math
 from pathlib import Path
-import random
 import sys
 
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT / "src"))
 sys.path.insert(0, str(ROOT / "scripts"))
 
 from docs import load_companies, load_reports as load_doc_reports, parse_question, required_report_years, retrieve_docs
 from vifinqa.retrieval import load_reports, retrieve_rows, table_budget
-from evaluate_table_retrieval import (
-    connected_report_groups, gold_tables_for, prefix_score, reciprocal_rank, split_records,
+from evaluate_table_retrieval import split_records
+from vifinqa.jsonl import load_jsonl
+from vifinqa.scoring import (
+    cluster_bootstrap, cluster_of, connected_report_groups, gold_of, gold_tables_for,
+    mean, prefix_score, reciprocal_rank,
 )
 
 
-SEED = 20260812
 TIER_MULTIPLIER = {"easy": 1, "medium": 2, "intermediate": 3, "hard": 3}
 # Multipliers apply to the gated report count directly, never to table_budget():
 # that helper carries whichever multiplier currently ships, so routing policies
@@ -96,22 +94,6 @@ def build_traces(labels: list[dict], dataset_root: Path, depth: int, mode: str, 
     return traces
 
 
-def cluster_of(trace: dict, cluster_by_report: dict[str, str]) -> str:
-    return cluster_by_report.get(trace["gold_reports"][0], trace["gold_reports"][0])
-
-
-def gold_of(trace: dict, gold: str) -> list[str]:
-    """The trace's gold set under the chosen definition.
-
-    Traces cached before the binding-only definition existed carry only the wide
-    set; falling back to it keeps them readable, and the caller warns so the
-    stale cache is refreshed rather than quietly scored against the wrong gold.
-    """
-    if gold == "full":
-        return trace["gold_tables"]
-    return trace.get("gold_tables_binding") or trace["gold_tables"]
-
-
 def score(trace: dict, budget: int, gold: str = "binding") -> dict:
     gold_tables = gold_of(trace, gold)
     scores = prefix_score(gold_tables, trace["ranked_tables"], budget)
@@ -120,40 +102,8 @@ def score(trace: dict, budget: int, gold: str = "binding") -> dict:
     return scores
 
 
-def mean(values: list[float], weights: list[float] | None = None) -> float:
-    """Weighted mean, so a sample that over-represents hard questions still
-    estimates corpus performance. Per-tier figures pass no weights."""
-    if not values:
-        return 0.0
-    if weights is None:
-        return sum(values) / len(values)
-    total = sum(weights)
-    return sum(v * w for v, w in zip(values, weights)) / total if total else 0.0
-
-
 def fold_of(cluster: str, folds: int) -> int:
     return int.from_bytes(cluster.encode("utf-8"), "big") % folds
-
-
-def cluster_bootstrap(
-    baseline: dict[int, float], candidate: dict[int, float], clusters: dict[int, str], iterations: int,
-) -> dict[str, float]:
-    """Paired bootstrap over report clusters, matching the v2 evaluation protocol."""
-    grouped: dict[str, list[int]] = defaultdict(list)
-    for identifier, cluster in clusters.items():
-        grouped[cluster].append(identifier)
-    groups = list(grouped.values())
-    rng = random.Random(SEED)
-    deltas = []
-    for _ in range(iterations):
-        sampled = [identifier for _ in groups for identifier in rng.choice(groups)]
-        deltas.append(mean([candidate[identifier] - baseline[identifier] for identifier in sampled]))
-    deltas.sort()
-    return {
-        "delta": mean([candidate[identifier] - baseline[identifier] for identifier in baseline]),
-        "ci95_low": deltas[int(0.025 * iterations)],
-        "ci95_high": deltas[min(iterations - 1, math.ceil(0.975 * iterations) - 1)],
-    }
 
 
 def main() -> None:
@@ -180,9 +130,9 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    labels = [json.loads(line) for line in args.labels.read_text(encoding="utf-8").splitlines() if line.strip()]
+    labels = load_jsonl(args.labels)
     if args.cache.exists() and not args.refresh:
-        traces = [json.loads(line) for line in args.cache.read_text(encoding="utf-8").splitlines() if line.strip()]
+        traces = load_jsonl(args.cache)
         print(f"reusing {len(traces)} cached traces from {args.cache}", file=sys.stderr)
         if args.gold == "binding" and any("gold_tables_binding" not in trace for trace in traces):
             print(

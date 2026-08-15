@@ -45,12 +45,12 @@ import sys
 
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT / "src"))
 sys.path.insert(0, str(ROOT / "scripts"))
 
 from accept_proposals import is_movement
 from propose_multihop_labels import named_line_items
 from vifinqa.answers import fold
+from vifinqa.jsonl import load_jsonl
 
 # A statement reports the figure; a note restates it. Matched on the folded title
 # because OCR mangles diacritics and case inconsistently.
@@ -124,7 +124,7 @@ def main() -> None:
     args = parser.parse_args()
 
     def load(path: Path) -> list[dict]:
-        return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+        return load_jsonl(path)
 
     keep_tiers = set(args.tier) or {"hard", "intermediate"}
     excluded = {record["id"] for path in args.exclude for record in load(path)}

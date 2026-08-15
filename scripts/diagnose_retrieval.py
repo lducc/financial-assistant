@@ -25,12 +25,12 @@ import sys
 
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT / "src"))
 sys.path.insert(0, str(ROOT / "scripts"))
 
 from vifinqa.retrieval import table_budget
-from cross_validate_retrieval import build_traces, gold_of
-from evaluate_table_retrieval import prefix_score, reciprocal_rank
+from cross_validate_retrieval import build_traces
+from vifinqa.jsonl import load_jsonl
+from vifinqa.scoring import gold_of, prefix_score, reciprocal_rank, reorder
 
 STATES = ("hit", "rank_miss", "candidate_miss", "gate_miss")
 
@@ -80,25 +80,6 @@ def bucket(count: int) -> str:
     return "1 table" if count == 1 else "2 tables" if count == 2 else "3-5 tables" if count <= 5 else "6+ tables"
 
 
-def reorder(trace: dict, ranking: dict[str, list[str]]) -> dict:
-    """Re-sort a cached trace's candidates into a reranked order.
-
-    A reranker only permutes; it cannot retrieve. Intersecting the ranking with
-    the candidates the trace already holds enforces that, so a table the model
-    named but that retrieval never surfaced cannot enter, and the four-state
-    attribution keeps meaning what it says: `candidate_miss` stays a retrieval
-    failure rather than becoming a ranking one. Candidates the ranking omits keep
-    their retrieved order behind the ones it named.
-    """
-    order = ranking.get(str(trace["id"]))
-    if not order:
-        return trace
-    candidates = list(dict.fromkeys(trace["ranked_tables"]))
-    named = [table for table in dict.fromkeys(order) if table in set(candidates)]
-    rest = [table for table in candidates if table not in set(named)]
-    return {**trace, "ranked_tables": named + rest}
-
-
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--dataset-root", type=Path, default=ROOT / "data" / "raw" / "vifinqa")
@@ -127,7 +108,7 @@ def main() -> None:
         for line in args.benchmark.read_text(encoding="utf-8").splitlines() if line.strip()
     }
     if args.cache.exists() and not args.refresh:
-        traces = [json.loads(line) for line in args.cache.read_text(encoding="utf-8").splitlines() if line.strip()]
+        traces = load_jsonl(args.cache)
         print(f"reusing {len(traces)} cached traces", file=sys.stderr)
     else:
         traces = build_traces(list(records.values()), args.dataset_root, args.depth, args.table_mode)

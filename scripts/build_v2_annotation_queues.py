@@ -4,6 +4,8 @@ import argparse
 import json
 from pathlib import Path
 
+from vifinqa.jsonl import load_jsonl
+
 
 def main() -> None:
     parser = argparse.ArgumentParser()
@@ -15,7 +17,7 @@ def main() -> None:
         raise FileExistsError(f"refusing to overwrite annotation queues: {args.output_dir}")
     questions = {
         record["id"]: record["question"]
-        for record in (json.loads(line) for line in args.questions.read_text(encoding="utf-8").splitlines() if line.strip())
+        for record in load_jsonl(args.questions)
     }
     manifest = json.loads(args.manifest.read_text(encoding="utf-8"))
     args.output_dir.mkdir(parents=True, exist_ok=True)

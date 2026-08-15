@@ -17,20 +17,15 @@ from collections import Counter, defaultdict
 import json
 from pathlib import Path
 import random
-import sys
 
+from vifinqa.jsonl import load_jsonl
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT / "src"))
 
 SEED = 20260812
 # Hard and intermediate carry the widest intervals and the worst retrieval, so
 # they get the sampling weight.
 TIER_WEIGHTS = {"hard": 0.40, "intermediate": 0.30, "medium": 0.20, "easy": 0.10}
-
-
-def load_jsonl(path: Path) -> list[dict]:
-    return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
 
 
 def main() -> None:

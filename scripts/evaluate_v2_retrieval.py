@@ -3,11 +3,6 @@
 import argparse
 import json
 from pathlib import Path
-import sys
-
-
-ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT / "src"))
 
 from vifinqa.evaluation_v2 import (
     atomic_write_run,
@@ -17,6 +12,8 @@ from vifinqa.evaluation_v2 import (
     summarize_v2_traces,
     validate_annotation_batch,
 )
+
+ROOT = Path(__file__).resolve().parents[1]
 
 
 def main() -> None:

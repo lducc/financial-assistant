@@ -15,15 +15,12 @@ Usage:
 import argparse
 import json
 from pathlib import Path
-import sys
 import unicodedata
-
-
-ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT / "src"))
 
 from vifinqa.retrieval import report_tables
 from vifinqa.tables import parse_report_identity
+
+ROOT = Path(__file__).resolve().parents[1]
 
 
 def fold(text: str) -> str:

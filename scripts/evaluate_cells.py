@@ -26,11 +26,10 @@ import sys
 
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT / "src"))
-sys.path.insert(0, str(ROOT / "scripts"))
 
 from docs import load_companies, load_reports as load_doc_reports, parse_question, required_report_years, retrieve_docs
-from vifinqa.answers import first_numeric_cell, parse_ocr_number, select_cell
+from vifinqa.answers import first_numeric_cell, select_cell
+from vifinqa.jsonl import load_jsonl
 from vifinqa.retrieval import load_reports, metric_query_tokens, report_tables, retrieve_rows, table_budget
 
 
@@ -65,9 +64,7 @@ def main() -> None:
     parser.add_argument("--progress-every", type=int, default=50)
     args = parser.parse_args()
 
-    records = [
-        json.loads(line) for line in args.benchmark.read_text(encoding="utf-8").splitlines() if line.strip()
-    ]
+    records = load_jsonl(args.benchmark)
     companies = load_companies(args.dataset_root / "code_stock.csv")
     doc_reports = load_doc_reports(args.dataset_root / "financial_statements")
     table_reports = load_reports(args.dataset_root)

@@ -23,11 +23,11 @@ import sys
 
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT / "src"))
 sys.path.insert(0, str(ROOT / "scripts"))
 
 from propose_multihop_labels import named_line_items
 from vifinqa.answers import fold
+from vifinqa.jsonl import load_jsonl
 
 # Verbs that turn a balance into a movement, a transfer, or an allocation.
 MOVEMENT_PREFIXES = (
@@ -50,9 +50,7 @@ def main() -> None:
     parser.add_argument("--max-tables", type=int, default=12, help="reject proposals larger than this")
     args = parser.parse_args()
 
-    proposals = [
-        json.loads(line) for line in args.proposals.read_text(encoding="utf-8").splitlines() if line.strip()
-    ]
+    proposals = load_jsonl(args.proposals)
     accepted, rejected = [], Counter()
     for record in proposals:
         if record["status"] != "proposed":

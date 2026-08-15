@@ -5,9 +5,11 @@ import json
 from pathlib import Path
 import tempfile
 
+from vifinqa.jsonl import load_jsonl
+
 
 def records(path: Path) -> list[dict]:
-    return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+    return load_jsonl(path)
 
 
 def main() -> None:

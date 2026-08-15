@@ -19,6 +19,8 @@ from typing import Iterable
 from .tables import extract_rows_at_line
 from .retrieval import load_reports
 
+from .jsonl import load_jsonl
+
 
 SAMPLE_SEED = 20260812
 ENTITY_RE = re.compile(r"\(([A-Za-z0-9]{1,12})\)")
@@ -118,7 +120,7 @@ def build_frame(
 
 
 def read_question_file(path: Path) -> list[dict]:
-    records = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+    records = load_jsonl(path)
     if any(not isinstance(record, dict) or set(record) != {"id", "question"} for record in records):
         raise ValueError("question input must contain only id and question fields")
     return records
@@ -271,8 +273,6 @@ def validate_v2_source_bindings(record: dict, raw_root: Path, reports: dict[str,
     return errors
 
 
-def load_jsonl(path: Path) -> list[dict]:
-    return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
 
 
 def index_records(records: list[dict], name: str) -> dict[int, dict]:

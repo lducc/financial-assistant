@@ -27,10 +27,10 @@ import sys
 
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT / "src"))
 
 from docs import load_companies
 from vifinqa.answers import fold, line_item_phrases, parse_ocr_number
+from vifinqa.jsonl import load_jsonl
 from vifinqa.retrieval import load_reports, report_tables
 
 PERIOD_TOKENS = {"nam", "quy", "thang", "ngay", "ky", "tai", "cuoi", "dau"}
@@ -152,7 +152,7 @@ def main() -> None:
     parser.add_argument("--progress-every", type=int, default=10)
     args = parser.parse_args()
 
-    queue = [json.loads(line) for line in args.queue.read_text(encoding="utf-8").splitlines() if line.strip()]
+    queue = load_jsonl(args.queue)
     tiers = {
         json.loads(line)["id"]: json.loads(line)
         for line in args.tiers.read_text(encoding="utf-8").splitlines() if line.strip()

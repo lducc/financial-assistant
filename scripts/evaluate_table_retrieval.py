@@ -7,70 +7,30 @@ import hashlib
 import json
 import math
 from pathlib import Path
-import sys
 from zipfile import ZipFile
 
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT / "src"))
 
 from docs import (
     load_companies, load_reports as load_doc_reports, parse_question, required_report_years,
     retrieve_docs,
 )
+from vifinqa.jsonl import load_jsonl
 from vifinqa.retrieval import load_reports, retrieve_rows, table_budget
+from vifinqa.scoring import (
+    connected_report_groups, gold_tables_for, mean as unrounded_mean, prefix_score,
+    reciprocal_rank, unique,
+)
+
+
+def mean(values: list[float]) -> float:
+    """The arithmetic is shared; the rounding is this report's own."""
+    return round(unrounded_mean(values), 4)
 
 
 RANKS = (1, 3, 5, 10)
 CANDIDATE_RANKS = (5, 10, 20, 50)
-
-
-def unique(items: list[str]) -> list[str]:
-    return list(dict.fromkeys(items))
-
-
-def gold_tables_for(annotation: dict, gold: str = "binding") -> list[str]:
-    """The gold set to score against, under one of two definitions.
-
-    `complete_benchmark_labels.py` widened gold with restatements — the same
-    figure repeated in a note, the cash-flow, the equity movement table — taking
-    it from 2.57 to 4.50 tables per question. Live says that overshot. Submitting
-    k tables against G gold gives precision/recall = G/k, and the live ratio is
-    0.563; the widened set gives 0.764 at the same budget while the tables named
-    by a row/column binding give 0.572. So `binding` is what the organizers
-    score, and it leads.
-
-    `full` is kept because the gap between the two is what exposed the problem,
-    and because a change that helps one and hurts the other is worth seeing.
-    """
-    if gold == "full":
-        return annotation["gold_tables"]
-    bound = unique([
-        binding["table"] for binding in annotation.get("row_column_bindings", [])
-        if binding.get("table")
-    ])
-    # A record with no bindings has nothing to narrow to; scoring it against an
-    # empty set would silently count it as a total miss.
-    return bound or annotation["gold_tables"]
-
-
-def prefix_score(gold_tables: list[str], ranked_tables: list[str], k: int) -> dict:
-    gold = set(gold_tables)
-    ranked = unique(ranked_tables)[:k]
-    predicted = set(ranked)
-    hits = len(gold & predicted)
-    precision = hits / k if k else 0.0
-    recall = hits / len(gold) if gold else 0.0
-    f2 = 5 * precision * recall / (4 * precision + recall) if precision + recall else 0.0
-    return {"precision": precision, "recall": recall, "f2": f2}
-
-
-def reciprocal_rank(gold_tables: list[str], ranked_tables: list[str], k: int) -> float:
-    gold = set(gold_tables)
-    for rank, table_id in enumerate(unique(ranked_tables)[:k], 1):
-        if table_id in gold:
-            return 1 / rank
-    return 0.0
 
 
 def binary_ndcg(gold_tables: list[str], ranked_tables: list[str], k: int) -> float:
@@ -147,10 +107,6 @@ def score_record(
     return trace
 
 
-def mean(values: list[float]) -> float:
-    return round(sum(values) / len(values), 4) if values else 0.0
-
-
 def summarize(traces: list[dict]) -> dict:
     prefix = {
         str(k): {
@@ -187,32 +143,6 @@ def grouped_summary(traces: list[dict], field: str) -> dict:
     for trace in traces:
         groups[str(trace[field])].append(trace)
     return {name: summarize(group) for name, group in sorted(groups.items())}
-
-
-def connected_report_groups(records: list[dict]) -> list[tuple[str, ...]]:
-    parent: dict[str, str] = {}
-
-    def find(report: str) -> str:
-        parent.setdefault(report, report)
-        if parent[report] != report:
-            parent[report] = find(parent[report])
-        return parent[report]
-
-    def join(left: str, right: str) -> None:
-        left, right = find(left), find(right)
-        if left != right:
-            parent[max(left, right)] = min(left, right)
-
-    for record in records:
-        reports = sorted(set(record["annotation"]["gold_reports"]))
-        for report in reports:
-            find(report)
-        for report in reports[1:]:
-            join(reports[0], report)
-    groups: dict[str, list[str]] = defaultdict(list)
-    for report in parent:
-        groups[find(report)].append(report)
-    return sorted(tuple(sorted(group)) for group in groups.values())
 
 
 def split_records(records: list[dict], split: str) -> list[dict]:
@@ -345,7 +275,7 @@ def main() -> None:
     if args.ranked_depth < max(CANDIDATE_RANKS):
         raise ValueError(f"--ranked-depth must be at least {max(CANDIDATE_RANKS)}")
 
-    records = [json.loads(line) for line in args.labels.read_text(encoding="utf-8").splitlines() if line.strip()]
+    records = load_jsonl(args.labels)
     records = split_records(records, args.split)
     if not records:
         raise ValueError(f"no records in split={args.split}")

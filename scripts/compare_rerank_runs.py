@@ -33,18 +33,15 @@ import argparse
 from collections import defaultdict
 import json
 from pathlib import Path
-import sys
 
+from vifinqa.fusion import load_scores, rankings
+from vifinqa.jsonl import load_jsonl
+from vifinqa.retrieval import table_budget
+from vifinqa.scoring import (
+    cluster_bootstrap, clusters_for, gold_of, metric_means, prefix_score, reciprocal_rank,
+)
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT / "src"))
-sys.path.insert(0, str(ROOT / "scripts"))
-
-from vifinqa.retrieval import table_budget
-from cross_validate_retrieval import cluster_bootstrap, cluster_of, gold_of
-from evaluate_table_retrieval import connected_report_groups, prefix_score, reciprocal_rank
-from apply_rerank_scores import load_jsonl, load_scores, rankings
-from compare_rankings import means
 
 
 def agreement(control: dict, treatment: dict) -> dict:
@@ -103,8 +100,8 @@ def interval(
         return {}
     return {
         "questions": len(ids),
-        "control": means(control, ids),
-        "treatment": means(treatment, ids),
+        "control": metric_means(control, ids),
+        "treatment": metric_means(treatment, ids),
         **{
             key: round(value, 4) for key, value in cluster_bootstrap(
                 {i: control[i]["f2"] for i in ids},
@@ -152,10 +149,7 @@ def main() -> None:
     control = score(traces, order(control_scores), args.table_top_k, args.gold)
     treatment = score(traces, order(treatment_scores), args.table_top_k, args.gold)
 
-    cluster_by_report = {
-        report: group[0] for group in connected_report_groups(list(records.values())) for report in group
-    }
-    clusters = {trace["id"]: cluster_of(trace, cluster_by_report) for trace in traces}
+    clusters = clusters_for(traces, list(records.values()))
 
     aa, treated = strata(pairs, list(control), args.aa_items)
     by_tier = defaultdict(list)
@@ -178,9 +172,9 @@ def main() -> None:
         "by_tier": {
             tier: {
                 "questions": len(ids),
-                "control_f2": means(control, ids)["f2"],
-                "treatment_f2": means(treatment, ids)["f2"],
-                "delta": round(means(treatment, ids)["f2"] - means(control, ids)["f2"], 4),
+                "control_f2": metric_means(control, ids)["f2"],
+                "treatment_f2": metric_means(treatment, ids)["f2"],
+                "delta": round(metric_means(treatment, ids)["f2"] - metric_means(control, ids)["f2"], 4),
             }
             for tier, ids in sorted(by_tier.items())
         },

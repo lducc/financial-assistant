@@ -7,7 +7,6 @@ import sys
 
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT / "src"))
 
 from vifinqa.retrieval import Report, metric_query_tokens, rank_fuse_signal_scores, report_tables, retrieve_rows, table_budget
 from vifinqa.answers import EvidenceValue, answer_plan, first_numeric_cell, fold, operator_text, parse_ocr_number, says
@@ -19,6 +18,7 @@ from vifinqa.evaluation_v2 import (
     paired_cluster_bootstrap, sample_splits, score_slots, summarize_v2_traces,
     promotion_gate, validate_adjudication, validate_annotation_batch, validate_v2_annotation,
 )
+from vifinqa.fusion import fuse
 from vifinqa.review import validate_source_bindings
 from vifinqa.tables import ReportIdentity, parse_table_rows
 
@@ -1011,14 +1011,14 @@ def test_fusion_mode_can_be_chosen_per_difficulty_tier(tmp_path):
     ]
     scores = {"r|1": 0.1, "r|2": 0.2, "r|3": 0.9}
     # The model's order alone.
-    assert apply_scores.fuse(candidates, scores, "replace") == ["r|3", "r|2", "r|1"]
+    assert fuse(candidates, scores, "replace") == ["r|3", "r|2", "r|1"]
     # Fused, the sparse rank keeps the model's third choice from jumping the queue.
-    assert apply_scores.fuse(candidates, scores, "fuse")[0] in {"r|1", "r|3"}
+    assert fuse(candidates, scores, "fuse")[0] in {"r|1", "r|3"}
 
     # The weight interpolates between the two orders rather than switching, so the
     # endpoints have to agree with the modes they generalize.
-    assert apply_scores.fuse(candidates, scores, "fuse", 0.0) == ["r|3", "r|2", "r|1"]
-    assert apply_scores.fuse(candidates, scores, "fuse", 1.0) == ["r|1", "r|2", "r|3"]
+    assert fuse(candidates, scores, "fuse", 0.0) == ["r|3", "r|2", "r|1"]
+    assert fuse(candidates, scores, "fuse", 1.0) == ["r|1", "r|2", "r|3"]
 
     pairs = tmp_path / "pairs.jsonl"
     pairs.write_text("".join(
@@ -1094,4 +1094,4 @@ def test_ranking_comparison_pairs_per_question_and_splits_by_tier():
     assert sparse[1]["recall"] == 0.0 and promoted[1]["recall"] == 1.0
     # Question 2 is untouched by that ranking, so the pairing isolates the change.
     assert promoted[2] == sparse[2]
-    assert compare.means(promoted, [1])["f2"] == 1.0
+    assert compare.metric_means(promoted, [1])["f2"] == 1.0

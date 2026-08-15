@@ -4,11 +4,6 @@ import argparse
 import json
 import statistics
 from pathlib import Path
-import sys
-
-
-ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT / "src"))
 
 from vifinqa.evaluation_v2 import (
     _required_tables,
@@ -17,6 +12,8 @@ from vifinqa.evaluation_v2 import (
     validate_v2_annotation,
     validate_v2_source_bindings,
 )
+
+ROOT = Path(__file__).resolve().parents[1]
 
 
 def slot_signature(slot: dict) -> tuple:

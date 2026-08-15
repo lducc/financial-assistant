@@ -6,15 +6,13 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
-import sys
 
 import numpy as np
 
-ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT / "src"))
-
 from vifinqa.dense import MAX_LENGTH, MODEL_NAME, row_text
 from vifinqa.retrieval import load_reports, materialize_candidate_rows
+
+ROOT = Path(__file__).resolve().parents[1]
 
 
 def encode(texts: list[str], *, batch_size: int) -> np.ndarray:

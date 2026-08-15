@@ -23,14 +23,11 @@ import argparse
 from collections import Counter
 import json
 from pathlib import Path
-import sys
 
+from vifinqa.jsonl import load_jsonl
+from vifinqa.scoring import gold_tables_for
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT / "src"))
-sys.path.insert(0, str(ROOT / "scripts"))
-
-from evaluate_table_retrieval import gold_tables_for
 
 
 def build_queries(record: dict, per_item: bool) -> list[str]:
@@ -68,7 +65,7 @@ def main() -> None:
     args = parser.parse_args()
 
     def load(path: Path) -> list[dict]:
-        return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+        return load_jsonl(path)
 
     excluded = {record["id"] for path in args.exclude for record in load(path)}
     labels = {record["id"]: record for record in load(args.labels) if record["id"] not in excluded}

@@ -17,14 +17,14 @@ import json
 from pathlib import Path
 import re
 import sys
-import unicodedata
 
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT / "src"))
 sys.path.insert(0, str(ROOT / "scripts"))
 
 from search_evidence import fold, search
+
+from vifinqa.jsonl import load_jsonl
 
 # Question boilerplate: interrogatives, units, period wording, and scope wording.
 # What survives is the metric phrase the statement row should carry.
@@ -67,7 +67,7 @@ def main() -> None:
     parser.add_argument("--max-candidates", type=int, default=12)
     args = parser.parse_args()
 
-    queue = [json.loads(line) for line in args.queue.read_text(encoding="utf-8").splitlines() if line.strip()]
+    queue = load_jsonl(args.queue)
     tiers = {
         json.loads(line)["id"]: json.loads(line)
         for line in args.tiers.read_text(encoding="utf-8").splitlines() if line.strip()

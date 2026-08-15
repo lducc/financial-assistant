@@ -1,27 +1,26 @@
 import argparse
 import json
-import re
 import sys
 import tempfile
 from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parent
-sys.path.insert(0, str(ROOT / "src"))
 sys.path.insert(0, str(ROOT / "scripts"))
 
 from docs import (
     load_companies, load_reports, make_row, parse_question, required_report_years,
     retrieve_docs, validate, write_package,
 )
+from vifinqa.answers import EvidenceValue, answer_plan, first_numeric_cell
+from vifinqa.jsonl import load_jsonl
 from vifinqa.retrieval import load_reports as load_table_reports, retrieve_rows, table_budget
 from vifinqa.tables import materialize
-from vifinqa.answers import EvidenceValue, answer_plan, first_numeric_cell
 from validate_submission import validate as validate_submission
 
 
 def load_questions(path: Path) -> list[dict]:
-    return [json.loads(line) for line in path.read_text("utf-8").splitlines() if line.strip()]
+    return load_jsonl(path)
 
 
 def write_checkpoint(path: Path, rows: list[dict]) -> None:

@@ -18,17 +18,14 @@ import argparse
 from collections import defaultdict
 import json
 from pathlib import Path
-import sys
 
+from vifinqa.jsonl import load_jsonl
+from vifinqa.retrieval import table_budget
+from vifinqa.scoring import (
+    cluster_bootstrap, clusters_for, gold_of, metric_means, prefix_score, reciprocal_rank, reorder,
+)
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT / "src"))
-sys.path.insert(0, str(ROOT / "scripts"))
-
-from vifinqa.retrieval import table_budget
-from cross_validate_retrieval import cluster_bootstrap, cluster_of, gold_of
-from evaluate_table_retrieval import connected_report_groups, prefix_score, reciprocal_rank
-from diagnose_retrieval import reorder
 
 
 def scored(traces: list[dict], ranking: dict[str, list[str]] | None, top_k: str, gold: str) -> dict[int, dict]:
@@ -43,16 +40,6 @@ def scored(traces: list[dict], ranking: dict[str, list[str]] | None, top_k: str,
             "mrr": reciprocal_rank(gold_tables, ordered["ranked_tables"], budget),
         }
     return rows
-
-
-def means(rows: dict[int, dict], keys: list[int] | None = None) -> dict[str, float]:
-    selected = [rows[key] for key in (keys if keys is not None else rows)]
-    if not selected:
-        return {}
-    return {
-        metric: round(sum(row[metric] for row in selected) / len(selected), 4)
-        for metric in ("f2", "recall", "precision", "mrr")
-    }
 
 
 def main() -> None:
@@ -78,9 +65,7 @@ def main() -> None:
         json.loads(line)["id"]: json.loads(line)
         for line in args.benchmark.read_text(encoding="utf-8").splitlines() if line.strip()
     }
-    traces = [
-        json.loads(line) for line in args.cache.read_text(encoding="utf-8").splitlines() if line.strip()
-    ]
+    traces = load_jsonl(args.cache)
     if any("gold_tables_binding" not in trace for trace in traces) and args.gold == "binding":
         raise SystemExit(
             f"{args.cache} predates the binding gold definition; rerun "
@@ -90,10 +75,7 @@ def main() -> None:
     baseline = scored(traces, load(args.baseline), args.table_top_k, args.gold)
     candidate = scored(traces, load(args.candidate), args.table_top_k, args.gold)
 
-    cluster_by_report = {
-        report: group[0] for group in connected_report_groups(list(records.values())) for report in group
-    }
-    clusters = {trace["id"]: cluster_of(trace, cluster_by_report) for trace in traces}
+    clusters = clusters_for(traces, list(records.values()))
 
     by_tier = defaultdict(list)
     for trace in traces:
@@ -109,8 +91,8 @@ def main() -> None:
         "questions": len(traces),
         "clusters": len(set(clusters.values())),
         "overall": {
-            "baseline": means(baseline),
-            "candidate": means(candidate),
+            "baseline": metric_means(baseline),
+            "candidate": metric_means(candidate),
             **{
                 key: round(value, 4) for key, value in cluster_bootstrap(
                     {i: row["f2"] for i, row in baseline.items()},
@@ -125,18 +107,18 @@ def main() -> None:
         "by_tier": {
             tier: {
                 "questions": len(ids),
-                "baseline_f2": means(baseline, ids)["f2"],
-                "candidate_f2": means(candidate, ids)["f2"],
-                "delta": round(means(candidate, ids)["f2"] - means(baseline, ids)["f2"], 4),
+                "baseline_f2": metric_means(baseline, ids)["f2"],
+                "candidate_f2": metric_means(candidate, ids)["f2"],
+                "delta": round(metric_means(candidate, ids)["f2"] - metric_means(baseline, ids)["f2"], 4),
             }
             for tier, ids in sorted(by_tier.items())
         },
         "by_source": {
             source: {
                 "questions": len(ids),
-                "baseline_f2": means(baseline, ids)["f2"],
-                "candidate_f2": means(candidate, ids)["f2"],
-                "delta": round(means(candidate, ids)["f2"] - means(baseline, ids)["f2"], 4),
+                "baseline_f2": metric_means(baseline, ids)["f2"],
+                "candidate_f2": metric_means(candidate, ids)["f2"],
+                "delta": round(metric_means(candidate, ids)["f2"] - metric_means(baseline, ids)["f2"], 4),
             }
             for source, ids in sorted(by_source.items())
         },

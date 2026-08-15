@@ -23,14 +23,13 @@ from collections import Counter
 import json
 from pathlib import Path
 import re
-import sys
 
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT / "src"))
 
 from docs import ALIAS_SPECS, load_companies, match_aliases, parse_question
 from vifinqa.answers import fold
+from vifinqa.jsonl import load_jsonl
 
 
 # Legal-form words carry no identity: every company has them.
@@ -86,9 +85,7 @@ def main() -> None:
     args = parser.parse_args()
 
     companies = load_companies(args.dataset_root / "code_stock.csv")
-    questions = [
-        json.loads(line) for line in args.questions.read_text(encoding="utf-8").splitlines() if line.strip()
-    ]
+    questions = load_jsonl(args.questions)
 
     support: Counter = Counter()
     unsupported, unresolved = [], []

@@ -17,16 +17,14 @@ import argparse
 from collections import Counter
 import json
 from pathlib import Path
-import sys
 import unicodedata
-
-
-ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT / "src"))
 
 from vifinqa.answers import parse_ocr_number
 from vifinqa.evaluation_v2 import sha256_text
+from vifinqa.jsonl import load_jsonl
 from vifinqa.retrieval import load_reports, report_tables
+
+ROOT = Path(__file__).resolve().parents[1]
 
 # Words that carry no discriminating power in a row label.
 LABEL_STOPWORDS = {
@@ -53,9 +51,7 @@ def main() -> None:
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
 
-    records = [
-        json.loads(line) for line in args.benchmark.read_text(encoding="utf-8").splitlines() if line.strip()
-    ]
+    records = load_jsonl(args.benchmark)
     reports = {report.identity.report_id: report for report in load_reports(args.dataset_root)}
 
     added_counter = Counter()

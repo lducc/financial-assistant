@@ -21,24 +21,18 @@ as every other ranking this project has measured, so the comparison against the
 import argparse
 import json
 from pathlib import Path
-import sys
 
 import numpy as np
 
+from vifinqa.jsonl import load_jsonl
+from vifinqa.retrieval import table_budget
+from vifinqa.scoring import (
+    cluster_bootstrap, clusters_for, gold_of, gold_tables_for, prefix_score,
+)
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT / "src"))
-sys.path.insert(0, str(ROOT / "scripts"))
-
-from vifinqa.retrieval import table_budget
-from cross_validate_retrieval import gold_of, cluster_of, cluster_bootstrap
-from evaluate_table_retrieval import prefix_score, connected_report_groups, gold_tables_for
 
 SEED = 20260815
-
-
-def load_jsonl(path: Path) -> list[dict]:
-    return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
 
 
 def build(records: list[dict], pairs: dict, manifest: dict, queries: np.ndarray, passages: np.ndarray):
@@ -173,8 +167,7 @@ def main() -> None:
     cos = score(cosine_ranking)
     learned = score(ranking)
     cross = score(baseline)
-    by_report = {r: grp[0] for grp in connected_report_groups(eval_records) for r in grp}
-    clusters = {i: cluster_of(traces[i], by_report) for i in traces}
+    clusters = clusters_for(list(traces.values()), eval_records)
     n = len(sparse)
     mean = lambda d: sum(d.values()) / n
     print()

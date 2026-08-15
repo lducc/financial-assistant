@@ -22,9 +22,7 @@ import argparse
 import json
 from pathlib import Path
 
-
-def load_jsonl(path: Path) -> list[dict]:
-    return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+from vifinqa.jsonl import load_jsonl
 
 
 def window(record: dict, order: list[str], depth: int, cap: int) -> list[dict]:

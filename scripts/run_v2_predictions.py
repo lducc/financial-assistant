@@ -4,11 +4,9 @@
 import argparse
 import json
 from pathlib import Path
-import sys
 
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT / "src"))
 
 from docs import load_companies, load_reports as load_document_reports, parse_question, required_report_years, retrieve_docs
 from vifinqa.evaluation_v2 import index_records, load_jsonl

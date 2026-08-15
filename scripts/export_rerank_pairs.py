@@ -18,12 +18,12 @@ import sys
 
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT / "src"))
 sys.path.insert(0, str(ROOT / "scripts"))
 
 from docs import load_companies, load_reports as load_doc_reports, parse_question, required_report_years, retrieve_docs
 from propose_multihop_labels import named_line_items
 from vifinqa.answers import fold
+from vifinqa.jsonl import load_jsonl
 from vifinqa.rerank import table_representation
 from vifinqa.retrieval import load_reports, retrieve_rows
 
@@ -67,7 +67,7 @@ def main() -> None:
     args = parser.parse_args()
 
     path = args.questions or args.dataset_root / "questions" / "questions.jsonl"
-    questions = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+    questions = load_jsonl(path)
     if args.limit:
         questions = questions[: args.limit]
 

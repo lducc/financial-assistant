@@ -20,11 +20,9 @@ import json
 from pathlib import Path
 import sys
 
+from vifinqa.retrieval import load_reports, report_tables, tokenize
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT / "src"))
-
-from vifinqa.retrieval import load_reports, report_tables, tokenize
 
 
 def row_label(row: tuple[str, ...]) -> str:

@@ -21,13 +21,13 @@ once and shared.
 import argparse
 import json
 from pathlib import Path
-import sys
 
 import numpy as np
 
+from vifinqa.jsonl import load_jsonl
+
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT / "src"))
 
 MODEL_NAME = "intfloat/multilingual-e5-base"
 
@@ -68,9 +68,7 @@ def main() -> None:
     import torch
     from transformers import AutoModel, AutoTokenizer
 
-    records = [
-        json.loads(line) for line in args.pairs.read_text(encoding="utf-8").splitlines() if line.strip()
-    ]
+    records = load_jsonl(args.pairs)
     # E5 wants the asymmetric prefixes; without them the two sides land in
     # different regions of the space and cosine similarity is meaningless.
     queries = {r["id"]: "query: " + r["question"] for r in records}
