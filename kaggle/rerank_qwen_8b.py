@@ -41,6 +41,13 @@ SCORES_PATH = os.environ.get("SCORES_PATH", "/kaggle/working/scores.jsonl")
 # dataset, and name it here. Questions already in it are skipped, and the new
 # session writes only the rest — concatenate the two files afterwards.
 RESUME_PATH = os.environ.get("RESUME_PATH")  # e.g. a downloaded scores.jsonl
+# A finished score file whose (question, table) pairs are already judged and must
+# not be judged again. RESUME_PATH skips whole questions, which is what a stopped
+# session needs; this skips individual candidates, which is what a deeper export
+# needs — pairs_v4_d100.jsonl repeats all 50,335 pairs scores_v4.jsonl already
+# holds, so without this a depth-100 run costs 90,726 pairs instead of 40,391.
+# `apply_rerank_scores.py` unions the two files back together.
+SKIP_PATH = os.environ.get("SKIP_PATH")
 # 16% of candidates run past 320 tokens, and the line-item inventory that tells
 # the model what a table holds sits early in the text. 1024 covers the whole
 # inventory for all but the widest tables, so nothing that decides the ranking is
@@ -116,6 +123,32 @@ def already_scored(path):
         return {json.loads(line)["id"] for line in handle if line.strip()}
 
 
+def already_judged(path):
+    """Table IDs per question from a previous run, so a deeper export resumes."""
+    if not path or not os.path.exists(path):
+        return {}
+    with open(path, encoding="utf-8") as handle:
+        judged = {}
+        for line in handle:
+            if line.strip():
+                record = json.loads(line)
+                judged.setdefault(record["id"], set()).update(record["scores"])
+        return judged
+
+
+def to_judge(record, skip=frozenset()):
+    """Candidate positions this run should score.
+
+    Candidates arrive in sparse rank order, and the tail is scored so rarely that
+    it is cheaper to leave it to the sparse ranking than to judge it.
+    """
+    return [
+        index for index, candidate in enumerate(record["candidates"])
+        if candidate.get("sparse_rank", index + 1) <= RERANK_DEPTH
+        and candidate["table_id"] not in skip
+    ]
+
+
 def build_queries(record):
     """The queries to score each candidate against, best score winning.
 
@@ -172,14 +205,12 @@ def last_position_logits(model, padded):
         return model.lm_head(hidden).float()
 
 
-def score_question(record, tokenizer, model, prefix_ids, suffix_ids, yes_id, no_id, budget):
+def score_question(record, tokenizer, model, prefix_ids, suffix_ids, yes_id, no_id, budget,
+                   skip=frozenset()):
     queries = build_queries(record)
     candidates = record["candidates"]
     scores = [0.0] * len(candidates)
-    # Candidates arrive in sparse rank order, and the tail is scored so rarely
-    # that it is cheaper to leave it to the sparse ranking than to judge it.
-    scored = [i for i, candidate in enumerate(candidates)
-              if candidate.get("sparse_rank", i + 1) <= RERANK_DEPTH]
+    scored = to_judge(record, skip)
     # One row per (candidate, query), keyed by query position rather than by the
     # query text so two identical line items stay two rows. Rows are reduced back
     # to a per-candidate best after scoring, so the output format never changes
@@ -230,21 +261,20 @@ def score_question(record, tokenizer, model, prefix_ids, suffix_ids, yes_id, no_
         for (index, position), value in zip(chunk, torch.log_softmax(pair, dim=1)[:, 1].exp().cpu().tolist()):
             matrix[index][position] = value
             scores[index] = max(scores[index], value)
-    return scores, matrix, len(rows)
+    return scores, matrix, scored, len(rows)
 
 
-def score_payload(record, values, matrix, per_item=None):
+def score_payload(record, values, matrix, judged=None, per_item=None):
     """The scores.jsonl line for one question.
 
-    Candidates past RERANK_DEPTH are left out rather than written as zero: a zero
-    is a score, and would rank them below everything the model disliked instead
-    of leaving them to the sparse order.
+    Only the candidates this run judged are written. Everything else is left out
+    rather than written as zero — a zero is a score, and would rank a candidate
+    below everything the model disliked instead of leaving it to the sparse order
+    or to the earlier file it was already scored in.
     """
     per_item = PER_ITEM if per_item is None else per_item
-    kept = [
-        (index, candidate) for index, candidate in enumerate(record["candidates"])
-        if candidate.get("sparse_rank", index + 1) <= RERANK_DEPTH
-    ]
+    indices = to_judge(record) if judged is None else judged
+    kept = [(index, record["candidates"][index]) for index in indices]
     payload = {
         "id": record["id"],
         "scores": {candidate["table_id"]: round(values[index], 6) for index, candidate in kept},
@@ -311,11 +341,12 @@ def main():
     done = already_scored(SCORES_PATH) | (already_scored(RESUME_PATH) if RESUME_PATH else set())
     if done:
         print(f"resuming, {len(done)} questions already scored", flush=True)
+    skip = already_judged(SKIP_PATH)
+    if skip:
+        print(f"skipping {sum(len(s) for s in skip.values())} pairs from {SKIP_PATH}", flush=True)
     pending = [record for record in records if record["id"] not in done]
     total = sum(
-        sum(1 for index, candidate in enumerate(record["candidates"])
-            if candidate.get("sparse_rank", index + 1) <= RERANK_DEPTH)
-        * len(build_queries(record))
+        len(to_judge(record, skip.get(record["id"], frozenset()))) * len(build_queries(record))
         for record in pending
     )
     print(f"{len(pending)} questions, {total} pairs to score, per_item={PER_ITEM}", flush=True)
@@ -323,10 +354,13 @@ def main():
     started, scored = time.time(), 0
     with open(SCORES_PATH, "a", encoding="utf-8") as out:
         for record in pending:
-            values, matrix, judged = score_question(
+            values, matrix, indices, judged = score_question(
                 record, tokenizer, model, prefix_ids, suffix_ids, yes_id, no_id, budget,
+                skip.get(record["id"], frozenset()),
             )
-            out.write(json.dumps(score_payload(record, values, matrix), ensure_ascii=False) + "\n")
+            out.write(
+                json.dumps(score_payload(record, values, matrix, indices), ensure_ascii=False) + "\n"
+            )
             out.flush()
             scored += judged
             if scored % 1000 < MAX_BATCH:

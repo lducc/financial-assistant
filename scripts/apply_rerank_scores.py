@@ -86,13 +86,15 @@ def main() -> None:
     args = parser.parse_args()
 
     pairs = {record["id"]: record for record in load_jsonl(args.pairs)}
-    # Sharded Kaggle runs write one file per GPU; questions never overlap between
-    # them, so merging is a plain union.
+    # Sharded Kaggle runs write one file per GPU and never share a question, so a
+    # union over questions was enough. A depth extension does share questions and
+    # differs only in which candidates it judged, so the union has to reach inside
+    # the per-question dict; on disjoint shards that is the same thing.
     score_paths = args.scores or [args.pairs.parent / "scores.jsonl"]
-    scored = {
-        record["id"]: record["scores"]
-        for path in score_paths for record in load_jsonl(path)
-    }
+    scored: dict[int, dict[str, float]] = defaultdict(dict)
+    for path in score_paths:
+        for record in load_jsonl(path):
+            scored[record["id"]].update(record["scores"])
     missing = sorted(set(pairs) - set(scored))
     replace_tiers = {tier.strip() for tier in args.replace_tiers.split(",") if tier.strip()}
     tier_of = {}

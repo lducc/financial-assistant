@@ -915,6 +915,83 @@ def test_scoring_a_ranking_reorders_candidates_without_admitting_any():
     assert diagnose.reorder(trace, {})["ranked_tables"] == trace["ranked_tables"]
 
 
+def test_score_files_union_within_a_question_not_just_across_them(tmp_path):
+    """A deeper export shares questions with the shallower one it extends.
+
+    Sharded Kaggle runs never share a question, so replacing one file's dict with
+    another's was correct. A depth-100 delta run writes only the candidates the
+    depth-50 file lacks, and replacing there would throw away the first 50.
+    """
+    apply_scores = load_script("apply_rerank_scores")
+    pairs = tmp_path / "pairs.jsonl"
+    pairs.write_text(json.dumps({"id": 1, "candidates": [
+        {"table_id": "r|1", "sparse_rank": 1},
+        {"table_id": "r|2", "sparse_rank": 2},
+        {"table_id": "r|3", "sparse_rank": 3},
+    ]}) + "\n", encoding="utf-8")
+    shallow = tmp_path / "shallow.jsonl"
+    shallow.write_text(json.dumps({"id": 1, "scores": {"r|1": 0.1, "r|2": 0.2}}) + "\n", encoding="utf-8")
+    deep = tmp_path / "deep.jsonl"
+    deep.write_text(json.dumps({"id": 1, "scores": {"r|3": 0.9}}) + "\n", encoding="utf-8")
+
+    output = tmp_path / "ranking.json"
+    sys.argv = ["apply", "--pairs", str(pairs), "--scores", str(shallow), "--scores", str(deep),
+                "--output", str(output), "--mode", "replace"]
+    apply_scores.main()
+    # All three are scored, so replace orders all three by score. Dropping the
+    # shallow file would leave r|1 and r|2 unscored and trailing in sparse order.
+    assert json.loads(output.read_text(encoding="utf-8"))["1"] == ["r|3", "r|2", "r|1"]
+
+
+def test_a_deeper_run_skips_the_pairs_a_previous_one_already_judged(tmp_path):
+    """The skipped pairs must be absent, not zero.
+
+    A zero is a score. Writing one for a candidate this run did not judge would
+    rank it below everything the model actively disliked, instead of leaving it
+    to the earlier file that already holds its score.
+    """
+    module = load_kaggle("rerank_qwen_8b")
+    record = {
+        "id": 1,
+        "question": "Doanh thu 2024?",
+        "line_items": ["doanh thu"],
+        "candidates": [
+            {"table_id": "r|1", "sparse_rank": 1, "text": "a"},
+            {"table_id": "r|2", "sparse_rank": 2, "text": "b"},
+            {"table_id": "r|3", "sparse_rank": 3, "text": "c"},
+        ],
+    }
+    assert module.to_judge(record) == [0, 1, 2]
+    assert module.to_judge(record, {"r|1", "r|2"}) == [2]
+
+    prior = tmp_path / "prior.jsonl"
+    prior.write_text(json.dumps({"id": 1, "scores": {"r|1": 0.4, "r|2": 0.5}}) + "\n", encoding="utf-8")
+    assert module.already_judged(str(prior)) == {1: {"r|1", "r|2"}}
+    assert module.already_judged(None) == {}
+
+    payload = module.score_payload(record, [0.0, 0.0, 0.7], {2: [0.7]}, [2], per_item=False)
+    assert payload == {"id": 1, "scores": {"r|3": 0.7}}
+
+
+def test_comparing_two_runs_reports_the_drift_beside_the_effect(tmp_path):
+    """The A/A stratum is the floor the treated stratum has to clear."""
+    compare = load_script("compare_rerank_runs")
+    control = {1: {"r|1": 0.5, "r|2": 0.25}}
+    treatment = {1: {"r|1": 0.5, "r|2": 0.75}}
+    assert compare.agreement(control, treatment) == {
+        "shared_pairs": 2, "identical": 1, "identical_share": 0.5,
+        "mean_abs_delta": 0.25, "max_abs_delta": 0.5,
+    }
+
+    # Questions naming at most --aa-items line items have an identical prompt
+    # under both settings, so they measure drift; the rest are the treated half.
+    pairs = {1: {"line_items": []}, 2: {"line_items": ["a"]}, 3: {"line_items": ["a", "b"]}}
+    assert compare.strata(pairs, [1, 2, 3], 1) == ([1, 2], [3])
+    # A change that reaches every question makes the whole set an A/A, which is
+    # how drift is measured on purpose rather than inferred.
+    assert compare.strata(pairs, [1, 2, 3], 99) == ([1, 2, 3], [])
+
+
 def test_fusion_mode_can_be_chosen_per_difficulty_tier(tmp_path):
     """Easy questions keep the sparse prior; hard ones take the model's order.
 
