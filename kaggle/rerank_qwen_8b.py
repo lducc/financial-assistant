@@ -24,7 +24,11 @@ import time
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
 
-MODEL_NAME = "Qwen/Qwen3-Reranker-8B"
+MODEL_NAME = os.environ.get("MODEL_NAME", "Qwen/Qwen3-Reranker-8B")
+# A LoRA adapter from kaggle/train_reranker.py, attached to the same base model.
+# Left unset the run is zero-shot, which is every score file committed so far.
+# The prompt is identical either way, so a tuned run stays comparable to them.
+ADAPTER_PATH = os.environ.get("ADAPTER_PATH")
 # Run 1 of 3. Then pairs_bench_d100.jsonl, then pairs_v4.jsonl — renaming
 # scores.jsonl after each, since the resume skips IDs it has already written and
 # the two benchmark files cover the same 233 questions.
@@ -239,7 +243,14 @@ def main():
         # Turing has no flash-attention 2, but SDPA still beats the eager path.
         attn_implementation="sdpa",
     ).eval()
-    print(f"{MODEL_NAME} loaded in {QUANTIZATION}, max_length={MAX_LENGTH}, depth={RERANK_DEPTH}", flush=True)
+    if ADAPTER_PATH:
+        from peft import PeftModel
+        model = PeftModel.from_pretrained(model, ADAPTER_PATH).eval()
+    print(
+        f"{MODEL_NAME} loaded in {QUANTIZATION}, max_length={MAX_LENGTH}, depth={RERANK_DEPTH}"
+        + (f", adapter={ADAPTER_PATH}" if ADAPTER_PATH else ", zero-shot"),
+        flush=True,
+    )
 
     yes_id = tokenizer.convert_tokens_to_ids("yes")
     no_id = tokenizer.convert_tokens_to_ids("no")
