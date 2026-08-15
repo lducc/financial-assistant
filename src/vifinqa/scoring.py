@@ -1,16 +1,9 @@
 """Retrieval metrics, gold definitions, and the paired interval.
 
-These were defined in `scripts/evaluate_table_retrieval.py` and
-`scripts/cross_validate_retrieval.py` and imported back out of them by seven
-other scripts, which is why every one of those scripts had to put `scripts/` on
-`sys.path` before it could import anything. They are pure functions over lists
-and dicts with no CLI around them, so they belong in the package and the scripts
-keep only their command line.
-
-One rule holds all of it together and is the reason to keep these in one place:
-a comparison is only readable if both sides use the same gold definition, the
+A comparison is only readable if both sides use the same gold definition, the
 same prefix length, and the same clustering. A second copy of any of the three
-is a comparison that can silently stop measuring what it claims to.
+is a comparison that can silently stop measuring what it claims to, which is why
+these live here rather than inside the scripts that used to own them.
 """
 
 from collections import defaultdict
@@ -18,7 +11,6 @@ import math
 import random
 
 
-# Fixed so a bootstrap interval is reproducible across runs and machines.
 SEED = 20260812
 
 
@@ -29,16 +21,9 @@ def unique(items: list[str]) -> list[str]:
 def gold_tables_for(annotation: dict, gold: str = "binding") -> list[str]:
     """The gold set to score against, under one of two definitions.
 
-    `complete_benchmark_labels.py` widened gold with restatements — the same
-    figure repeated in a note, the cash-flow, the equity movement table — taking
-    it from 2.57 to 4.50 tables per question. Live says that overshot. Submitting
-    k tables against G gold gives precision/recall = G/k, and the live ratio is
-    0.563; the widened set gives 0.764 at the same budget while the tables named
-    by a row/column binding give 0.572. So `binding` is what the organizers
-    score, and it leads.
-
-    `full` is kept because the gap between the two is what exposed the problem,
-    and because a change that helps one and hurts the other is worth seeing.
+    `binding` reproduces the live precision/recall ratio and leads; `full` is the
+    restatement-widened set, which overshoots. docs/research-history.md has the
+    numbers that settled it.
     """
     if gold == "full":
         return annotation["gold_tables"]
@@ -46,17 +31,15 @@ def gold_tables_for(annotation: dict, gold: str = "binding") -> list[str]:
         binding["table"] for binding in annotation.get("row_column_bindings", [])
         if binding.get("table")
     ])
-    # A record with no bindings has nothing to narrow to; scoring it against an
-    # empty set would silently count it as a total miss.
+    # No bindings means nothing to narrow to; an empty gold set reads as a miss.
     return bound or annotation["gold_tables"]
 
 
 def gold_of(trace: dict, gold: str) -> list[str]:
     """The same choice, for a cached trace rather than an annotation.
 
-    Traces cached before the binding-only definition existed carry only the wide
-    set; falling back to it keeps them readable, and the caller warns so the
-    stale cache is refreshed rather than quietly scored against the wrong gold.
+    A trace predating the binding definition carries only the wide set; callers
+    warn on the fallback so a stale cache is refreshed, not quietly mis-scored.
     """
     if gold == "full":
         return trace["gold_tables"]
@@ -84,12 +67,9 @@ def reciprocal_rank(gold_tables: list[str], ranked_tables: list[str], k: int) ->
 def reorder(trace: dict, ranking: dict[str, list[str]]) -> dict:
     """Re-sort a cached trace's candidates into a reranked order.
 
-    A reranker only permutes; it cannot retrieve. Intersecting the ranking with
-    the candidates the trace already holds enforces that, so a table the model
-    named but that retrieval never surfaced cannot enter, and the four-state
-    attribution keeps meaning what it says: `candidate_miss` stays a retrieval
-    failure rather than becoming a ranking one. Candidates the ranking omits keep
-    their retrieved order behind the ones it named.
+    A reranker only permutes; it cannot retrieve. Intersecting with the trace's
+    own candidates enforces that, so `candidate_miss` stays a retrieval failure
+    rather than becoming a ranking one.
     """
     order = ranking.get(str(trace["id"]))
     if not order:
@@ -104,8 +84,7 @@ def connected_report_groups(records: list[dict]) -> list[tuple[str, ...]]:
     """Reports joined by any question that cites them together.
 
     Questions sharing evidence are not independent, so the bootstrap resamples
-    these groups rather than questions, and cross-validation blocks folds on
-    them so no report is in both a fold's training and evaluation view.
+    these groups and cross-validation blocks folds on them.
     """
     parent: dict[str, str] = {}
 
@@ -137,11 +116,7 @@ def cluster_of(trace: dict, cluster_by_report: dict[str, str]) -> str:
 
 
 def clusters_for(traces: list[dict], records: list[dict]) -> dict[int, str]:
-    """Question ID to report cluster, which is what the bootstrap resamples.
-
-    Every caller built this in the same three lines; the two halves have to agree
-    or the pairing is wrong, so they are one call.
-    """
+    """Question ID to report cluster, which is what the bootstrap resamples."""
     cluster_by_report = {
         report: group[0] for group in connected_report_groups(records) for report in group
     }
@@ -149,7 +124,7 @@ def clusters_for(traces: list[dict], records: list[dict]) -> dict[int, str]:
 
 
 def mean(values: list[float], weights: list[float] | None = None) -> float:
-    """Weighted mean, so a sample that over-represents hard questions still
+    """Weighted mean, so a sample over-representing hard questions still
     estimates corpus performance. Per-tier figures pass no weights."""
     if not values:
         return 0.0

@@ -46,9 +46,27 @@ not care which one produced it.
 
 | Script | Model | Memory | 50,335 pairs at 1024 |
 |---|---|---|---|
-| `rerank_qwen_4b.py` | Qwen3-Reranker-4B, fp16 | ~8 GB | 6–8 h |
-| `rerank_qwen_8b.py` | Qwen3-Reranker-8B, 8-bit | ~8.2 GB | two 12 h sessions, resumable |
+| `rerank_qwen_8b.py` | any Qwen3 reranker via `MODEL_NAME` | ~8.2 GB at 8-bit | two 12 h sessions, resumable |
 | `rerank_bge.py` | bge-reranker-v2-m3 | ~1 GB | kept only as the record of a failure |
+
+One script covers both sizes: `MODEL_NAME=Qwen/Qwen3-Reranker-4B` runs 4B in
+6–8 h. The separate `rerank_qwen.py` and `rerank_qwen_4b.py` were the same
+loop with the settings hard-coded and are gone.
+
+Every setting is an environment variable, read at import:
+
+| variable | default | what it does |
+|---|---|---|
+| `MODEL_NAME` | `Qwen/Qwen3-Reranker-8B` | any Qwen3 reranker |
+| `PAIRS_PATH` | `pairs_bench_v4.jsonl` | the export to score |
+| `SCORES_PATH` | `/kaggle/working/scores.jsonl` | appended per question |
+| `QUANTIZATION` | `int8` | `fp16` needs T4 x2; `nf4` is faster and unscored |
+| `PER_ITEM` | off | one query per named line item, reduced by max |
+| `RESUME_PATH` | — | a downloaded scores.jsonl: skips whole questions |
+| `SKIP_PATH` | — | a finished scores.jsonl: skips individual candidates |
+| `MAX_LENGTH` | 1024 | 512 lost the line-item inventory and cost 0.023 live |
+| `RERANK_DEPTH` | 100 | above the deepest export, so nothing is cut by accident |
+| `ADAPTER_PATH` | — | a LoRA adapter from `train_reranker.py` |
 
 **Run 8B.** Both were scored at max_length 1024 on the `pairs_v3` export, measured
 on the 233-record benchmark against the sparse ranking:
