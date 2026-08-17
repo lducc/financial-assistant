@@ -20,6 +20,15 @@ python kaggle/train_reranker.py  data/training_linked.jsonl adapter
 python kaggle/rerank_qwen_8b.py  data/pairs_bench_v6.jsonl scores_tuned.jsonl adapter
 python kaggle/rerank_qwen_8b.py  data/pairs_bench_v6.jsonl scores_base.jsonl
 
+# The representation sweep: one process, one candidate set, five readings of it.
+# Arms differ only in what the model reads, which is the one class of change that
+# has ever worked here — reordering its output has lost six times.
+python kaggle/rerank_qwen_8b.py  data/pairs_bench_v6.jsonl  sweep_base.jsonl  "" full v1
+python kaggle/rerank_qwen_8b.py  data/pairs_bench_v7.jsonl  sweep_full.jsonl  "" full v1
+python kaggle/rerank_qwen_8b.py  data/pairs_bench_v7c.jsonl sweep_codes.jsonl "" full v1
+python kaggle/rerank_qwen_8b.py  data/pairs_bench_v7.jsonl  sweep_items.jsonl "" items v1
+python kaggle/rerank_qwen_8b.py  data/pairs_bench_v7.jsonl  sweep_short.jsonl "" full v3
+
 # The augmented candidates at full corpus, base model. SKIP_PATH means only the
 # item-carrying tables are judged — about 4,400 pairs rather than 55,000 — so the
 # scored-expansion configuration ships whether or not the adapter works. Set

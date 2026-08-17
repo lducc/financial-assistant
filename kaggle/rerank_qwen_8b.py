@@ -32,12 +32,15 @@ QUANTIZATION = "int8"   # "fp16" needs GPU T4 x2; "nf4" is faster and unscored
 RESUME_PATH = ""        # a downloaded scores.jsonl: skips whole questions
 SKIP_PATH = ""          # a finished scores.jsonl: skips individual candidates
 ADAPTER_PATH = ""       # a LoRA adapter from train_reranker.py
+QUERY = "full"         # "items" drops the question and keeps the named line items
 PROMPT = "v1"           # "v2" lets the model decide statement or note; use with pairs_bench_v5
 # ------------------------------------------------------------------------------
 
 if len(sys.argv) > 1:
     PAIRS_PATH, SCORES_PATH = sys.argv[1], sys.argv[2]
     ADAPTER_PATH = sys.argv[3] if len(sys.argv) > 3 else ""
+    QUERY = sys.argv[4] if len(sys.argv) > 4 else QUERY
+    PROMPT = sys.argv[5] if len(sys.argv) > 5 else PROMPT
 
 MAX_LENGTH = 1024
 RERANK_DEPTH = 130   # the augmented pairs reach rank 118; 100 would drop 34 of them
@@ -80,7 +83,15 @@ INSTRUCTION_V2 = (
     "movement and allocation schedules, and rows that are column headers rather "
     "than line items."
 )
-INSTRUCTION = INSTRUCTION_V2 if PROMPT == "v2" else INSTRUCTION_V1
+# The short form. Eleven clauses accumulated from staring at benchmark failures,
+# several of them fitted to it; if three score the same, the rest were noise.
+INSTRUCTION_V3 = (
+    "Every candidate is a table from the correct company, period and statement, "
+    "so the whole judgement is which table inside that report reports the figure. "
+    "Answer yes if the table holds at least one of the line items under 'Chỉ tiêu "
+    "cần tìm' as a row of its own, with a value for the period asked."
+)
+INSTRUCTION = {"v2": INSTRUCTION_V2, "v3": INSTRUCTION_V3}.get(PROMPT, INSTRUCTION_V1)
 
 PREFIX = (
     "<|im_start|>system\nJudge whether the Document meets the requirements based on the Query "
@@ -132,6 +143,10 @@ def build_queries(record):
     items = record.get("line_items") or []
     if not items:
         return [record["question"]]
+    # The gate settles company, period and scope, so most of the question is
+    # distractor text competing with the one phrase that decides the ranking.
+    if QUERY == "items":
+        return ["; ".join(items)] if not PER_ITEM else list(items)
     if PER_ITEM and len(items) > 1:
         return [f"{record['question']}\nChỉ tiêu cần tìm: {item}" for item in items]
     return [f"{record['question']}\nChỉ tiêu cần tìm: {'; '.join(items)}"]
