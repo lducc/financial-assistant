@@ -159,3 +159,29 @@ The queue in `annotations/v3/queue.jsonl` holds 230 further questions, weighted
 toward hard and intermediate, each excluded from reports already used so new
 records form new clusters. Roughly 10% of drawn questions resist labelling from
 source alone and are recorded as deferred with a reason rather than guessed.
+
+## What the live leaderboard can and cannot resolve
+
+The public score is a mean over 1,012 questions and per-question F2 has a
+standard deviation of 0.271, so the standard error of that mean is **0.0085** and
+two independent configurations are indistinguishable inside about **±0.017**.
+
+Paired changes resolve better but not by much. The item expansion altered 343
+questions with a paired delta standard deviation of 0.245, giving a standard
+error of 0.0045 on the corpus mean — and it measured +0.0045, exactly one
+standard error. So it is not distinguishable from zero, and neither is the
+weighted-RRF choice that ships (0.5221 against 0.5167 at w=0.3) nor any cap
+result (0.0002 to 0.0035).
+
+Three live results have ever cleared the bar: reranking over sparse (+0.043),
+8B over 4B (+0.031), and the v3-to-v4 representation (+0.023). All three were
+mechanism-driven rather than swept.
+
+**The rule that follows.** Accept a live change at a margin above 0.02, or not at
+all. A sequence of sub-0.02 accepts is a sequence of coin flips, and the private
+phase allows five submissions — the cost of having tuned on noise is paid there,
+where it cannot be measured.
+
+Re-submitting a package measures nothing: the scorer is deterministic, so the
+same zip returns the same score. The 0.0085 is sampling error over questions,
+which is exactly the quantity that governs transfer to a different question set.

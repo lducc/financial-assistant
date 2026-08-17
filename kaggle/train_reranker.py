@@ -55,7 +55,7 @@ from torch.nn.utils.rnn import pad_sequence
 from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
 
 MODEL_NAME = "Qwen/Qwen3-Reranker-4B"
-TRAINING_PATH = "/kaggle/input/vifinqa-rerank-training/training.jsonl"
+TRAINING_PATH = "/kaggle/input/vifinqa-rerank-training/training_corpus.jsonl"
 OUTPUT_DIR = "/kaggle/working/adapter"
 # Held-out questions for a loss curve that means something. Groups are split by
 # question, never by row: two rows from one question in different splits would
@@ -69,6 +69,7 @@ LEARNING_RATE = 1e-4
 # the group has to arrive intact.
 GROUPS_PER_STEP = 1
 MAX_GROUP = 12
+MAX_GROUPS = 4000  # 0 keeps them all; a group is one optimiser step, so this is the session budget
 LORA_RANK = 16
 QUANTIZATION = "fp16"  # "fp16" for 4B, "nf4" for 8B
 SEED = 20260814
@@ -169,6 +170,9 @@ def main():
     torch.manual_seed(SEED)
 
     groups = load_groups(TRAINING_PATH)
+    if MAX_GROUPS:
+        rng.shuffle(groups)
+        groups = groups[:MAX_GROUPS]
     train_groups, validation_groups = split_by_question(groups, VALIDATION_SHARE, rng)
     print(
         f"{len(groups)} groups over {len({g['id'] for g in groups})} questions; "
