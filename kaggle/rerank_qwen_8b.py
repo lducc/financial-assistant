@@ -15,6 +15,7 @@ is. Read it before changing one.
 """
 
 import json
+import sys
 import os
 import time
 
@@ -33,6 +34,10 @@ SKIP_PATH = ""          # a finished scores.jsonl: skips individual candidates
 ADAPTER_PATH = ""       # a LoRA adapter from train_reranker.py
 PROMPT = "v1"           # "v2" lets the model decide statement or note; use with pairs_bench_v5
 # ------------------------------------------------------------------------------
+
+if len(sys.argv) > 1:
+    PAIRS_PATH, SCORES_PATH = sys.argv[1], sys.argv[2]
+    ADAPTER_PATH = sys.argv[3] if len(sys.argv) > 3 else ""
 
 MAX_LENGTH = 1024
 RERANK_DEPTH = 100

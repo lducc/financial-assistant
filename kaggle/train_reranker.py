@@ -49,6 +49,7 @@ repeat at 8B.
 import json
 import math
 import random
+import sys
 
 import torch
 from torch.nn.utils.rnn import pad_sequence
@@ -73,6 +74,11 @@ MAX_GROUPS = 4000  # 0 keeps them all; a group is one optimiser step, so this is
 LORA_RANK = 16
 QUANTIZATION = "fp16"  # "fp16" for 4B, "nf4" for 8B
 SEED = 20260814
+
+# On a rented box the three runs differ only in their paths, so they arrive as
+# arguments and everything above stays edited once.
+if len(sys.argv) > 1:
+    TRAINING_PATH, OUTPUT_DIR = sys.argv[1], sys.argv[2]
 
 # Identical to rerank_qwen_8b.py. If either copy changes, both must.
 INSTRUCTION = (
