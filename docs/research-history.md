@@ -759,3 +759,45 @@ submissions on.
 The control also re-measured the baseline against the refactor: 0.5238 today
 against 0.5221 in the shipped era, so the 46 questions the contents-page filter
 moved are worth +0.0017 and the two eras are comparable.
+
+## Coverage ordering loses, and so does every cap
+
+Two ideas for buying precision were tested against both gold definitions before
+spending a slot, and both failed.
+
+**Promoting a carrier of each named item.** A question naming two items gets four
+tables about the first and one about the second, so cutting to a budget drops the
+second item — that was the theory, and the fix was the standard one, a greedy
+coverage pass over the ranked candidates. It loses everywhere:
+
+| budget | binding gold | | full gold | |
+|---|---:|---:|---:|---:|
+| | ranked | covered | ranked | covered |
+| shipped | 0.6676 | 0.6608 | 0.6562 | 0.6471 |
+| cap 5 | 0.6462 | 0.6371 | 0.6284 | 0.6176 |
+| cap 4 | 0.6227 | 0.6123 | 0.6059 | 0.5941 |
+| cap 3 | 0.6034 | 0.5877 | 0.5806 | 0.5649 |
+
+F2 at a fixed budget depends on the set, not its order, so this says the table a
+promotion displaces is gold more often than the carrier it promotes. The ranker
+already handles multi-item questions better than a lexical coverage rule does,
+and the gap widens as the budget tightens — the opposite of the prediction.
+
+**Any cap at all.** Truncating the shipped order costs 0.021 at cap 5 and 0.064
+at cap 3 under binding gold, 0.028 and 0.076 under full gold, which agrees with
+the live cap experiments and with the identity: F2 = 5h/(4G+k) means dropping a
+table pays only when its chance of being gold is below F2/5, and ranks 4 to 6 sit
+around 0.20 against a break-even of 0.121.
+
+That closes the arithmetic on selection. With h = 2.048 at k = 5.87, reaching
+synera's 0.6437 needs h = 2.17 at k = 3.55 or h = 2.47 at k = 5.87 — more gold in
+fewer tables, which no reordering and no truncation of the current candidates can
+produce. Either the candidates carry gold we are not ranking, or they do not
+carry it at all, and nothing local can tell the two apart: the expansion added
+2.6 tables per question and bought only 0.147 gold, which is candidate generation
+saturating.
+
+So the next submission is a measurement rather than an attempt. Submitting the
+whole 50-candidate pool returns the pool's recall directly, and that is the
+ceiling on every reranking idea left. Above it, ordering is worth chasing; near
+0.66, the reranker is finished and the work moves to candidate generation.
