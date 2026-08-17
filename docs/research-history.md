@@ -717,3 +717,45 @@ Everything regenerates from `scripts/build_account_lexicon.py` and
 `scripts/build_item_expansion.py`, and `run.py --expand` appends the result to
 `relevant_tables` alone — evidence, the CSVs and the answer path are untouched,
 so execution accuracy cannot move.
+
+## The expansion live: recall past synera, and the benchmark overstated it sevenfold
+
+Both cells submitted the same day from the same code, differing only in
+`--expand`:
+
+| | Tables F2 | P | R | MRR@5 |
+|---|---:|---:|---:|---:|
+| control | 0.5238 | 0.3488 | 0.6145 | 0.6171 |
+| expanded | 0.5283 | 0.3259 | 0.6582 | 0.6212 |
+| synera | 0.6437 | 0.6293 | 0.6532 | 0.6456 |
+
+Three things follow.
+
+**The benchmark overstated the effect by a factor of seven.** It predicted
++0.0321, CI [+0.0174, +0.0488]; live returned +0.0045. The circularity warned
+about when the expansion was built is the whole of it: benchmark gold is the set
+of tables a row or column binding was found in, and the expansion searches for
+tables containing the item, so the instrument was scoring its own definition.
+`gold_tables_binding` cannot be used to evaluate any lexical item-matching rule
+again.
+
+**The tables it added are gold at about 0.055.** Recall moved +0.0437 against
+G = 3.33, so the 2,663 added tables carried roughly 147 gold — half the
+break-even of F2/5 = 0.105. The aggregate identity says the change should have
+lost; macro F2 says it won by +0.0045, because the additions land on hard and
+medium questions whose own F2, and therefore whose own break-even, sits below the
+corpus mean. The margin is thin enough that the result is a small real gain and
+not a mandate to add more.
+
+**Recall is no longer the gap.** At 0.6582 we retrieve more of the gold than
+synera's 0.6532, with MRR@5 within 0.024 of theirs. Their entire lead is
+precision, 0.6293 against 0.3259, and the shape of it is now unambiguous: they
+submit about 3.45 tables per question and we submit 8.50, and we find the gold
+either way. Every remaining point is in the ordering — putting the 2.19 gold
+tables we already hold inside the first three or four positions — and none of it
+is in retrieving more, which is the direction this project has spent most of its
+submissions on.
+
+The control also re-measured the baseline against the refactor: 0.5238 today
+against 0.5221 in the shipped era, so the 46 questions the contents-page filter
+moved are worth +0.0017 and the two eras are comparable.
