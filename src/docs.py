@@ -395,8 +395,10 @@ def validate(rows: list[dict], questions: list[dict], reports: dict[str, Report]
         if any(table.partition("|")[0] not in row.get("relevant_docs", []) for table in tables):
             errors.append(f"id={row.get('id')} table outside relevant_docs")
         evidence = row.get("evidence", [])
-        if len(tables) != len(evidence):
-            errors.append(f"id={row.get('id')} table/evidence count differs")
+        # Evidence binds the tables the answer reads, and `relevant_tables` is the
+        # wider set the retrieval metrics score; expansion adds to the second only.
+        if len(evidence) > len(tables):
+            errors.append(f"id={row.get('id')} more evidence than tables")
     return errors
 
 
