@@ -801,3 +801,34 @@ So the next submission is a measurement rather than an attempt. Submitting the
 whole 50-candidate pool returns the pool's recall directly, and that is the
 ceiling on every reranking idea left. Above it, ordering is worth chasing; near
 0.66, the reranker is finished and the work moves to candidate generation.
+
+## Six hand-written priors, all worse than the model
+
+Chasing the 0.22 of ordering headroom the pool-recall probe exposed, every prior
+we could name was implemented and measured on the benchmark under both gold
+definitions:
+
+| prior | delta |
+|---|---|
+| promote a carrier of each named line item | -0.008 |
+| promote statements carrying the item's account code | -0.050 |
+| listwise generation over the candidates | -0.046 |
+| promote tables corroborated by their neighbours' figures | -0.039 |
+| drop candidates that never mention the asked year | refuted by break-even |
+| submit above a probability threshold instead of a budget | -0.022 at best |
+
+Each was motivated, several by a real marginal association — a table sharing a
+figure with three neighbours is gold at 0.330 against 0.132 for one sharing none,
+and gold sits in the first fifth of a report 60% of the time. The associations
+hold. The reorderings lose, because F2 at a fixed budget depends on the set, and
+the table a promotion displaces is gold more often than the table it promotes.
+
+The reading is that the cross-encoder already exploits these cues — position,
+wording, account structure, corroboration — so a hand-written feature does not
+add to it, it competes with it. Two levers survive, and both change what the model
+scores rather than how its output is reordered: putting the item-carrying tables
+into the candidate set, and training the model on figure-linked supervision.
+
+Every figure above rests on labels we wrote ourselves, and that instrument has
+already overstated one lexical rule by a factor of seven. They are reasons to stop
+pursuing something, never grounds for a claim.
