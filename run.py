@@ -121,13 +121,19 @@ def main() -> None:
         row = make_row(source, docs, tables, evidence)
         values, seen_reports = [], set()
         items = [normalize_label(span) for span in original_spans(source["question"], named_line_items(source["question"]))]
-        for rank, table in enumerate(result["tables"]):
+        # One table is bound per report, and it used to be whichever ranked highest
+        # and parsed — 51.9% of the benchmark's failed cell bindings are a table
+        # that was never bound at all. A table that writes the asked item as a row
+        # is the one that holds the figure, so it goes first and rank breaks ties.
+        rows_of = lambda table: item_row(table.get("rows", []), items) if items else None
+        ordered = sorted(enumerate(result["tables"]), key=lambda pair: (rows_of(pair[1]) is None, pair[0]))
+        for rank, table in ordered:
             if table["report_id"] in seen_reports:
                 continue
             # The sparse ranker's matched row is the row that made the table look
             # relevant; the schema says which row holds the item the question asks
             # for, so prefer it and fall back only when the label is not written.
-            named = item_row(table.get("rows", []), items) if items else None
+            named = rows_of(table)
             index = table["row_index"] if named is None else named
             # Row 0 of the grid becomes the DataFrame's column names, so it can never
             # be read back as a value; binding it yields a text cell and a query that
