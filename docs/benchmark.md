@@ -121,15 +121,22 @@ cross-validated mean improves, the bootstrap CI on the delta excludes zero, and
 no difficulty tier regresses. Report the interval, never the point estimate
 alone.
 
-**Cross-encoder scores are not reproducible, so pair the runs.** The same model,
-prompt and candidate text scored in two Kaggle sessions agree on 138 of 11,592
-pairs, mean |delta| 0.0098 and max 0.389. Rebuilding the ranking from the other
-run's scores moves F2 by +0.0076, CI [-0.0063, +0.0235] — a third of the
-interval above, bought by changing nothing.
+**Cross-encoder drift comes from batch packing, not from the session.** Two
+Kaggle sessions that scored `pairs_bench_v4.jsonl` with the same model, prompt
+and settings agree on 11,580 of 11,592 pairs, mean |delta| 1.8e-05, and the
+rebuilt rankings score identically: F2 delta 0.0000 on every tier. The earlier
+reading — 138 of 11,592 identical, F2 +0.0076 — compared runs whose candidate
+pools differed (depth 50 against depth 100), so the length-sorted batches packed
+differently and int8 outlier handling saw different neighbours.
 
-So a comparison whose two sides come from different sessions is not a comparison
-of methods. Either score both cells in one session, or report the drift beside
-the effect:
+The consequence is narrower than "nothing reproduces" but it still binds: any
+treatment that changes the candidate text or the number of queries repacks the
+batches, so it carries that noise on top of its effect, and 0.008 F2 is the
+scale of it. Re-running the identical configuration is the one thing that is
+free of it, which is what makes a same-session control worth its GPU hours only
+when the two cells differ in the factor under test.
+
+So report the drift beside the effect:
 
 ```
 python3 scripts/compare_rerank_runs.py --pairs output/rerank/pairs_bench_v4.jsonl \

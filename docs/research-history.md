@@ -597,3 +597,59 @@ not find the benchmark wrong. It also cannot find it right — a labeller weaker
 than the one under audit only bounds the disagreement from one side. Whether the
 organizers' gold is ours remains unmeasurable without submitting labels, which is
 not a system and is not done.
+
+## The drift is batch packing, and the position line does not pay
+
+Two things were measured in one pass of Kaggle sessions, and the second only
+means anything because of the first.
+
+**The drift.** `scores_ctrl.jsonl` and `scores_ctrl_nb2.jsonl` are the same
+model, prompt, quantization and pairs file, scored in two different sessions on
+two different days. They agree on 11,580 of 11,592 pairs, mean |delta| 1.8e-05,
+max 0.11. The rebuilt rankings are not merely close: F2 is 0.6676 either way and
+every tier delta is exactly 0.0000.
+
+So the earlier finding — 138 of 11,592 identical, F2 moved +0.0076 by changing
+nothing — was not about sessions. Those two runs held different candidate pools,
+depth 50 against depth 100, and candidates are sorted by length before batching
+because a batch costs its longest member. Different pool, different neighbours in
+the batch, and int8 decomposes outlier features per batch. The session was
+innocent; the packing was not.
+
+What survives of the rule: a treatment that changes candidate text or the number
+of queries repacks the batches and carries roughly 0.008 F2 of noise on top of
+whatever it does. A treatment that leaves the pairs file byte-identical carries
+none. That is a sharper instrument than "score both cells in one session", and it
+says the 4B-versus-8B comparison (+0.0088, different models, necessarily
+different packing) is still unreadable while a same-pairs re-run needs no control
+at all.
+
+**The position line and the notes instruction.** `pairs_bench_v5.jsonl` is
+`pairs_bench_v4.jsonl` with one line inserted per candidate, `Vị trí: bảng N/M
+trong báo cáo`, and it was scored under `INSTRUCTION_V2`, which tells the model
+that primary statements come first in a report, that the position line says which
+those are, and that a note restating a statement item is not the answer when the
+statement itself is a candidate. The motivation was measured: 60% of gold sits in
+the first fifth of a report against 34% of our submitted non-gold, and the
+shipped instruction explicitly counts restating notes as yes.
+
+Against its own-session control:
+
+| stratum | control F2 | treatment F2 | delta |
+|---|---:|---:|---:|
+| all 233 | 0.6676 | 0.6644 | -0.0032, CI [-0.0164, +0.0106] |
+| easy | 0.7487 | 0.7487 | 0.0000 |
+| medium | 0.7144 | 0.6936 | -0.0208 |
+| intermediate | 0.6526 | 0.6478 | -0.0048 |
+| hard | 0.5441 | 0.5559 | +0.0118 |
+
+Agreement with the control is 34 of 11,592 pairs, mean |delta| 0.0229 — the
+change reached the model, it just did not help. The split is the one the position
+prior predicted before the run: hard questions gain, medium loses, and medium is
+where gold is note-only. Rejected under the standing rule twice over — the
+interval covers zero and a tier regresses.
+
+The two factors were bundled deliberately, so this does not say which half
+failed; it says the bundle is not worth another session. What it does establish
+is that the model already knows where in a report to look, and telling it costs
+more on the questions whose answers are somewhere else.
