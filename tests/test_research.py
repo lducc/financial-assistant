@@ -1087,3 +1087,73 @@ def test_ranking_comparison_pairs_per_question_and_splits_by_tier():
     # Question 2 is untouched by that ranking, so the pairing isolates the change.
     assert promoted[2] == sparse[2]
     assert compare.metric_means(promoted, [1])["f2"] == 1.0
+
+
+TABLE = (
+    "<table><tr><td>TÀI SẢN</td><td>Mã số</td><td>Thuyết minh</td><td>31/12/2015</td></tr>"
+    "<tr><td>I. Tiền và các khoản tương đương tiền</td><td>110</td><td>5.1</td><td>470</td></tr>"
+    "<tr><td>1. Tiền</td><td>111</td><td></td><td>242</td></tr></table>"
+)
+
+
+def test_statement_rows_read_the_account_code_and_the_note_it_points_at():
+    from vifinqa.statements import statement_rows
+
+    parsed = list(statement_rows(TABLE))
+    assert parsed[0] == ("tiền và các khoản tương đương tiền", "110", "5.1")
+    assert parsed[1] == ("tiền", "111", "")
+
+
+def test_a_continuation_page_is_read_without_its_header():
+    from vifinqa.statements import statement_rows
+
+    continued = "<table><tr><td>2. Hàng tồn kho</td><td>141</td><td></td><td>214</td></tr>" \
+                "<tr><td>3. Chi phí trả trước</td><td>151</td><td></td><td>14</td></tr>" \
+                "<tr><td>4. Tài sản khác</td><td>152</td><td></td><td>9</td></tr></table>"
+    assert [code for _, code, _ in statement_rows(continued)] == ["141", "151", "152"]
+
+
+def test_the_heading_of_a_table_skips_the_running_page_furniture():
+    from vifinqa.statements import table_heading
+
+    lines = ["5.5. Hàng tồn kho", "CÔNG TY CỔ PHẦN NHỰA", "", "<table></table>"]
+    assert table_heading(lines, 3) == ("5.5", "hàng tồn kho")
+
+
+def test_a_line_item_resolves_to_the_code_the_corpus_files_it_under(tmp_path):
+    from vifinqa.lexicon import load_lexicon, resolve
+
+    path = tmp_path / "lexicon.json"
+    path.write_text(json.dumps({
+        "60": {"lợi nhuận sau thuế thu nhập doanh nghiệp": 900},
+        "141": {"hàng tồn kho": 500},
+    }, ensure_ascii=False), encoding="utf-8")
+    labels = load_lexicon(path)
+    assert resolve("Hàng tồn kho", labels) == ["141"]
+    assert resolve("Lợi nhuận sau thuế", labels) == ["60"]
+
+
+def test_the_index_matches_a_row_label_the_question_abbreviates(tmp_path):
+    build = load_script("build_item_expansion")
+
+    corpus = tmp_path / "reports"
+    corpus.mkdir()
+    (corpus / "one.txt").write_text(
+        "5.5. Hàng tồn kho\n"
+        "<table><tr><td>Lợi nhuận sau thuế thu nhập doanh nghiệp</td><td>60</td></tr></table>\n",
+        encoding="utf-8",
+    )
+    catalog = tmp_path / "catalog.jsonl"
+    catalog.write_text(json.dumps({
+        "source_path": "one.txt", "start_line": 2, "submission_table_id": "one|2",
+    }, ensure_ascii=False) + "\n", encoding="utf-8")
+
+    found = build.index_corpus(catalog, corpus, {"lợi nhuận sau thuế", "hàng tồn kho"})
+    assert found["lợi nhuận sau thuế"] == {"one|2"}
+    assert "hàng tồn kho" not in found
+
+
+def test_a_named_line_item_survives_the_question_it_was_written_in():
+    build = load_script("build_item_expansion")
+
+    assert build.question_items("Hàng tồn kho năm 2015 của AAA là bao nhiêu?") >= {"hàng tồn kho"}

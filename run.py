@@ -49,6 +49,12 @@ def main() -> None:
         help="reranked orderings from apply_rerank_scores.py; retrieval widens to the "
              "reranked depth and the budget is taken from that order",
     )
+    parser.add_argument(
+        "--expand", type=Path,
+        help="extra relevant tables from build_item_expansion.py; appended after the "
+             "budget, because a table that names the asked line item is evidence the "
+             "ranker's fifty candidates never saw",
+    )
     parser.add_argument("--rerank-depth", type=int, default=50)
     parser.add_argument("--reranker", choices=("mmarco",))
     parser.add_argument("--reranker-batch-size", type=int, choices=(1, 2, 4, 8), default=8)
@@ -63,6 +69,7 @@ def main() -> None:
     table_reports = load_table_reports(data_root)
     table_reports_by_id = {report.identity.report_id: report for report in table_reports}
     ranking = json.loads(args.ranking.read_text("utf-8")) if args.ranking else None
+    expansion = json.loads(args.expand.read_text("utf-8")) if args.expand else {}
     checkpoint = args.output_dir / "rows.checkpoint.json"
     rows = json.loads(checkpoint.read_text("utf-8")) if args.resume and checkpoint.exists() else []
     completed_ids = {row["id"] for row in rows}
@@ -106,6 +113,7 @@ def main() -> None:
             materialize(report.path, table["start_line"], table["table_id"], csv_path)
             tables.append(table["table_id"])
             evidence.append({"variable": f"df{rank}", "csv_path": f"data/tables/{stem}.csv"})
+        tables += [table for table in expansion.get(str(source["id"]), []) if table not in tables]
         row = make_row(source, docs, tables, evidence)
         values, seen_reports = [], set()
         for rank, table in enumerate(result["tables"]):

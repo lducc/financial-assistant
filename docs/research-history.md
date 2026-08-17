@@ -653,3 +653,67 @@ The two factors were bundled deliberately, so this does not say which half
 failed; it says the bundle is not worth another session. What it does establish
 is that the model already knows where in a report to look, and telling it costs
 more on the questions whose answers are somewhere else.
+
+## The corpus labels itself: account codes and the tables that name the item
+
+Two structures sit in every filing and the pipeline used neither.
+
+**Circular 200 numbers the line items.** Every Vietnamese filer presents the same
+primary statements with the same mandated `Mã số`, so `110` is "Tiền và các khoản
+tương đương tiền" in every company and every year, and the balance sheet also
+carries a `Thuyết minh` column naming the note that details each row. Reading the
+146,246 tables for those columns yields 10,389 primary statements over 1,965
+reports, 494 codes and 8,859 label variants from 167,306 observations — a lexicon
+of the line-item vocabulary, including its OCR damage, built from no labels of
+ours. Every one of the 1,764 line items named across the 1,012 questions resolves
+into it: 49% as an exact label, 51% as the prefix of a longer one, none missing.
+
+The first version read only three-digit codes and found 4,330 statements. The
+income statement and the cash flow statement number their rows `01` to `70`, so
+two thirds of the primary statements were invisible; the fix was one character in
+a regular expression and it more than doubled the corpus this rests on.
+
+**The hops that follow from it did not pay.** Resolving the item to a code and
+submitting the statements that carry it gives 1.97 tables per question at
+precision 0.480, against 4.70 tables at 0.4521 for the shipped ranking — tighter,
+not better, and unioning it in was worth +0.0059. Following the `Thuyết minh`
+number to the note table was worse: only 13% of the 53,228 note references
+resolve to a heading we can find, and the notes that do resolve are gold at 0.05.
+Note headings are not reliably above their table; a running company name or the
+tail of a paragraph often is.
+
+**What did pay is cruder and general.** A table whose own first column contains
+the asked line item — as the item, or as the start of a longer label the question
+abbreviated — is evidence by construction, and the ranker never sees most of
+them: BM25 proposes fifty candidates chosen through one matched row and the
+budget then cuts to five. Adding those tables to the submission, in the gated
+reports only, moves the benchmark:
+
+| expanded tiers | F2 | k | delta | easy | medium | intermediate | hard |
+|---|---:|---:|---|---:|---:|---:|---:|
+| none | 0.6676 | 4.70 | — | — | — | — | — |
+| hard | 0.6965 | 5.63 | +0.0289 [+0.0166, +0.0423] | 0 | 0 | 0 | +0.1322 |
+| hard, medium | 0.6996 | 5.93 | +0.0321 [+0.0174, +0.0488] | 0 | +0.0151 | 0 | +0.1322 |
+| every tier | 0.6923 | 6.73 | +0.0247 [+0.0039, +0.0462] | -0.0271 | +0.0151 | -0.0001 | +0.1322 |
+
+The tables it adds are gold at **0.370**, against a break-even of F2/5 = 0.133,
+which is why the gain grows monotonically with how many are added and no cap
+earns its place — 2, 4, 6, 8, 12 and uncapped read +0.0124, +0.0198, +0.0257,
++0.0261, +0.0285, +0.0289. Easy questions are the exception: they are answered by
+one table and a second only costs precision, so the shipped gate is hard and
+medium. That is the same tier-conditional shape as the fusion rule already in
+production.
+
+Two cautions. The benchmark's gold is the set of tables a row or column binding
+was found in, which is close to the definition this expansion searches for, so
+the benchmark cannot be a clean test of it — the live P/R ratio matching binding
+gold to within 0.009 is the reason to expect the effect to survive anyway, since
+it says the organizers count the same kind of table. And it is a recall play in a
+season spent on precision: it pushes k from 5.87 towards 9 live, away from
+synera's 3.45, which is only correct because F2 weights recall four to one and
+0.370 is nearly three times the break-even.
+
+Everything regenerates from `scripts/build_account_lexicon.py` and
+`scripts/build_item_expansion.py`, and `run.py --expand` appends the result to
+`relevant_tables` alone — evidence, the CSVs and the answer path are untouched,
+so execution accuracy cannot move.
