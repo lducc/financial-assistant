@@ -40,7 +40,7 @@ if len(sys.argv) > 1:
     ADAPTER_PATH = sys.argv[3] if len(sys.argv) > 3 else ""
 
 MAX_LENGTH = 1024
-RERANK_DEPTH = 100
+RERANK_DEPTH = 130   # the augmented pairs reach rank 118; 100 would drop 34 of them
 MAX_BATCH = 16
 
 # The instruction shipped with every score file so far. It ends by counting a
