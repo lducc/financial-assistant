@@ -16,6 +16,10 @@ from vifinqa.answers import EvidenceValue, answer_plan, first_numeric_cell
 from vifinqa.jsonl import load_jsonl
 from vifinqa.retrieval import load_reports as load_table_reports, retrieve_rows, table_budget
 from vifinqa.tables import materialize
+from propose_multihop_labels import named_line_items
+from export_rerank_pairs import original_spans
+from vifinqa.lexicon import item_row
+from vifinqa.statements import normalize_label
 from validate_submission import validate as validate_submission
 
 
@@ -116,20 +120,27 @@ def main() -> None:
         tables += [table for table in expansion.get(str(source["id"]), []) if table not in tables]
         row = make_row(source, docs, tables, evidence)
         values, seen_reports = [], set()
+        items = [normalize_label(span) for span in original_spans(source["question"], named_line_items(source["question"]))]
         for rank, table in enumerate(result["tables"]):
             if table["report_id"] in seen_reports:
                 continue
+            # The sparse ranker's matched row is the row that made the table look
+            # relevant; the schema says which row holds the item the question asks
+            # for, so prefer it and fall back only when the label is not written.
+            named = item_row(table.get("rows", []), items) if items else None
+            index = table["row_index"] if named is None else named
             # Row 0 of the grid becomes the DataFrame's column names, so it can never
             # be read back as a value; binding it yields a text cell and a query that
             # raises rather than answering.
-            if table["row_index"] == 0:
+            if index == 0:
                 continue
-            numeric = first_numeric_cell(table["row_cells"], table.get("header_cells"))
+            cells = table["row_cells"] if named is None else table["rows"][named]
+            numeric = first_numeric_cell(cells, table.get("header_cells"))
             if numeric is None:
                 continue
             seen_reports.add(table["report_id"])
             column, value = numeric
-            values.append(EvidenceValue(f"df{rank}", table["row_index"], column, value, table["report_id"]))
+            values.append(EvidenceValue(f"df{rank}", index, column, value, table["report_id"]))
         plan = answer_plan(source["question"], values)
         if plan is None and values:
             # No operation matched, but evidence is bound: answer the lookup rather

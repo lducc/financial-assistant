@@ -872,6 +872,7 @@ def retrieve_rows(
                 "score": round(score, 6),
                 "row_index": row_index,
                 "row_cells": list(table.rows[row_index]),
+                "rows": [list(row) for row in table.rows],
                 "header_cells": header_cells(table),
                 "title": table.title,
                 "periods": list(table.periods),

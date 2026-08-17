@@ -34,3 +34,34 @@ def resolve(item: str, labels: dict[str, Counter], limit: int = 2) -> list[str]:
     for _, label in holders[:20]:
         counts.update(labels[label])
     return [code for code, _ in counts.most_common(limit)]
+
+
+def item_row(rows: list[list[str]], items: list[str]) -> int | None:
+    """The row a named line item occupies, by the label the corpus writes for it.
+
+    The sparse ranker picks the row that made the table look relevant, which is
+    the row its own matching found rather than the row the question asks about.
+    The label identifies the row directly, but not always in the first column —
+    some filings put `Mã số` there — and OCR runs labels into their neighbours, so
+    the search covers the leading cells and accepts containment. An exact label
+    beats a containment anywhere later in the table; row 0 is the header and can
+    never be a value.
+    """
+    contained = loose = None
+    words = [(item, set(item.split())) for item in items]
+    for index, row in enumerate(rows):
+        if index == 0 or not row:
+            continue
+        for cell in row[:3]:
+            label = normalize_label(cell)
+            if not label:
+                continue
+            tokens = set(label.split())
+            for item, item_words in words:
+                if label == item:
+                    return index
+                if item in label and contained is None:
+                    contained = index
+                elif item_words <= tokens and loose is None:
+                    loose = index
+    return contained if contained is not None else loose

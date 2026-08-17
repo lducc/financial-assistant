@@ -1157,3 +1157,24 @@ def test_a_named_line_item_survives_the_question_it_was_written_in():
     build = load_script("build_item_expansion")
 
     assert build.question_items("Hàng tồn kho năm 2015 của AAA là bao nhiêu?") >= {"hàng tồn kho"}
+
+
+def test_the_schema_finds_the_row_the_question_asks_for():
+    from vifinqa.lexicon import item_row
+
+    rows = [
+        ["Chỉ tiêu", "Mã số", "2015"],
+        ["I. Tiền và các khoản tương đương tiền", "110", "470"],
+        ["Thuế TNDN còn phải nộp cuối năm", "", "12"],
+    ]
+    assert item_row(rows, ["tiền và các khoản tương đương tiền"]) == 1
+    # every word of the item is present, one extra word is not
+    assert item_row(rows, ["thuế tndn phải nộp cuối năm"]) == 2
+    assert item_row(rows, ["hàng tồn kho"]) is None
+
+
+def test_a_label_in_a_later_column_is_still_the_label():
+    from vifinqa.lexicon import item_row
+
+    rows = [["Mã số", "Chỉ tiêu"], ["110", "Tiền và các khoản tương đương tiền"]]
+    assert item_row(rows, ["tiền và các khoản tương đương tiền"]) == 1
