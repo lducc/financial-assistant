@@ -8,7 +8,10 @@
 # that change between runs arrive as arguments.
 set -euo pipefail
 
-pip install -q -U torch transformers peft accelerate
+# The template ships torch built against its own CUDA; upgrading it here is how
+# a paid box breaks. Only what the template lacks.
+python -c "import torch; print(torch.__version__, torch.cuda.is_available())"
+pip install -q transformers peft accelerate
 
 python kaggle/train_reranker.py  data/training_linked.jsonl adapter
 python kaggle/rerank_qwen_8b.py  data/pairs_bench_v4.jsonl scores_tuned.jsonl adapter

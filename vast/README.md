@@ -7,6 +7,12 @@ cap negative. A better scorer is what is left.
 
 ## The box
 
+A plain PyTorch/CUDA template. A vLLM image buys nothing here: training runs on
+transformers and peft, and the scorer is the same one Kaggle has always run.
+vLLM would only pay for the full-corpus pass, and only if that pass turns out to
+be the bottleneck — it is about forty minutes of meter, against a new code path
+to get the yes/no logits out.
+
 Any 24 GB card. 8B in fp16 is 16.4 GB, which fits one 4090 and removes the int8
 outlier path that made scores depend on how batches were packed. Allow 50 GB of
 disk for the model.
