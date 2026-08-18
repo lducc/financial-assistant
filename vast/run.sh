@@ -1,41 +1,32 @@
 #!/usr/bin/env bash
-# Fine-tune the reranker and score both A/B cells on a rented GPU, unattended.
+# Fine-tune the reranker and settle both open questions on a rented GPU.
 #
 #   bash vast/run.sh
 #
-# Expects training_linked.jsonl, pairs_bench_v6.jsonl, pairs_v6.jsonl and the
-# existing scores_v4.jsonl in ./data.
-# Edit MODEL_NAME and QUANTIZATION at the top of the two scripts once; the paths
-# that change between runs arrive as arguments.
+# Expects ./data to hold training_linked.jsonl, pairs_bench_v6.jsonl,
+# pairs_bench_v7.jsonl, pairs_v6.jsonl and the existing scores_v4.jsonl.
+# The scripts are already set to the 8B: fp16 for scoring, nf4 for training.
 set -euo pipefail
 
 # The template ships torch built against its own CUDA; upgrading it here is how
-# a paid box breaks. Only what the template lacks.
+# a paid box breaks. Install only what the template lacks.
 python -c "import torch; print(torch.__version__, torch.cuda.is_available())"
-pip install -q transformers peft accelerate
+pip install -q transformers peft accelerate bitsandbytes
 
-# The benchmark A/B first: it is the cheap half and it decides whether the rest
-# of the box's time is worth spending.
-python kaggle/train_reranker.py  data/training_linked.jsonl adapter
-python kaggle/rerank_qwen_8b.py  data/pairs_bench_v6.jsonl scores_tuned.jsonl adapter
-python kaggle/rerank_qwen_8b.py  data/pairs_bench_v6.jsonl scores_base.jsonl
+# --- the benchmark, three readings of one candidate set ------------------------
+# One process, so nothing but the named change differs between them. base is the
+# control for both: scores_tuned changes the weights, sweep_full changes the text.
+python kaggle/rerank_qwen_8b.py data/pairs_bench_v6.jsonl scores_base.jsonl
+python kaggle/train_reranker.py data/training_linked.jsonl adapter
+python kaggle/rerank_qwen_8b.py data/pairs_bench_v6.jsonl scores_tuned.jsonl adapter
+python kaggle/rerank_qwen_8b.py data/pairs_bench_v7.jsonl sweep_full.jsonl
 
-# The representation sweep: one process, one candidate set, five readings of it.
-# Arms differ only in what the model reads, which is the one class of change that
-# has ever worked here — reordering its output has lost six times.
-python kaggle/rerank_qwen_8b.py  data/pairs_bench_v6.jsonl  sweep_base.jsonl  "" full v1
-python kaggle/rerank_qwen_8b.py  data/pairs_bench_v7.jsonl  sweep_full.jsonl  "" full v1
-python kaggle/rerank_qwen_8b.py  data/pairs_bench_v7c.jsonl sweep_codes.jsonl "" full v1
-python kaggle/rerank_qwen_8b.py  data/pairs_bench_v7.jsonl  sweep_items.jsonl "" items v1
-python kaggle/rerank_qwen_8b.py  data/pairs_bench_v7.jsonl  sweep_short.jsonl "" full v3
+# --- the full corpus -----------------------------------------------------------
+# The sixth argument is SKIP_PATH: scores_v4 already holds the original pool, so
+# only the item-carrying tables are judged, about 4,400 pairs rather than 55,000.
+# This ships the scored-expansion configuration whether or not anything above won.
+python kaggle/rerank_qwen_8b.py data/pairs_v6.jsonl scores_full_new.jsonl \
+    "" full v1 data/scores_v4.jsonl
 
-# The augmented candidates at full corpus, base model. SKIP_PATH means only the
-# item-carrying tables are judged — about 4,400 pairs rather than 55,000 — so the
-# scored-expansion configuration ships whether or not the adapter works. Set
-# SKIP_PATH = "data/scores_v4.jsonl" at the top of the scorer before running.
-python kaggle/rerank_qwen_8b.py  data/pairs_v6.jsonl scores_full_new.jsonl
-
-# Only if the adapter cleared the gate on the benchmark. Costs the full pass.
-python kaggle/rerank_qwen_8b.py  data/pairs_v6.jsonl scores_full_tuned.jsonl adapter
-
-echo "done: scores_tuned scores_base scores_full_new scores_full_tuned adapter/"
+echo "done: scores_base scores_tuned sweep_full scores_full_new adapter/"
+echo "if the adapter or the re-texting cleared the gate, run its full pass next"

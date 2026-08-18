@@ -28,7 +28,7 @@ MODEL_NAME = "Qwen/Qwen3-Reranker-8B"      # or Qwen/Qwen3-Reranker-4B
 PAIRS_PATH = "/kaggle/input/vifinqa-rerank-pairs/pairs_bench_v4.jsonl"
 SCORES_PATH = "/kaggle/working/scores.jsonl"
 PER_ITEM = False        # True scores each named line item as its own query
-QUANTIZATION = "int8"   # "fp16" needs GPU T4 x2; "nf4" is faster and unscored
+QUANTIZATION = "fp16"   # a 24 GB card holds the 8B in fp16; int8 was the Kaggle T4 compromise
 RESUME_PATH = ""        # a downloaded scores.jsonl: skips whole questions
 SKIP_PATH = ""          # a finished scores.jsonl: skips individual candidates
 ADAPTER_PATH = ""       # a LoRA adapter from train_reranker.py
@@ -36,11 +36,12 @@ QUERY = "full"         # "items" drops the question and keeps the named line ite
 PROMPT = "v1"           # "v2" lets the model decide statement or note; use with pairs_bench_v5
 # ------------------------------------------------------------------------------
 
-if len(sys.argv) > 1:
+if len(sys.argv) > 2:   # the tests import this module, and pytest has its own argv
     PAIRS_PATH, SCORES_PATH = sys.argv[1], sys.argv[2]
     ADAPTER_PATH = sys.argv[3] if len(sys.argv) > 3 else ""
     QUERY = sys.argv[4] if len(sys.argv) > 4 else QUERY
     PROMPT = sys.argv[5] if len(sys.argv) > 5 else PROMPT
+    SKIP_PATH = sys.argv[6] if len(sys.argv) > 6 else ""
 
 MAX_LENGTH = 1024
 RERANK_DEPTH = 130   # the augmented pairs reach rank 118; 100 would drop 34 of them

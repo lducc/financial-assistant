@@ -55,8 +55,8 @@ import torch
 from torch.nn.utils.rnn import pad_sequence
 from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
 
-MODEL_NAME = "Qwen/Qwen3-Reranker-4B"
-TRAINING_PATH = "/kaggle/input/vifinqa-rerank-training/training_corpus.jsonl"
+MODEL_NAME = "Qwen/Qwen3-Reranker-8B"
+TRAINING_PATH = "/kaggle/input/vifinqa-rerank-training/training_linked.jsonl"
 OUTPUT_DIR = "/kaggle/working/adapter"
 # Held-out questions for a loss curve that means something. Groups are split by
 # question, never by row: two rows from one question in different splits would
@@ -72,12 +72,12 @@ GROUPS_PER_STEP = 1
 MAX_GROUP = 12
 MAX_GROUPS = 4000  # 0 keeps them all; a group is one optimiser step, so this is the session budget
 LORA_RANK = 16
-QUANTIZATION = "fp16"  # "fp16" for 4B, "nf4" for 8B
+QUANTIZATION = "nf4"  # "fp16" for 4B; the 8B needs nf4 to leave room for activations
 SEED = 20260814
 
 # On a rented box the three runs differ only in their paths, so they arrive as
 # arguments and everything above stays edited once.
-if len(sys.argv) > 1:
+if len(sys.argv) > 2:   # the tests import this module, and pytest has its own argv
     TRAINING_PATH, OUTPUT_DIR = sys.argv[1], sys.argv[2]
 
 # Identical to rerank_qwen_8b.py. If either copy changes, both must.
