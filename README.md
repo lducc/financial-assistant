@@ -1,8 +1,15 @@
 # ViFinQA
 
-Our second-place system for R2AI Stage 2, Vietnamese financial table QA. For each
-question it picks source tables from the organizer reports, copies them out as
-evidence CSVs, and answers with a Pandas program that runs on those CSVs.
+Our second-place system for R2AI Stage 2, question answering over Vietnamese financial
+statements. For each question it picks the source tables from the organizer reports,
+copies them out as evidence CSVs, and answers with a Pandas program that runs on those
+CSVs.
+
+- Submitted package: [`artifacts/submission_best_20260904_declared.zip`](artifacts/submission_best_20260904_declared.zip)
+- Organizer dossier: [SUBMISSION_DOCUMENTATION.md](SUBMISSION_DOCUMENTATION.md)
+- Demo: [demo/README.md](demo/README.md)
+
+## Overview
 
 ```text
 question
@@ -15,22 +22,41 @@ question
   -> submission.zip
 ```
 
-Every model is a public checkpoint used as is. There is no training step.
+Retrieval is fixed before answering, so the answer stage cannot change which reports
+and tables are submitted. Every evidence CSV is a copy of an organizer table, and every
+answer is computed from those CSVs.
 
-| Checkpoint | Revision | Stage |
-| --- | --- | --- |
-| `Qwen/Qwen3-Embedding-4B` | `5cf2132abc99cad020ac570b19d031efec650f2b` | dense index |
-| `Qwen/Qwen3-Reranker-8B` | `77d193c791ed757ca307ee72715aa132723da912` | reranking |
-| `Qwen/Qwen3.5-9B` | `c202236235762e1c871ad0ccb60c8ee5ba337b9a` | answers |
+## Example
 
-## Setup
+From the fixture in `tests/test_answers.py`. The ranker selects this table:
 
-```bash
-git clone https://github.com/lducc/vifinqa-final-submission.git
-cd vifinqa-final-submission
-pip install -e .
-pytest
+```text
+Chỉ tiêu          Số đầu năm   31/12/2022   31/12/2023
+Doanh thu thuần   1.000        1.200        1.400
 ```
+
+> Tăng trưởng doanh thu năm 2023 so với năm 2022 là bao nhiêu phần trăm?
+> (By what percentage did revenue grow from 2022 to 2023?)
+
+The program reads the 2022 and 2023 cells of the revenue row and returns
+`(1400 - 1200) / 1200 * 100 = 16.67`.
+
+## Method
+
+| Part | Choice |
+|---|---|
+| Document gate | Ticker, year and scope matched from the question |
+| Sparse retrieval | BM25 over table text, top 50 |
+| Dense retrieval | `Qwen/Qwen3-Embedding-4B`, top 40 from the gated reports |
+| Note links | Up to 3 tables reached through note references in the top 30 |
+| Reranker | `Qwen/Qwen3-Reranker-8B`, zero-shot |
+| Fusion | Reciprocal rank of first-stage and reranker order, weight 0.5 |
+| Answer | `Qwen/Qwen3.5-9B` writes a Pandas program, checked against an allowlist and replayed |
+
+Every model is a public checkpoint used as is. Revisions are pinned in `kaggle/` and
+`notebooks/final_answer.ipynb`.
+
+## Reproduce
 
 Request the data from the organizers and place it as follows:
 
@@ -40,81 +66,96 @@ data/raw/vifinqa/questions/questions.jsonl
 data/raw/vifinqa/financial_statements/<ticker>/<year>/...
 ```
 
-## Reproduce
+```sh
+git clone https://github.com/lducc/financial-assistant && cd financial-assistant
+pip install -e .
+pytest
+```
 
-Steps 1, 3 and 5 run on a GPU. The rest run on a CPU.
+Check a submitted package, with no data or GPU:
 
-1. Dense index. Run `python scripts/export_table_texts.py`, then run
-   `kaggle/embed_tables.py` on a GPU with `output/dense/tables.jsonl` and
-   `questions.jsonl` (paths at the top of the file). Copy its four output files
-   into `output/dense/`.
+```sh
+unzip artifacts/submission_best_20260904_declared.zip -d output/package
+python scripts/validate_submission.py output/package
+python scripts/verify_execution.py --package output/package
+```
 
-2. Candidates.
+Rebuild from the organizer data. Steps 1, 3 and 5 need a GPU.
 
-   ```bash
-   RUN=output/final_run
-   Q=data/raw/vifinqa/questions/questions.jsonl
+1. Dense index: `scripts/export_table_texts.py`, then `kaggle/embed_tables.py`.
+2. Candidates: BM25, dense and note-link tables for every question.
+3. Rerank: `kaggle/rerank_qwen_8b.py` scores every candidate.
+4. Package: fuse the scores, select tables, and write `submission.zip` with `run.py`.
+5. Answer: `scripts/build_answer_inputs.py`, then every cell of `notebooks/final_answer.ipynb` on an A100.
 
-   python scripts/build_line_item_lexicon.py
-   python scripts/verify_dense_artifacts.py --dense output/dense \
-     --tables output/dense/tables.jsonl --questions $Q --manifest $RUN/dense_manifest.json
-   python scripts/export_rerank_pairs.py --depth 50 --dense output/dense \
-     --dense-depth 40 --hierarchy \
-     --output $RUN/pairs_hybrid.jsonl --dense-tables $RUN/dense_tables.json
-   python scripts/apply_rerank_scores.py --pairs $RUN/pairs_hybrid.jsonl \
-     --first-stage-only --output $RUN/ranking_hybrid_first_stage.json
-   python scripts/add_graph_tables.py --pairs $RUN/pairs_hybrid.jsonl \
-     --base-ranking $RUN/ranking_hybrid_first_stage.json \
-     --depth 30 --max-added 3 --hierarchy \
-     --output $RUN/ranking_graph_candidates.json --trace $RUN/graph.trace.jsonl \
-     --expanded-pairs $RUN/pairs_hybrid_graph.jsonl
-   python scripts/merge_table_sidecars.py --input $RUN/dense_tables.json \
-     --input $RUN/ranking_graph_candidates.graph_tables.json --output $RUN/extra_tables.json
-   python scripts/validate_rerank_pairs.py --pairs $RUN/pairs_hybrid_graph.jsonl \
-     --extra-tables $RUN/extra_tables.json --graph-trace $RUN/graph.trace.jsonl \
-     --questions $Q --dense-manifest $RUN/dense_manifest.json \
-     --manifest $RUN/candidate_manifest.json
-   ```
+<details>
+<summary>Commands</summary>
 
-3. Rerank. On the GPU, run
-   `python kaggle/rerank_qwen_8b.py pairs_hybrid_graph.jsonl scores.jsonl` and copy
-   `scores.jsonl` and `scores.jsonl.manifest.json` into `$RUN`.
+```sh
+RUN=output/final_run
+Q=data/raw/vifinqa/questions/questions.jsonl
 
-4. Select tables and package.
+# 1. copy the four outputs of kaggle/embed_tables.py into output/dense/
+python scripts/export_table_texts.py
 
-   ```bash
-   python scripts/validate_rerank_scores.py --pairs $RUN/pairs_hybrid_graph.jsonl \
-     --scores $RUN/scores.jsonl --manifest $RUN/scores.jsonl.manifest.json
-   python scripts/apply_rerank_scores.py --pairs $RUN/pairs_hybrid_graph.jsonl \
-     --scores $RUN/scores.jsonl --weight 0.5 \
-     --output $RUN/ranking_hybrid_qwen.json
-   python scripts/select_slot_tables.py --pairs $RUN/pairs_hybrid_graph.jsonl \
-     --scores $RUN/scores.jsonl --base-ranking $RUN/ranking_hybrid_qwen.json \
-     --starting-ranking $RUN/ranking_hybrid_qwen.json --logit-gap 3 \
-     --output $RUN/ranking_adaptive_gap3.json --trace $RUN/ranking_adaptive_gap3.trace.jsonl
-   python run.py --ranking $RUN/ranking_adaptive_gap3.json \
-     --extra-tables $RUN/extra_tables.json --table-top-k ranking --rerank-depth 130 \
-     --output-dir $RUN/package_run
-   python scripts/validate_submission.py $RUN/package_run/package
-   python scripts/verify_execution.py --package $RUN/package_run/package
-   ```
+# 2
+python scripts/build_line_item_lexicon.py
+python scripts/verify_dense_artifacts.py --dense output/dense \
+  --tables output/dense/tables.jsonl --questions $Q --manifest $RUN/dense_manifest.json
+python scripts/export_rerank_pairs.py --depth 50 --dense output/dense \
+  --dense-depth 40 --hierarchy \
+  --output $RUN/pairs_hybrid.jsonl --dense-tables $RUN/dense_tables.json
+python scripts/apply_rerank_scores.py --pairs $RUN/pairs_hybrid.jsonl \
+  --first-stage-only --output $RUN/ranking_hybrid_first_stage.json
+python scripts/add_graph_tables.py --pairs $RUN/pairs_hybrid.jsonl \
+  --base-ranking $RUN/ranking_hybrid_first_stage.json \
+  --depth 30 --max-added 3 --hierarchy \
+  --output $RUN/ranking_graph_candidates.json --trace $RUN/graph.trace.jsonl \
+  --expanded-pairs $RUN/pairs_hybrid_graph.jsonl
+python scripts/merge_table_sidecars.py --input $RUN/dense_tables.json \
+  --input $RUN/ranking_graph_candidates.graph_tables.json --output $RUN/extra_tables.json
+python scripts/validate_rerank_pairs.py --pairs $RUN/pairs_hybrid_graph.jsonl \
+  --extra-tables $RUN/extra_tables.json --graph-trace $RUN/graph.trace.jsonl \
+  --questions $Q --dense-manifest $RUN/dense_manifest.json \
+  --manifest $RUN/candidate_manifest.json
 
-5. Answer. On an A100, run
-   `python scripts/build_answer_inputs.py $RUN/package_run/submission.zip --output-dir /content/answer_inputs`,
-   then every cell of `notebooks/final_answer.ipynb`. It writes the final ZIP to `/content/`.
+# 3. on the GPU, then copy scores.jsonl and scores.jsonl.manifest.json into $RUN
+python kaggle/rerank_qwen_8b.py pairs_hybrid_graph.jsonl scores.jsonl
 
-## Results
+# 4
+python scripts/validate_rerank_scores.py --pairs $RUN/pairs_hybrid_graph.jsonl \
+  --scores $RUN/scores.jsonl --manifest $RUN/scores.jsonl.manifest.json
+python scripts/apply_rerank_scores.py --pairs $RUN/pairs_hybrid_graph.jsonl \
+  --scores $RUN/scores.jsonl --weight 0.5 --output $RUN/ranking_hybrid_qwen.json
+python scripts/select_slot_tables.py --pairs $RUN/pairs_hybrid_graph.jsonl \
+  --scores $RUN/scores.jsonl --base-ranking $RUN/ranking_hybrid_qwen.json \
+  --starting-ranking $RUN/ranking_hybrid_qwen.json --logit-gap 3 \
+  --output $RUN/ranking_adaptive_gap3.json --trace $RUN/ranking_adaptive_gap3.trace.jsonl
+python run.py --ranking $RUN/ranking_adaptive_gap3.json \
+  --extra-tables $RUN/extra_tables.json --table-top-k ranking --rerank-depth 130 \
+  --output-dir $RUN/package_run
 
-| Package in `artifacts/` | SHA-256 |
-| --- | --- |
-| `submission_best_20260826.zip` | `97baa1201450801e50480ce68db055d7bdbc99029cac93c21654cdf471789067` |
-| `submission_best_20260904_declared.zip` | `79050960648188ecacbe50eca813ec51d9f8e0bcebfc2b175e58682b8e81dee3` |
+# 5. on the A100, then run notebooks/final_answer.ipynb
+python scripts/build_answer_inputs.py $RUN/package_run/submission.zip \
+  --output-dir /content/answer_inputs
+```
 
-Each package answers all 1,012 questions. The 20260826 package scored table F2
-0.5495, document F2 0.9711 and answer execution 0.1561 on the public leaderboard.
-The organizer dossier is [SUBMISSION_DOCUMENTATION.md](SUBMISSION_DOCUMENTATION.md).
+</details>
 
-## Demo
+## Code
 
-`demo/` is a chat UI that runs the same stages on a fresh question and traces each
-number to its source cell. See [demo/README.md](demo/README.md).
+```text
+run.py                      gate, retrieve, write evidence CSVs, build the package
+src/docs.py                 organizer files, question parsing, document gate
+src/vifinqa/retrieval.py    BM25 over tables in the gated reports
+src/vifinqa/rerank.py       table text shown to the reranker
+src/vifinqa/fusion.py       reciprocal-rank fusion
+src/vifinqa/graph.py        note-link candidates
+src/vifinqa/slots.py        gap-3 table selection
+src/vifinqa/answers.py      cell binding and Pandas programs
+src/vifinqa/tables.py       table parsing and CSV evidence
+scripts/                    stage scripts and validators
+kaggle/                     dense index and reranker jobs (GPU)
+notebooks/final_answer.ipynb   answer stage (GPU)
+demo/                       chat UI over the same stages
+```

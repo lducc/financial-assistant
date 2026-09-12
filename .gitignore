@@ -1,68 +1,14 @@
-# Python
 __pycache__/
 *.py[cod]
 .pytest_cache/
-.mypy_cache/
 .ruff_cache/
-.coverage
-coverage.xml
-htmlcov/
-build/
-dist/
 *.egg-info/
-
-# Environments
 .venv/
-venv/
-env/
-ENV/
 .env
-CLAUDE.md
-tmp/
+uv.lock
 
-# Competition inputs and locally derived artifacts. The pipeline rebuilds what it
-# needs from the organizer corpus; neither belongs in the source checkout.
-data/raw/
-data/derived/
-data/annotations/*
-!data/README.md
-!data/annotations/benchmark_v2/
-!data/annotations/benchmark_v2/*.jsonl
-!data/annotations/benchmark_v2/manifest.json
-
-# Generated packages and local evaluation output.
-output/*
-!output/.gitkeep
-!output/README.md
-submission/
+# organizer data and generated output
+data/
+output/
 *.zip
 !artifacts/*.zip
-*:Zone.Identifier
-
-# Model and tool caches
-.cache/
-hf_cache/
-huggingface/
-llm_cache.jsonl
-
-# Private notes, editor and tool state
-notes/
-*.private.md
-.vscode/
-.idea/
-.agents/
-
-# Competition briefs and other local PDFs
-*.pdf
-
-# Operating-system files
-.DS_Store
-Thumbs.db
-
-# Local experiment artifacts
-.codex/
-uv.lock
-*.checkpoint.json
-annotations/v2_*/
-annotations/v2_*.json
-annotations/gold_150_ids.txt

@@ -12,7 +12,7 @@ its document and table provenance. The pipeline diagram is in
 
 The only data are the organizer's questions, company mapping, and financial
 statement reports, kept at `data/raw/vifinqa/` (layout in
-[README.md](README.md#setup)). The organizer data access link (Google Drive,
+[README.md](README.md#reproduce)). The organizer data access link (Google Drive,
 OneDrive, or equivalent) goes in the delivery email and stays out of the repository.
 
 ## 3. Models and checkpoints
@@ -30,8 +30,7 @@ in the delivery email.
 
 Every command, from `pip install -e .` through the answer notebook, is in
 [README.md](README.md#reproduce). The answer notebook writes the ZIP only after
-all 1,012 records validate. Committed packages and their SHA-256 are listed in
-[README.md](README.md#submitted-artifacts).
+all 1,012 records validate. Committed packages are in `artifacts/`.
 
 ## 5. Submission compliance
 
