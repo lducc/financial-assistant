@@ -1,5 +1,3 @@
-"""OCR HTML-table parsing and CSV evidence materialization."""
-
 import csv
 from dataclasses import dataclass
 from html import unescape
@@ -90,11 +88,8 @@ class TableParser(HTMLParser):
 
 def parse_report_identity(report_path: Path, dataset_root: Path) -> ReportIdentity:
     relative = report_path.relative_to(dataset_root)
-    try:
-        marker = relative.parts.index("financial_statements")
-        ticker, year, report_dir = relative.parts[marker + 1:marker + 4]
-    except (ValueError, IndexError) as error:
-        raise ValueError(f"Unexpected report path: {relative}") from error
+    marker = relative.parts.index("financial_statements")
+    ticker, year, report_dir = relative.parts[marker + 1:marker + 4]
     scope = SCOPE_RE.search(report_dir)
     return ReportIdentity(
         report_path.stem.removesuffix("_extracted"), ticker, int(year),
@@ -125,14 +120,11 @@ def extract_rows_at_line(report_text: str, start_line: int) -> list[list[str]]:
 
 @lru_cache(maxsize=256)
 def cached_report_text(path_text: str) -> str:
-    """Reuse immutable OCR text across multiple evidence tables."""
     return Path(path_text).read_text(encoding="utf-8")
 
 
-def materialize(report_path: Path, start_line: int, table_id: str, csv_path: Path) -> None:
+def materialize(report_path: Path, start_line: int, csv_path: Path) -> None:
     rows = extract_rows_at_line(cached_report_text(str(report_path)), start_line)
-    if not rows:
-        raise ValueError(f"Table {table_id} is empty")
     width = max(len(row) for row in rows)
     csv_path.parent.mkdir(parents=True, exist_ok=True)
     with csv_path.open("w", encoding="utf-8", newline="") as handle:

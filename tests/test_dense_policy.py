@@ -25,15 +25,9 @@ def test_same_triple_policy_keeps_duplicate_filing_but_not_another_scope():
         "BBB_2024_consolidated": report("BBB", 2024, "consolidated"),
     }
 
-    assert dense_report_ids(reports, ["AAA_2024_consolidated"], "same-triple") == {
+    assert dense_report_ids(reports, ["AAA_2024_consolidated"]) == {
         "AAA_2024_consolidated", "AAA_2024_consolidated_2",
     }
-
-
-def test_selected_reports_and_any_policies_are_explicit():
-    reports = {"AAA": report("AAA", 2024, "consolidated")}
-    assert dense_report_ids(reports, ["AAA"], "selected-reports") == {"AAA"}
-    assert dense_report_ids(reports, ["AAA"], "any") is None
 
 
 def test_scorer_accepts_dense_candidates_without_a_sparse_rank():
@@ -93,8 +87,7 @@ def test_dense_overlap_adds_a_rank_without_duplicating_the_sparse_candidate():
     assert [candidate["table_id"] for candidate in merged] == ["A", "B", "C"]
     assert merged[1]["sparse_rank"] == 2
     assert merged[1]["dense_rank"] == 1
-    # Use the sparse rendering for overlaps so one table has one deterministic
-    # cross-encoder input.
+    # overlaps keep the sparse rendering
     assert merged[1]["text"] == "sparse B"
 
 
@@ -120,7 +113,7 @@ def test_equal_dense_scores_break_ties_by_global_vector_row(monkeypatch):
         "ids": [("R1", "A"), ("R2", "B")],
         "tables": np.array(((1.0, 0.0), (1.0, 0.0)), dtype=np.float32),
         "questions": np.array(((1.0, 0.0),), dtype=np.float32),
-        # Deliberately oppose report insertion order to global vector order.
+        # report order deliberately opposes vector order
         "report_rows": {"R2": [1], "R1": [0]},
     }
 

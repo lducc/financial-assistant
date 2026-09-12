@@ -40,13 +40,12 @@ from .rerank import INVENTORY, table_representation
 from demo.rerank_prompt import rerank_prompt
 from .fusion import fuse
 from .graph import NOTE_REF, evidence_slots, select_paths, table_paths
-from .notes import linked_note_lines
+from demo.helpers import linked_note_lines, select_slot_tables
 from .notes import normalize as normalize_note_text
 from .slots import (
     append_confidence_item_tables,
     load_line_items,
     named_line_items,
-    select_slot_tables,
 )
 
 

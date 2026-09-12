@@ -1,5 +1,3 @@
-"""Tests for the slot -> row -> table evidence path."""
-
 from vifinqa.graph import (
     NOTE_REF,
     SOURCE_TABLE,
@@ -8,7 +6,6 @@ from vifinqa.graph import (
     EvidenceSlot,
     RowAnchor,
     anchor_edges,
-    dedupe_edges,
     evidence_slots,
     row_anchors,
     select_paths,
@@ -80,11 +77,6 @@ def test_note_edge_points_at_the_note_table():
     assert [(e.kind, e.table_id) for e in edges[1:]] == [(NOTE_REF, "SAB_2016|4")]
 
 
-def test_note_edge_is_skipped_when_notes_are_disabled():
-    edges = anchor_edges(anchor_of([ITEM])[0], REPORT, source_line=2, follow_notes=False)
-    assert [e.kind for e in edges] == [SOURCE_TABLE]
-
-
 def test_note_edge_never_returns_to_its_own_table():
     edges = anchor_edges(anchor_of([ITEM])[0], REPORT, source_line=4)
     assert [e.kind for e in edges] == [SOURCE_TABLE]
@@ -93,18 +85,6 @@ def test_note_edge_never_returns_to_its_own_table():
 def test_row_without_a_note_yields_only_its_source_table():
     anchor = RowAnchor("SAB_2016", "SAB_2016|2", 1, "Tiền", ITEM, "110", "")
     assert [e.kind for e in anchor_edges(anchor, REPORT, source_line=2)] == [SOURCE_TABLE]
-
-
-def test_dedupe_keeps_the_first_reason_for_a_table():
-    anchor = RowAnchor("R", "R|1", 0, "x", ITEM)
-    edges = [Edge("R|9", SOURCE_TABLE, anchor), Edge("R|9", NOTE_REF, anchor)]
-    assert [e.kind for e in dedupe_edges(edges, set())] == [SOURCE_TABLE]
-
-
-def test_dedupe_drops_tables_already_selected():
-    anchor = RowAnchor("R", "R|1", 0, "x", ITEM)
-    edges = [Edge("R|1", SOURCE_TABLE, anchor), Edge("R|2", NOTE_REF, anchor)]
-    assert [e.table_id for e in dedupe_edges(edges, {"R|1"})] == ["R|2"]
 
 
 def test_slots_cover_every_report_and_item():

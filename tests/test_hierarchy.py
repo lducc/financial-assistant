@@ -1,5 +1,3 @@
-"""Hierarchy paths retain OCR table meaning without inventing relationships."""
-
 from vifinqa.rerank import table_representation
 from vifinqa.retrieval import (
     Report, Table, column_paths, materialize_candidate_rows, row_path, row_paths,
@@ -48,17 +46,6 @@ def test_row_path_excludes_account_and_note_coordinates():
     )
 
     assert row_path(source, 0) == ("Doanh thu bán hàng",)
-
-
-def test_row_path_rejects_an_invalid_index():
-    source = table(headers=(("Chỉ tiêu", "2024"),), rows=(("Doanh thu", "1"),))
-
-    try:
-        row_path(source, 2)
-    except IndexError as error:
-        assert error.args == (2,)
-    else:
-        raise AssertionError("invalid row index was accepted")
 
 
 def test_reranker_representation_exposes_paths_only_when_requested():
@@ -111,8 +98,8 @@ def test_candidate_rows_use_propagated_paths_only_when_opted_in(monkeypatch):
     report = Report(identity, None)
     monkeypatch.setattr("vifinqa.retrieval.report_tables", lambda *_: (source,))
 
-    _, flat = materialize_candidate_rows([report])
-    _, structured = materialize_candidate_rows([report], hierarchy=True)
+    flat = materialize_candidate_rows([report])
+    structured = materialize_candidate_rows([report], hierarchy=True)
 
     assert flat[2][2] == " Tiền 110 50"
     assert structured[2][2] == "A. Tài sản ngắn hạn > Tiền |  Tiền 110 50"

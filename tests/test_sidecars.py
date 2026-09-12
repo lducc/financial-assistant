@@ -17,8 +17,6 @@ def write_json(path: Path, value) -> Path:
     return path
 
 
-# --- merge_table_sidecars ---------------------------------------------------
-
 
 def test_merge_unions_disjoint_lanes(tmp_path):
     dense = write_json(tmp_path / "dense.json", {"R|1": "R"})
@@ -79,8 +77,6 @@ def test_merge_rejects_an_entry_without_a_report(tmp_path):
         merge_table_sidecars.load_map(path)
 
 
-# --- verify_dense_artifacts -------------------------------------------------
-
 
 def unit_vectors(rows: int, dims: int = verify_dense_artifacts.EXPECTED_DIMS):
     vectors = np.zeros((rows, dims), dtype=np.float32)
@@ -96,8 +92,7 @@ def test_healthy_vectors_report_no_failures():
 
 
 def test_unnormalised_vectors_are_rejected():
-    # The Matryoshka prefix of a unit vector is not itself a unit vector; this
-    # is what catches a truncation that skipped renormalisation.
+    # a Matryoshka prefix of a unit vector is not unit length
     vectors = unit_vectors(4).astype(np.float32) * 0.5
     failures = []
     verify_dense_artifacts.check_vectors(vectors.astype(np.float16),

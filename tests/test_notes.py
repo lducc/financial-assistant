@@ -1,8 +1,5 @@
-"""Tests for the declared statement-to-note link."""
-
 from vifinqa.notes import (
     code_column,
-    linked_note_lines,
     note_column,
     note_table_line,
     row_label,
@@ -49,16 +46,16 @@ def test_row_label_keeps_split_text_cells_and_drops_numbers():
     assert row_label(row, 2, 3) == "I. Tiền và tương đương tiền"
 
 
-def test_row_note_reads_the_cell_right_of_the_code():
-    assert row_note(BALANCE_SHEET[1], 1) == "4"
+def test_row_note_reads_the_note_cell():
+    assert row_note(BALANCE_SHEET[1], 2) == "4"
 
 
 def test_row_note_rejects_a_non_reference_cell():
-    assert row_note(["Tiền", "110", "1.880.612.291.229"], 1) is None
+    assert row_note(["Tiền", "110", "1.880.612.291.229"], 2) is None
 
 
 def test_row_note_handles_a_short_row():
-    assert row_note(["Tiền", "110"], 1) is None
+    assert row_note(["Tiền", "110"], 2) is None
 
 
 def test_note_table_line_points_at_the_table_under_the_heading():
@@ -87,26 +84,3 @@ def test_note_table_line_ignores_a_numbered_line_of_prose():
 def test_note_table_line_does_not_fall_through_to_the_next_note():
     report = "4. Không có bảng ở đây\n5. Có bảng\n<table><tr><td>a</td></tr></table>\n"
     assert note_table_line(report, "4") is None
-
-
-def test_link_follows_only_rows_the_question_names():
-    links = linked_note_lines(REPORT, BALANCE_SHEET, ["tien va cac khoan tuong duong tien"], 2)
-    assert links == [("4", 5)]
-
-
-def test_link_is_empty_without_line_items():
-    assert linked_note_lines(REPORT, BALANCE_SHEET, [], 2) == []
-
-
-def test_link_drops_a_note_resolving_to_its_own_table():
-    assert linked_note_lines(
-        REPORT, BALANCE_SHEET, ["tien va cac khoan tuong duong tien"], 5,
-    ) == []
-
-
-def test_link_follows_several_named_items_in_source_order():
-    links = linked_note_lines(
-        REPORT, BALANCE_SHEET,
-        ["tien va cac khoan tuong duong tien", "dau tu tai chinh ngan han"], 2,
-    )
-    assert links == [("4", 5), ("5", 7)]

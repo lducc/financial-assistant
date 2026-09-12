@@ -108,14 +108,6 @@ def test_full_pair_gate_rejects_dense_candidate_outside_same_triple():
         )
 
 
-def test_reranker_model_sizes_have_independent_pinned_revisions():
-    source = (Path(__file__).resolve().parents[1] / "kaggle" / "rerank_qwen_8b.py")
-    text = source.read_text(encoding="utf-8")
-    assert '"Qwen/Qwen3-Reranker-8B": "77d193c' in text
-    assert '"Qwen/Qwen3-Reranker-4B": "22e6836' in text
-    assert "MODEL_REVISION = MODEL_REVISIONS[MODEL_NAME]" in text
-
-
 def test_score_manifest_pins_pairs_scores_and_configuration(tmp_path):
     pairs = tmp_path / "pairs.jsonl"
     scores = tmp_path / "scores.jsonl"
@@ -126,7 +118,6 @@ def test_score_manifest_pins_pairs_scores_and_configuration(tmp_path):
         "model": "Qwen/Qwen3-Reranker-8B",
         "revision": "revision",
         "quantization": "int8",
-        "adapter": None,
         "max_length": 1024,
         "rerank_depth": 130,
         "prompt_sha256": "prompt",

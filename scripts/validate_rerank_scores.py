@@ -1,5 +1,4 @@
-#!/usr/bin/env python3
-"""Fail unless a reranker score file covers every exported candidate exactly once."""
+"""Fail unless the score files cover every exported candidate exactly once."""
 
 import argparse
 import hashlib
@@ -28,7 +27,7 @@ def validate_manifests(pairs_path: Path, score_paths: list[Path],
     pair_hash = sha256(pairs_path)
     manifests = [json.loads(path.read_text(encoding="utf-8")) for path in manifest_paths]
     invariant_keys = (
-        "model", "revision", "quantization", "adapter", "max_length",
+        "model", "revision", "quantization", "max_length",
         "rerank_depth", "prompt_sha256", "pairs_sha256",
     )
     reference = {key: manifests[0].get(key) for key in invariant_keys}
@@ -98,14 +97,9 @@ def validate(pairs: list[dict], scores: list[dict]) -> dict:
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--pairs", type=Path, required=True)
-    parser.add_argument(
-        "--scores", type=Path, action="append", required=True,
-        help="score shard; repeat for resumable runs",
-    )
-    parser.add_argument(
-        "--manifest", type=Path, action="append", required=True,
-        help="manifest beside the corresponding score shard; repeat in the same order",
-    )
+    parser.add_argument("--scores", type=Path, action="append", required=True)
+    parser.add_argument("--manifest", type=Path, action="append", required=True,
+                        help="one per --scores shard, in the same order")
     args = parser.parse_args()
     score_records = [record for path in args.scores for record in load_jsonl(path)]
     result = validate(load_jsonl(args.pairs), score_records)

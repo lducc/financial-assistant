@@ -1,5 +1,4 @@
-#!/usr/bin/env python3
-"""Validate the full CPU candidate pool before spending GPU time on it."""
+"""Validate the candidate pool before reranking."""
 
 import argparse
 import hashlib
@@ -63,7 +62,7 @@ def validate(records: list[dict], questions: list[dict], reports: dict,
                for table_id, candidate in zip(table_ids, candidates)):
             raise ValueError(f"question {identifier}: empty table id or candidate text")
 
-        allowed = dense_report_ids(reports, record.get("selected_docs", []), "same-triple")
+        allowed = dense_report_ids(reports, record.get("selected_docs", []))
         traced = {item["table_id"] for item in trace_by_id[identifier].get("added", [])}
         candidate_graph = {
             candidate["table_id"] for candidate in candidates

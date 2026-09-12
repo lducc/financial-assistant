@@ -1,5 +1,3 @@
-"""Deterministic document retrieval and submission packaging for ViFinQA."""
-
 import csv
 from collections import defaultdict
 from dataclasses import dataclass, replace
@@ -7,7 +5,7 @@ from difflib import SequenceMatcher
 import json
 from pathlib import Path
 import re
-from typing import Callable
+from collections.abc import Callable
 import unicodedata
 from zipfile import ZIP_DEFLATED, ZipFile
 
@@ -94,8 +92,6 @@ class ParsedQuestion:
     years: list[int]
     scope: str
     scope_by_year: dict[int, str]
-    entity_confidence: float
-    entity_method: str
     candidate_tickers: list[str]
 
 
@@ -112,8 +108,6 @@ def content_tokens(text: str) -> list[str]:
 def load_companies(csv_path: Path) -> dict[str, Company]:
     with csv_path.open(encoding="utf-8-sig", newline="") as handle:
         rows = list(csv.reader(handle))
-    if len(rows) < 2:
-        raise ValueError(f"Empty company registry: {csv_path}")
     companies = {}
     for row in rows[1:]:
         if len(row) >= 2:
@@ -196,7 +190,7 @@ def entity_candidates(question: str, companies: dict[str, Company]) -> list[tupl
     return sorted(scores, key=lambda item: (item[1], item[0]), reverse=True)
 
 
-def infer_entities(question: str, companies: dict[str, Company]) -> tuple[list[str], float, str, list[str]]:
+def infer_entities(question: str, companies: dict[str, Company]) -> tuple[list[str], list[str]]:
     explicit = _explicit_tickers(question, set(companies))
     scores = entity_candidates(question, companies)
     fuzzy_shortlist = [ticker for ticker, score in scores[:8] if score >= 0.32]
@@ -225,12 +219,11 @@ def infer_entities(question: str, companies: dict[str, Company]) -> tuple[list[s
     entities = list(dict.fromkeys(explicit + exact_names))
     shortlist = list(dict.fromkeys(entities + fuzzy_shortlist))
     if entities:
-        method = "explicit_ticker" if explicit and len(entities) == len(explicit) else "single_official_name" if len(entities) == 1 else "union_all_entity_detectors"
-        return entities, 1.0 if explicit else 0.98, method, shortlist
+        return entities, shortlist
     best_ticker, best_score = scores[0]
     if best_score >= 0.73 and best_score - scores[1][1] >= 0.08:
-        return [best_ticker], best_score, "fuzzy_high_confidence", shortlist
-    return [], best_score, "ambiguous", shortlist
+        return [best_ticker], shortlist
+    return [], shortlist
 
 
 def infer_years(question: str) -> list[int]:
@@ -253,11 +246,11 @@ def infer_scope(question: str, years: list[int]) -> tuple[str, dict[int, str]]:
     has_separate = any(cue in normalized for cue in separate_cues)
     has_consolidated = any(cue in normalized for cue in consolidated_cues)
     if has_separate and not has_consolidated:
-        return "separate", {year: "separate" for year in years}
+        return "separate", dict.fromkeys(years, "separate")
     if has_consolidated and not has_separate:
-        return "consolidated", {year: "consolidated" for year in years}
+        return "consolidated", dict.fromkeys(years, "consolidated")
     if not (has_separate and has_consolidated):
-        return "consolidated", {year: "consolidated" for year in years}
+        return "consolidated", dict.fromkeys(years, "consolidated")
     cues = [(match.start(), scope) for scope, phrases in (("separate", separate_cues), ("consolidated", consolidated_cues)) for phrase in phrases for match in re.finditer(phrase, normalized)]
     cues.sort()
     scope_by_year = {}
@@ -270,10 +263,10 @@ def infer_scope(question: str, years: list[int]) -> tuple[str, dict[int, str]]:
 
 
 def parse_question(question: str, companies: dict[str, Company]) -> ParsedQuestion:
-    tickers, confidence, method, candidates = infer_entities(question, companies)
+    tickers, candidates = infer_entities(question, companies)
     years = infer_years(question)
     scope, scope_by_year = infer_scope(question, years)
-    return ParsedQuestion(question, tickers, years, scope, scope_by_year, confidence, method, candidates)
+    return ParsedQuestion(question, tickers, years, scope, scope_by_year, candidates)
 
 
 def required_report_years(parsed: ParsedQuestion) -> list[int]:
@@ -313,16 +306,6 @@ def required_report_years(parsed: ParsedQuestion) -> list[int]:
     return list(dict.fromkeys(years))
 
 
-def minimal_report_years(years: list[int]) -> list[int]:
-    uncovered, selected = set(years), []
-    while uncovered:
-        year = max(uncovered)
-        selected.append(year)
-        uncovered.discard(year)
-        uncovered.discard(year - 1)
-    return sorted(selected)
-
-
 def choose_report(candidates: list[Report], scope: str) -> Report | None:
     exact = [report for report in candidates if report.scope == scope]
     unknown = [report for report in candidates if report.scope == "unknown"]
@@ -335,12 +318,11 @@ def choose_report(candidates: list[Report], scope: str) -> Report | None:
     return sorted(complete, key=lambda report: report.doc_id)[0]
 
 
-def retrieve_docs(parsed: ParsedQuestion, reports: dict[str, Report], use_comparative_cover: bool = False) -> tuple[list[str], list[dict]]:
+def retrieve_docs(parsed: ParsedQuestion, reports: dict[str, Report]) -> tuple[list[str], list[dict]]:
     by_ticker_year: dict[tuple[str, int], list[Report]] = defaultdict(list)
     for report in reports.values():
         by_ticker_year[report.ticker, report.year].append(report)
-    requested_years = required_report_years(parsed) or sorted({report.year for report in reports.values()})
-    report_years = minimal_report_years(requested_years) if use_comparative_cover else requested_years
+    report_years = required_report_years(parsed) or sorted({report.year for report in reports.values()})
     selected, decisions = [], []
     for ticker in parsed.tickers:
         for year in report_years:
@@ -359,13 +341,11 @@ def retrieve_docs(parsed: ParsedQuestion, reports: dict[str, Report], use_compar
     return list(dict.fromkeys(report.doc_id for report in selected)), decisions
 
 
-def make_row(source: dict, docs: list[str], tables: list[str] | None = None, evidence: list[dict] | None = None) -> dict:
-    variables = [item["variable"] for item in evidence or []]
+def make_row(source: dict, docs: list[str], tables: list[str], evidence: list[dict]) -> dict:
+    variables = [item["variable"] for item in evidence]
     return {
         "id": int(source["id"]), "question": source["question"], "answer": 0.0,
-        "relevant_docs": docs, "relevant_tables": tables or [], "evidence": evidence or [],
-        # Retrieval is the project boundary: bind the evidence without
-        # attempting to execute an answer program.
+        "relevant_docs": docs, "relevant_tables": tables, "evidence": evidence,
         "pandas_query": f"result = ({', '.join(variables)})" if variables else "",
     }
 
@@ -395,8 +375,7 @@ def validate(rows: list[dict], questions: list[dict], reports: dict[str, Report]
         if any(table.partition("|")[0] not in row.get("relevant_docs", []) for table in tables):
             errors.append(f"id={row.get('id')} table outside relevant_docs")
         evidence = row.get("evidence", [])
-        # Evidence binds the tables the answer reads, and `relevant_tables` is the
-        # wider set the retrieval metrics score; expansion adds to the second only.
+        # evidence binds the tables the answer reads; relevant_tables is the wider scored set and expansion adds only to it
         if len(evidence) > len(tables):
             errors.append(f"id={row.get('id')} more evidence than tables")
     return errors
@@ -405,7 +384,7 @@ def validate(rows: list[dict], questions: list[dict], reports: dict[str, Report]
 def write_package(
     output_dir: Path,
     rows: list[dict],
-    validator: Callable[[Path], list[str]] | None = None,
+    validator: Callable[[Path], list[str]],
 ) -> Path:
     data_dir = output_dir / "package" / "data"
     data_dir.mkdir(parents=True, exist_ok=True)
@@ -419,10 +398,9 @@ def write_package(
     missing = sorted(path for path in csv_paths if not path.is_file())
     if missing:
         raise FileNotFoundError(f"Missing evidence CSV: {missing[0]}")
-    if validator:
-        errors = validator(data_dir.parent)
-        if errors:
-            raise ValueError("Strict submission validation failed:\n" + "\n".join(errors))
+    errors = validator(data_dir.parent)
+    if errors:
+        raise ValueError("Strict submission validation failed:\n" + "\n".join(errors))
     zip_path = output_dir / "submission.zip"
     with ZipFile(zip_path, "w", ZIP_DEFLATED) as archive:
         archive.write(submission_path, "submission.json")

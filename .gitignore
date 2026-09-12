@@ -45,14 +45,11 @@ hf_cache/
 huggingface/
 llm_cache.jsonl
 
-# Private notes and editor state
-conversation.md
+# Private notes, editor and tool state
 notes/
 *.private.md
 .vscode/
 .idea/
-.gemini/
-antigravity-ide/
 .agents/
 
 # Competition briefs and other local PDFs
@@ -62,8 +59,7 @@ antigravity-ide/
 .DS_Store
 Thumbs.db
 
-# Research dumps and local experiment artifacts
-github-research-output/
+# Local experiment artifacts
 .codex/
 uv.lock
 *.checkpoint.json

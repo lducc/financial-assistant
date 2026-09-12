@@ -1,19 +1,4 @@
-#!/usr/bin/env python3
-"""Check the Qwen3 dense index and write the manifest that pins its provenance.
-
-The index was built on a Kaggle GPU and downloaded. Nothing downstream can tell
-a healthy index from a damaged one: a truncated download, a Matryoshka prefix
-that was never renormalised, or an id list that drifted out of step with its
-vector rows all produce candidates that look ordinary and rank badly. There is
-no offline scorer on this task to catch it either, so the index is checked
-before a scoring run is spent on it.
-
-The manifest ties the four artifact hashes to the model revision, the query
-instruction, and the embedding configuration that produced them. Recording the
-hashes without that context would assert reproducibility we could not
-demonstrate, so the configuration is read from `kaggle/embed_tables.py` rather
-than restated here — a drift between the two is itself a failure.
-"""
+"""Check the dense index and write its manifest."""
 
 import argparse
 import ast
@@ -39,7 +24,6 @@ def sha256(path: Path) -> str:
 
 
 def embedding_config(path: Path) -> dict:
-    """Read the pinned model and embedding settings out of the builder itself."""
     wanted = {"MODEL_NAME", "MODEL_REVISION", "MAX_LENGTH", "DIMS", "INSTRUCT"}
     namespace: dict = {}
     tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
@@ -59,7 +43,6 @@ def embedding_config(path: Path) -> dict:
 
 
 def validate_table_ids(entries: list, failures: list[str]) -> list[str]:
-    """Validate the report/table pairing used to materialise dense candidates."""
     table_ids = []
     for index, entry in enumerate(entries):
         if (not isinstance(entry, list) or len(entry) != 2
@@ -92,9 +75,6 @@ def check_vectors(vectors: np.ndarray, identifiers: list, label: str,
     if not np.isfinite(as_float).all():
         failures.append(f"{label}: contains NaN or Inf")
         return
-    # A Matryoshka prefix is only a unit vector once renormalised, and skipping
-    # that step is the failure this catches. Sampling is enough: the fault is
-    # systematic, never a handful of rows.
     step = max(1, vectors.shape[0] // NORM_SAMPLE)
     norms = np.linalg.norm(as_float[::step], axis=1)
     low, high = float(norms.min()), float(norms.max())
@@ -117,8 +97,7 @@ def load_jsonl_ids(path: Path, key: str) -> list[str]:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--dense", type=Path, default=ROOT / "output" / "dense")
-    parser.add_argument("--tables", type=Path,
-                        help="passage source; defaults to <dense>/tables.jsonl")
+    parser.add_argument("--tables", type=Path)
     parser.add_argument("--questions", type=Path,
                         default=ROOT / "data" / "raw" / "vifinqa" / "questions" / "questions.jsonl")
     parser.add_argument("--builder", type=Path, default=ROOT / "kaggle" / "embed_tables.py")
@@ -152,7 +131,7 @@ def main() -> int:
     if passages != table_ids:
         failures.append(
             f"table_ids does not match {tables_path.name} row order "
-            f"({len(passage_ids)} passages, {len(table_ids)} ids)"
+            f"({len(passages)} passages, {len(table_ids)} ids)"
         )
 
     asked = [json.loads(line)["id"] for line in

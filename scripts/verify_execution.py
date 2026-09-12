@@ -1,31 +1,19 @@
-#!/usr/bin/env python3
-"""Execute every submitted pandas query against its own CSVs and verify agreement.
-
-The organizers recompute each answer from the packaged CSVs at scoring time, so a
-submission whose stored `answer` disagrees with its `pandas_query` result fails
-both ANSWER_ACCURACY and EXECUTION_ACCURACY for that question. This runs the same
-check locally before anything ships:
-
-    python scripts/verify_execution.py --package output/run/package
-
-Exit code is 1 when any query raises or disagrees, so it gates a build.
-"""
+"""Execute every submitted pandas query against its own CSVs and check it matches the answer."""
 
 import argparse
 import json
 from pathlib import Path
 import sys
 
+import pandas as pd
+
+TOLERANCE = 2e-4  # the 0.02% scoring rule
+
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--package", type=Path, required=True,
-                        help="directory holding submission.json and data/tables/")
-    parser.add_argument("--tolerance", type=float, default=2e-4,
-                        help="relative tolerance matching the 0.02% scoring rule")
+    parser.add_argument("--package", type=Path, required=True)
     args = parser.parse_args()
-
-    import pandas as pd
 
     rows = json.loads((args.package / "submission.json").read_text("utf-8"))
     raised, disagreed, agreed, skipped = [], [], 0, 0
@@ -52,7 +40,7 @@ def main() -> None:
             expected = float(row["answer"])
             actual = float(result)
             denominator = max(1.0, abs(expected))
-            if abs(actual - expected) / denominator > args.tolerance:
+            if abs(actual - expected) / denominator > TOLERANCE:
                 disagreed.append((row["id"], expected, actual))
             else:
                 agreed += 1

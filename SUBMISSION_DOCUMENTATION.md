@@ -1,54 +1,21 @@
-# ViFinQA Stage 2 — Product Documentation
+# ViFinQA Stage 2: product documentation
 
 ## 1. Product summary
 
-This submission answers Vietnamese financial questions by retrieving source
-tables from the organizer corpus, selecting evidence tables, and executing a
-grounded numerical program. Every submitted evidence CSV is materialized from
-an organizer-provided table and retains document/table provenance.
+The system answers Vietnamese financial questions by retrieving source tables
+from the organizer corpus, selecting evidence tables, and executing a grounded
+numerical program. Every evidence CSV is copied from an organizer table and keeps
+its document and table provenance. The pipeline diagram is in
+[README.md](README.md).
 
-## 2. Architecture
+## 2. Data
 
-```text
-organizer questions + reports
-        ↓
-company/year/scope eligibility
-        ↓
-parent + fact retrieval (BM25 and dense)
-        ↓
-Qwen3-Reranker-8B fact×table scoring
-        ↓
-RRF/adaptive-gap table selection
-        ↓
-source-derived evidence CSVs
-        ↓
-Qwen3.5-9B grounded answer program
-        ↓
-Pydantic validation → sandbox replay → submission.zip
-```
+The only data are the organizer's questions, company mapping, and financial
+statement reports, kept at `data/raw/vifinqa/` (layout in
+[README.md](README.md#setup)). The organizer data access link (Google Drive,
+OneDrive, or equivalent) goes in the delivery email and stays out of the repository.
 
-The planner identifies raw evidence requirements. Retrieval decides which
-eligible tables contain those requirements. The answer model may reference only
-rows and cells shown in the evidence context; Python validates and executes the
-result. No answer or financial value is hard-coded.
-
-## 3. Data
-
-The only financial data are the ViFinQA questions, company mapping, and
-financial-statement reports supplied by the organizers. Expected local layout:
-
-```text
-data/raw/vifinqa/
-├── code_stock.csv
-├── questions/questions.jsonl
-└── financial_statements/<ticker>/<year>/...
-```
-
-The organizer data must be shared to the review team through the approved
-Google Drive, OneDrive, or equivalent access link. Insert the final access link
-in the delivery email; it is intentionally not committed to this public repo.
-
-## 4. Models and checkpoints
+## 3. Models and checkpoints
 
 | Model | Revision | Use |
 | --- | --- | --- |
@@ -56,82 +23,31 @@ in the delivery email; it is intentionally not committed to this public repo.
 | `Qwen/Qwen3-Reranker-8B` | `77d193c791ed757ca307ee72715aa132723da912` | fact/table reranking |
 | `Qwen/Qwen3.5-9B` | `c202236235762e1c871ad0ccb60c8ee5ba337b9a` | grounded answer programs |
 
-All models are public Hugging Face checkpoints. Download the pinned revisions
-with `huggingface-cli download`; provide the corresponding Hugging Face links
+All are public Hugging Face checkpoints, used without fine-tuning. Put their links
 in the delivery email.
 
-## 5. Reproduction
+## 4. Reproduction
 
-```bash
-git clone https://github.com/lducc/vifinqa-final-submission.git
-cd vifinqa-final-submission
-python -m pip install -e .
-```
+Every command, from `pip install -e .` through the answer notebook, is in
+[README.md](README.md#reproduce). The answer notebook writes the ZIP only after
+all 1,012 records validate. Committed packages and their SHA-256 are listed in
+[README.md](README.md#submitted-artifacts).
 
-Place organizer data and the generated dense index in the paths described above.
-Build candidates:
+## 5. Submission compliance
 
-```bash
-RUN=output/final_run
-PYTHON=python DENSE_DIR=output/dense scripts/build_final_candidates.sh "$RUN"
-```
-
-Score `$RUN/pairs_hybrid_graph.jsonl` on a GPU with
-`kaggle/rerank_qwen_8b.py`, then validate scores, apply the adaptive-gap
-selection, and package the retrieval result:
-
-```bash
-python scripts/validate_rerank_scores.py \
-  --pairs "$RUN/pairs_hybrid_graph.jsonl" \
-  --scores "$RUN/scores.jsonl" \
-  --manifest "$RUN/scores.jsonl.manifest.json"
-python scripts/apply_rerank_scores.py \
-  --pairs "$RUN/pairs_hybrid_graph.jsonl" \
-  --scores "$RUN/scores.jsonl" \
-  --arm hybrid --weight 0.5 \
-  --output "$RUN/ranking_hybrid_qwen.json"
-python scripts/select_slot_tables.py \
-  --pairs "$RUN/pairs_hybrid_graph.jsonl" \
-  --scores "$RUN/scores.jsonl" \
-  --base-ranking "$RUN/ranking_hybrid_qwen.json" \
-  --starting-ranking "$RUN/ranking_hybrid_qwen.json" \
-  --adaptive-append --logit-gap 3 \
-  --output "$RUN/ranking_adaptive_gap3.json"
-```
-
-Then run `run.py` with the selected ranking and validate the resulting package.
-Create answer inputs from the retrieval ZIP:
-
-```bash
-python scripts/build_answer_inputs.py retrieval_fresh.zip \
-  --output-dir /content/answer_inputs
-```
-
-Run every cell of `notebooks/final_answer.ipynb` on an A100. The notebook uses
-checkpointed, deterministic Qwen3.5-9B generation, Pydantic program checks,
-bounded repair, sandbox replay, and writes the final answer ZIP only after all
-1,012 records validate.
-
-## 6. Submission compliance
-
-The final ZIP must contain evidence CSVs that are subsets of organizer data and
-are traceable through `relevant_docs`, `relevant_tables`, and `evidence`.
-Queries must compute results directly from those CSVs at execution time. Values
-must not be assigned as constants, copied from stored answers, or encoded in
-the query. Run:
+Evidence CSVs are subsets of organizer data, traceable through `relevant_docs`,
+`relevant_tables`, and `evidence`. Queries compute results from those CSVs at
+execution time, so every value comes from a CSV. Check a package with:
 
 ```bash
 python scripts/validate_submission.py path/to/package
 python scripts/verify_execution.py --package path/to/package
 ```
 
-Include this document, the source repository, dependency/configuration details,
-the organizer-data access link, checkpoint links, and the SHA-256 of the final
-`submission.zip` in the delivery dossier.
+Deliver this document, the source repository, the organizer-data link, the
+checkpoint links, and the final ZIP's SHA-256.
 
-## 7. Known limitations
+## 6. Known limitations
 
-The answer stage is intentionally conservative: malformed programs are retried
-with validation feedback and then rejected rather than replaced by a stored
-answer. A run is complete only when all questions produce validated,
-source-grounded execution records.
+Malformed programs are retried with validation feedback, then rejected. A run is
+complete only when every question has a validated, source-grounded execution record.

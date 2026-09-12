@@ -1,24 +1,16 @@
-#!/usr/bin/env python3
-"""Static, organizer-aware validator for ViFinQA submission packages."""
+"""Static validator for a ViFinQA submission package directory."""
 
 import argparse
 import json
 import math
-from pathlib import Path, PurePosixPath
+from pathlib import Path
 import re
-import shutil
-import tempfile
-import zipfile
 
 
 VARIABLE_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 TABLE_ID_RE = re.compile(r"^(.+)\|([1-9]\d*)$")
 CONSTANT_QUERY_RE = re.compile(r"^\s*(?:result\s*=\s*)?[-+]?(?:\d+(?:\.\d*)?|\.\d+)\s*$")
 REQUIRED = {"id", "question", "answer", "relevant_docs", "relevant_tables", "evidence", "pandas_query"}
-
-
-def load_ids(path: Path, field: str) -> set:
-    return {json.loads(line)[field] for line in path.read_text(encoding="utf-8").splitlines() if line.strip()}
 
 
 def validate(root: Path, expected_ids: set[int] | None = None, catalog_ids: set[str] | None = None) -> list[str]:
@@ -88,13 +80,6 @@ def validate(root: Path, expected_ids: set[int] | None = None, catalog_ids: set[
         elif CONSTANT_QUERY_RE.fullmatch(query):
             errors.append(f"{prefix}: pandas_query may not be a constant result")
         else:
-            # The organizers require the query to compute its answer from the
-            # submitted tables rather than return a constant, and in the private
-            # phase they read the queries by hand. They do not require every
-            # submitted table to be read: a question needing one figure from six
-            # retrieved tables legitimately touches one. Demanding all of them
-            # produced "+ 0 * df3.shape[0]" padding on 97% of rows — terms that
-            # compute nothing, on queries a human is about to inspect.
             if not any(re.search(rf"\b{re.escape(variable)}\b", query) for variable in variables):
                 errors.append(f"{prefix}: pandas_query reads none of its evidence variables")
     if expected_ids is not None and seen_ids != expected_ids:
@@ -102,32 +87,11 @@ def validate(root: Path, expected_ids: set[int] | None = None, catalog_ids: set[
     return errors
 
 
-def safe_extract(archive: zipfile.ZipFile, target: Path) -> None:
-    for member in archive.infolist():
-        parts = PurePosixPath(member.filename).parts
-        if member.filename.startswith("/") or ".." in parts:
-            raise ValueError(f"Unsafe ZIP member: {member.filename}")
-    archive.extractall(target)
-
-
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("submission", type=Path)
-    parser.add_argument("--questions", type=Path)
-    parser.add_argument("--catalog", type=Path)
     args = parser.parse_args()
-    expected_ids = load_ids(args.questions, "id") if args.questions else None
-    catalog_ids = load_ids(args.catalog, "submission_table_id") if args.catalog else None
-    temporary = Path(tempfile.mkdtemp(prefix="vifinqa_submission_"))
-    try:
-        root = args.submission
-        if args.submission.suffix.lower() == ".zip":
-            with zipfile.ZipFile(args.submission) as archive:
-                safe_extract(archive, temporary)
-            root = temporary
-        errors = validate(root, expected_ids, catalog_ids)
-    finally:
-        shutil.rmtree(temporary, ignore_errors=True)
+    errors = validate(args.submission)
     if errors:
         print("INVALID")
         print("\n".join(f"- {error}" for error in errors))
