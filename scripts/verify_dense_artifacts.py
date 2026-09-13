@@ -1,5 +1,4 @@
-"""Check the dense index and write its manifest."""
-
+# Check the dense index and write its manifest.
 import argparse
 import ast
 import hashlib
@@ -95,7 +94,7 @@ def load_jsonl_ids(path: Path, key: str) -> list[str]:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser()
     parser.add_argument("--dense", type=Path, default=ROOT / "output" / "dense")
     parser.add_argument("--tables", type=Path)
     parser.add_argument("--questions", type=Path,

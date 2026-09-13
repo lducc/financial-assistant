@@ -1,14 +1,11 @@
-"""Small HTTP surface for the presenter-facing ViFinQA demo."""
-
-from __future__ import annotations
-
 import asyncio
 import inspect
 import json
 import os
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import Any, AsyncIterator
+from typing import Any
+from collections.abc import AsyncIterator
 from uuid import uuid4
 
 from fastapi import FastAPI, HTTPException, Request
@@ -26,7 +23,6 @@ class ChatRequest(BaseModel):
 
 
 class _UnavailablePipeline:
-    """Keep the UI available when live inputs or model endpoints are missing."""
 
     def __init__(self, error: Exception):
         self.error = error
@@ -111,9 +107,7 @@ def create_app(pipeline: Any | None = None) -> FastAPI:
 
     @app.middleware("http")
     async def no_store(request: Request, call_next):
-        # A restart can serve an asset while it is still being written, and a
-        # browser that caches that empty response shows a blank page until it is
-        # hard-refreshed. Never cache this demo's own files.
+        # a cached half-written asset after a restart shows a blank page
         response = await call_next(request)
         response.headers["Cache-Control"] = "no-store, must-revalidate"
         return response

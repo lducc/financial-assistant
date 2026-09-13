@@ -1,5 +1,4 @@
-"""Build the corpus-derived line-item vocabulary."""
-
+# Build the corpus-derived line-item vocabulary.
 import argparse
 from collections import Counter
 import json
@@ -20,7 +19,7 @@ def row_label(row: tuple[str, ...]) -> str:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser()
     parser.add_argument("--dataset-root", type=Path,
                         default=ROOT / "data" / "raw" / "vifinqa")
     parser.add_argument("--output", type=Path,

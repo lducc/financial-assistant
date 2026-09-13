@@ -19,8 +19,8 @@ def normalize(text: str) -> str:
     return " ".join(tokenize(text))
 
 
+# found by its repeated codes, since OCR moves the column
 def code_column(grid: list[list[str]]) -> int | None:
-    """The `Mã số` column, found by its repeated codes since OCR moves it."""
     for row in grid[:3]:
         for index, cell in enumerate(row):
             if normalize(cell) == "ma so":
@@ -57,16 +57,16 @@ def row_note(row: list[str], note_index: int) -> str | None:
     return cell if NOTE.match(cell) else None
 
 
+# keeps sub-note levels: `V.04`, `04`, `05.01`
 def normalize_note(note: str) -> str:
-    """Normalize `V.04`, `04`, and `05.01` without losing sub-note levels."""
     parts = note.split(".")
     if re.fullmatch(r"[IVX]+", parts[0]):
         parts = parts[1:]
     return ".".join(str(int(part)) for part in parts if part.isdigit())
 
 
+# heading length is bounded to skip prose
 def note_table_line(report_text: str, note: str) -> int | None:
-    """Source line of the table after the note heading; heading length is bounded to skip prose."""
     number = normalize_note(note)
     heading = re.search(
         rf"^\s*{re.escape(number)}[.)]?\s+\S[^\n]{{5,70}}$", report_text, re.M,

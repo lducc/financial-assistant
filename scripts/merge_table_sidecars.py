@@ -1,5 +1,4 @@
-"""Merge table_id -> report_id maps; conflicting entries are an error."""
-
+# Merge table_id -> report_id maps; conflicting entries are an error.
 import argparse
 import json
 from pathlib import Path
@@ -31,7 +30,7 @@ def merge(sources: list[tuple[Path, dict[str, str]]]) -> tuple[dict[str, str], l
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser()
     parser.add_argument("--input", type=Path, action="append", default=[], required=True,
                         help="a table_id -> report_id map; repeat per file")
     parser.add_argument("--output", type=Path, required=True)

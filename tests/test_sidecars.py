@@ -1,5 +1,3 @@
-"""Tests for the dense-artifact verifier and the sidecar merger."""
-
 import json
 from pathlib import Path
 import sys

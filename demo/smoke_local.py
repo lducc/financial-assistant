@@ -1,14 +1,4 @@
-"""Run the whole demo pipeline on real data with the two model calls stubbed.
-
-This is the pre-demo check that needs no GPU: it proves the corpus loads, the
-gate resolves, retrieval and selection run, and a cited answer executes from the
-source cells. Usage:
-
-    VIFINQA_DATA_ROOT=../data/raw/vifinqa PYTHONPATH=src:. python demo/smoke_local.py
-"""
-
-from __future__ import annotations
-
+# Demo pipeline on real data, model calls stubbed: VIFINQA_DATA_ROOT=../data/raw/vifinqa PYTHONPATH=src:. python demo/smoke_local.py
 import asyncio
 import os
 import sys
@@ -16,14 +6,13 @@ import sys
 os.environ.setdefault("PLANNER_URL", "http://stub")
 os.environ.setdefault("RERANK_URL", "http://stub")
 
-from vifinqa.demo_pipeline import DemoPipeline, Plan, PlanFact  # noqa: E402
+from vifinqa.demo_pipeline import DemoPipeline  # noqa: E402
 
 
 QUESTION = "Lãi tiền gửi của VJC năm 2018 trên báo cáo riêng là bao nhiêu tỷ đồng?"
 
 
 def stub(pipeline: DemoPipeline) -> None:
-    """Stand in for the planner and the reranker without changing the real path."""
     plan = {"facts": [{"id": "f1", "query": "Lãi tiền gửi", "entity": "VJC", "period": 2018}], "steps": []}
 
     async def chat(url, prompt, model):
@@ -41,7 +30,6 @@ def stub(pipeline: DemoPipeline) -> None:
 
 
 def _first_numeric_cell(prompt: str) -> tuple[int, int]:
-    """Pick a masked numeric cell out of the prompt the way a model would pick one."""
     for line in prompt.splitlines():
         if not line.startswith("ROW "):
             continue

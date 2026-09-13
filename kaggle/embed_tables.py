@@ -1,5 +1,4 @@
-"""Embed the table corpus and the questions with Qwen3-Embedding."""
-
+# Embed the table corpus and the questions with Qwen3-Embedding.
 import json
 import os
 
@@ -24,7 +23,6 @@ INSTRUCT = ("Given a Vietnamese financial question, retrieve the financial "
 
 
 def tokenize(texts, tokenizer):
-    """Encode a batch; the last position must hold the EOS token that pooling reads."""
     end = tokenizer.eos_token_id
     encoded = [tokenizer(text, truncation=True, max_length=MAX_LENGTH - 1,
                          add_special_tokens=True)["input_ids"] for text in texts]
@@ -32,6 +30,7 @@ def tokenize(texts, tokenizer):
     return tokenizer.pad({"input_ids": encoded}, padding=True, return_tensors="pt")
 
 
+# the last position must hold the EOS token that pooling reads
 def encode(texts, model, tokenizer, label):
     vectors = []
     for start in range(0, len(texts), BATCH_SIZE):
@@ -54,7 +53,6 @@ def read_jsonl(path):
 
 
 def self_check(tables, questions):
-    """A working index scores the best match far above a random table."""
     sample = tables[:20000].astype(np.float32)
     scores = sample @ questions[:50].astype(np.float32).T
     best, average = scores.max(axis=0).mean(), scores.mean()

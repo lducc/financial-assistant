@@ -1,5 +1,5 @@
+# Append high-confidence item-carrying tables to a starting ranking for complex questions.
 #!/usr/bin/env python3
-"""Append high-confidence item-carrying tables to a starting ranking for complex questions."""
 
 import argparse
 import json

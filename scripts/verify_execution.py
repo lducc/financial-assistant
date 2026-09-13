@@ -1,5 +1,4 @@
-"""Execute every submitted pandas query against its own CSVs and check it matches the answer."""
-
+# Execute every submitted pandas query against its own CSVs and check it matches the answer.
 import argparse
 import json
 from pathlib import Path

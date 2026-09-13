@@ -201,8 +201,7 @@ def test_salvage_keeps_valid_facts_when_steps_are_malformed():
         "steps": [{"step": "đọc bảng"}],
     }
     facts = _salvage_facts(payload, {"tickers": ["VJC"], "years": [2018]})
-    # the OTHER entity is coerced to the gate's ticker, not dropped; only the
-    # entry with no query at all is unusable
+    # OTHER is coerced to the gate's ticker; only the entry without a query is dropped
     assert [fact.query for fact in facts] == ["Lãi tiền gửi", "Doanh thu"]
     assert [fact.entity for fact in facts] == ["VJC", "VJC"]
     assert [fact.id for fact in facts] == ["f1", "f2"]
@@ -375,7 +374,6 @@ def test_table_card_carries_a_real_score_only_when_one_exists():
 
 def test_probe_reports_busy_separately_from_down():
     import httpx
-    import vifinqa.demo_pipeline as module
 
     pipeline = DemoPipeline(DemoConfig(data_root=None, mode="fixture"))
     pipeline.config = DemoConfig(data_root=None, mode="live", planner_url="http://p", rerank_url="http://r")

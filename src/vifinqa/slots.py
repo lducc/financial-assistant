@@ -20,7 +20,6 @@ def load_line_items(path: Path) -> tuple[str, ...]:
 
 
 def named_line_items(question: str, labels: tuple[str, ...]) -> list[str]:
-    """The longest corpus line items the question names, at most three."""
     text = f" {normalize(question)} "
     found = []
     for label in labels:
@@ -52,7 +51,6 @@ def append_confidence_item_tables(
     scores: dict[str, float],
     logit_gap: float,
 ) -> list[str]:
-    """Append scored tables that carry a named item, at most three per report."""
     candidates = {candidate["table_id"]: candidate for candidate in record["candidates"]}
     selected = list(dict.fromkeys(starting_order))
     seen = set(selected)

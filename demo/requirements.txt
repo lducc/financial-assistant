@@ -1,5 +1,4 @@
-# Demo-only dependencies. The submission pipeline does not need any of these,
-# which is why they are here rather than in pyproject.toml.
+# Demo-only dependencies; the submission pipeline needs none of these.
 fastapi>=0.115,<1
 httpx>=0.27,<1
 openai>=1.40,<3

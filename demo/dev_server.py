@@ -1,24 +1,12 @@
-"""Small-model stand-in for the two demo endpoints, for a machine without 42 GB of VRAM.
-
-Serves the same interfaces the demo pipeline calls in production — an
-OpenAI-compatible chat completion and a rerank endpoint — backed by the 0.6B
-development tier instead of Qwen3.5-9B and Qwen3-Reranker-8B. The answers are
-worse; the contract is identical, which is the point.
-
-    PYTHONPATH=src:. python -m uvicorn demo.dev_server:app --port 8001
-"""
-
-from __future__ import annotations
-
+# Small-model stand-in for both demo endpoints: PYTHONPATH=src:. python -m uvicorn demo.dev_server:app --port 8001
 import json
 import os
-import re
 import time
 from typing import Any
 
 import torch
 from fastapi import FastAPI, Request
-from transformers import AutoModelForCausalLM, AutoModelForSequenceClassification, AutoTokenizer
+from transformers import AutoModelForCausalLM, AutoTokenizer
 
 
 CHAT_MODEL = os.getenv("DEV_CHAT_MODEL", "Qwen/Qwen2.5-0.5B-Instruct")
@@ -49,7 +37,6 @@ def _rerank_model():
 
 
 def _first_json_object(text: str) -> dict:
-    """Recover the first balanced JSON object a small model emitted around its prose."""
     start = text.find("{")
     while start != -1:
         depth, in_string, escaped = 0, False, False
@@ -103,12 +90,6 @@ async def completions(payload: dict) -> dict:
 
 @app.post("/rerank")
 async def rerank(payload: dict, request: Request) -> dict:
-    """Score every document, giving up early if the caller has gone away.
-
-    Inference runs synchronously in this handler, so a cancelled request would
-    otherwise keep a CPU busy for minutes and make the next health probe look
-    like an outage. Checking between batches is the only interruption point.
-    """
     tokenizer, model, yes_id, no_id = _rerank_model()
     query, documents = payload["query"], payload["documents"]
     prompts = [

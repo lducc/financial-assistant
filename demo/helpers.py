@@ -1,12 +1,9 @@
-"""Two selection helpers the demo needs that the submission pipeline no longer ships."""
-
 from vifinqa.notes import code_column, normalize, note_column, note_table_line, row_label, row_note
 
 
 def linked_note_lines(
     report_text: str, grid: list[list[str]], line_items: list[str], source_line: int,
 ) -> list[tuple[str, int]]:
-    """`(note reference, source line)` for every row a question's items name."""
     code_index = code_column(grid)
     if code_index is None or not line_items:
         return []
@@ -32,7 +29,6 @@ def linked_note_lines(
 def select_slot_tables(
     record: dict, base_order: list[str], line_items: list[str], budget: int,
 ) -> tuple[list[str], list[dict]]:
-    """Reserve the best exact carrier for every report/item slot, then fill."""
     candidates = {candidate["table_id"]: candidate for candidate in record["candidates"]}
     ordered = [table_id for table_id in base_order if table_id in candidates]
     seen = set(ordered)

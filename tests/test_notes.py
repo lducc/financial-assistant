@@ -76,7 +76,6 @@ def test_note_table_line_returns_none_for_an_absent_note():
 
 
 def test_note_table_line_ignores_a_numbered_line_of_prose():
-    """A heading is short; a numbered sentence in a paragraph is not a note."""
     prose = "4. " + "x" * 200 + "\n<table><tr><td>a</td></tr></table>\n"
     assert note_table_line(prose, "4") is None
 

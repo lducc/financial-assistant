@@ -68,7 +68,6 @@ def row_anchors(
 
 
 def anchor_edges(anchor: RowAnchor, report_text: str, source_line: int) -> list[Edge]:
-    """The row's own table, plus the note table it cites."""
     edges = [Edge(anchor.table_id, SOURCE_TABLE, anchor)]
     if anchor.note:
         line = note_table_line(report_text, anchor.note)
@@ -95,7 +94,6 @@ def table_paths(
 def select_paths(
     paths: list[EvidencePath], already: set[str], limit: int,
 ) -> list[EvidencePath]:
-    """Cover each slot once before taking a second path from any slot."""
     seen_tables = set(already)
     selected = []
     remaining = list(paths)

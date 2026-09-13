@@ -21,7 +21,6 @@ def canonical_scope(scope: str) -> str:
 
 
 def dense_report_ids(by_id: dict, selected_docs: list[str]) -> set[str]:
-    """Reports sharing a ticker, year and scope with a gated report."""
     selected = [by_id[report_id] for report_id in selected_docs if report_id in by_id]
     triples = {
         (report.identity.ticker, report.identity.year, canonical_scope(report.identity.scope))
@@ -162,7 +161,6 @@ def load_dense(directory: Path) -> dict:
 
 
 def row_for(table, question_tokens: set) -> int:
-    """The row sparse retrieval would pick, so dense candidates render like sparse ones."""
     if not table.rows:
         return 0
     scored = score_bm25(question_tokens,
@@ -171,7 +169,6 @@ def row_for(table, question_tokens: set) -> int:
 
 
 def merge_dense_candidates(sparse: list[dict], dense: list[dict]) -> list[dict]:
-    """Attach dense ranks to overlaps and append genuinely new candidates."""
     merged = [dict(candidate) for candidate in sparse]
     by_table = {candidate["table_id"]: candidate for candidate in merged}
     for candidate in dense:

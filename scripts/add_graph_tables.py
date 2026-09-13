@@ -1,5 +1,5 @@
+# Union a base ranking with tables reached by the slot -> row -> table path.
 #!/usr/bin/env python3
-"""Union a base ranking with tables reached by the slot -> row -> table path."""
 
 import argparse
 import json

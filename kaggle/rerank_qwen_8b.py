@@ -1,5 +1,4 @@
-"""Score exported candidate pairs with a Qwen3 reranker; writes scores.jsonl."""
-
+# Score exported candidate pairs with a Qwen3 reranker; writes scores.jsonl.
 import json
 import sys
 import os
@@ -129,8 +128,8 @@ def packed_batches(lengths, order):
         yield batch
 
 
+# final position only, to avoid a full-sequence lm_head tensor
 def last_position_logits(model, padded):
-    """Logits for the final position only, to avoid a full-sequence lm_head tensor."""
     with torch.inference_mode():
         hidden = model.model(**padded, use_cache=False).last_hidden_state[:, -1, :]
         return model.lm_head(hidden).float()
@@ -180,8 +179,8 @@ def score_question(record, tokenizer, model, prompt_ids, yes_id, no_id, budget, 
     return scores, judged
 
 
+# only judged candidates are written, since 0 is a real score
 def score_payload(record, values, judged):
-    """Only judged candidates are written, since 0 is a real score."""
     kept = [(index, record["candidates"][index]) for index in judged]
     return {
         "id": record["id"],

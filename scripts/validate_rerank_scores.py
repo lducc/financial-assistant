@@ -1,5 +1,4 @@
-"""Fail unless the score files cover every exported candidate exactly once."""
-
+# Fail unless the score files cover every exported candidate exactly once.
 import argparse
 import hashlib
 import json

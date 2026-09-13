@@ -1,5 +1,3 @@
-"""Small contract tests for the presenter-facing API."""
-
 import asyncio
 import json
 

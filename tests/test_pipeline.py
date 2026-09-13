@@ -1,5 +1,3 @@
-"""End-to-end contracts for the deterministic submission path."""
-
 import json
 import subprocess
 import sys

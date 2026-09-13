@@ -1,12 +1,8 @@
-"""Validate and execute model-generated Pandas answer expressions."""
-
-from __future__ import annotations
-
 import ast
 import builtins
 import math
 import re
-from typing import Mapping
+from collections.abc import Mapping
 
 import pandas as pd
 
@@ -41,11 +37,10 @@ SAFE_NODES = (
 
 
 class GeneratedQueryError(ValueError):
-    """The proposed query is unsafe, invalid, or not scalar."""
+    pass
 
 
 def is_direct_lookup_question(question: str) -> bool:
-    """Route only unambiguous one-period questions to cell selection."""
     if len(question_years(question)) > 1:
         return False
     text = operator_text(question)
@@ -63,7 +58,6 @@ def is_direct_lookup_question(question: str) -> bool:
 
 
 def numeric_consensus(candidates: list[dict]) -> list[dict]:
-    """Return the largest organizer-tolerance answer cluster."""
     groups: list[list[dict]] = []
     for candidate in candidates:
         group = next((items for items in groups if math.isclose(
@@ -127,7 +121,6 @@ def compile_lookup_query(
     column: int,
     context: str = "",
 ) -> str:
-    """Compile one model-selected cell into the canonical numeric expression."""
     if row < 0 or column < 0 or row >= len(frame.index) or column >= len(frame.columns):
         raise GeneratedQueryError("selected cell is outside the evidence frame")
     if any(marker in fold(str(frame.columns[column])) for marker in SKIP_HEADERS):

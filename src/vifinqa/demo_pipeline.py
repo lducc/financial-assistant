@@ -1,57 +1,40 @@
-"""Small streaming coordinator for the interactive financial demo."""
-
-from __future__ import annotations
-
 import ast
 import asyncio
-from dataclasses import asdict, dataclass
-from functools import lru_cache
 import json
 import logging
 import math
 import os
-from pathlib import Path
 import re
 import time
-from typing import Any, AsyncIterator
+from collections.abc import AsyncIterator
+from dataclasses import asdict, dataclass
+from functools import lru_cache
+from pathlib import Path
+from typing import Any
 
 import pandas as pd
 
+from demo.helpers import linked_note_lines, select_slot_tables
+from demo.rerank_prompt import rerank_prompt
+from docs import load_companies, load_reports, parse_question, required_report_years, retrieve_docs
+from .fusion import fuse
+from .generated_query import (
+    GeneratedQueryError, compile_lookup_query, execute_generated_query,
+    is_direct_lookup_question, validate_generated_query,
+)
+from .graph import NOTE_REF, evidence_slots, select_paths, table_paths
+from .notes import normalize as normalize_note_text
+from .rerank import INVENTORY, table_representation
+from .retrieval import load_reports as load_table_reports, report_tables, retrieve_rows, table_budget
+from .slots import append_confidence_item_tables, load_line_items, named_line_items
+
 LOGGER = logging.getLogger(__name__)
 
-from docs import load_companies, load_reports, parse_question, required_report_years, retrieve_docs
-from .answers import strict_number
-from .generated_query import (
-    GeneratedQueryError,
-    compile_lookup_query,
-    execute_generated_query,
-    is_direct_lookup_question,
-    validate_generated_query,
-)
-from .retrieval import (
-    load_reports as load_table_reports,
-    report_tables,
-    retrieve_rows,
-    table_budget,
-)
-from .rerank import INVENTORY, table_representation
-# The scoring prompt lives under demo/ so this demo changes no module the
-# submission methodology itself uses.
-from demo.rerank_prompt import rerank_prompt
-from .fusion import fuse
-from .graph import NOTE_REF, evidence_slots, select_paths, table_paths
-from demo.helpers import linked_note_lines, select_slot_tables
-from .notes import normalize as normalize_note_text
-from .slots import (
-    append_confidence_item_tables,
-    load_line_items,
-    named_line_items,
-)
 
-
-try:  # Keep fixture tests usable before optional serving dependencies are installed.
+# pydantic comes with the demo requirements; tests run without it
+try:
     from pydantic import BaseModel, Field, model_validator
-except ImportError:  # pragma: no cover - live deployments install pydantic
+except ImportError:
     BaseModel = None
 
 
@@ -194,11 +177,9 @@ def _validate_plan(payload: dict, metadata: dict) -> Plan:
                 raise ValueError(f"{step.id} references an unknown or future input")
             available.add(step.id)
         plan = Plan(facts, steps)
-    entities = set(str(x) for x in metadata.get("tickers", ()))
-    years = set(int(x) for x in metadata.get("slot_years", metadata.get("years", ())))
-    # The question names the company in words, so the planner writes "Tổng Công ty
-    # Cảng Hàng không Việt Nam" where the gate resolved "ACV". Both name the same
-    # approved filing, and rejecting the wording threw away the whole step list.
+    entities = {str(x) for x in metadata.get("tickers", ())}
+    years = {int(x) for x in metadata.get("slot_years", metadata.get("years", ()))}
+    # the planner may name the company in words where the gate resolved a ticker
     names = {str(x).casefold() for x in metadata.get("entity_names", ())}
     approved = {x.casefold() for x in entities} | names
     for fact in facts:
@@ -266,12 +247,10 @@ DENSE_INSTRUCT = ("Given a Vietnamese financial question, retrieve the financial
 
 
 def canonical_scope(scope: str) -> str:
-    """Match the document gate's treatment of aggregated reports."""
     return "consolidated" if scope == "aggregated" else scope
 
 
 def same_triple_reports(reports: dict, selected_docs: list[str]) -> set[str]:
-    """Reports a dense candidate may come from: the gate's own ticker/year/scope triples."""
     triples = {
         (report.identity.ticker, report.identity.year, canonical_scope(report.identity.scope))
         for report_id in selected_docs
@@ -285,12 +264,10 @@ def same_triple_reports(reports: dict, selected_docs: list[str]) -> set[str]:
 
 @lru_cache(maxsize=64)
 def report_text(path: str) -> str:
-    """One report's OCR text, cached because the hops re-read the same filings."""
     return Path(path).read_text(encoding="utf-8")
 
 
 def _local_execution_ok() -> bool:
-    """Prove the sandbox still validates, compiles, and runs a query on this host."""
     frame = pd.DataFrame([["x", "1.234"]], columns=["label", "2024"])
     try:
         return execute_generated_query(
@@ -301,12 +278,6 @@ def _local_execution_ok() -> bool:
 
 
 def _as_assignment(expression: object) -> str:
-    """Accept a bare expression and give it the `result =` the validator requires.
-
-    Models routinely answer with the expression alone. That is a formatting
-    difference, not a different computation, so it is normalised here rather
-    than spent on a repair attempt. Anything already assigning is left alone.
-    """
     text = str(expression or "").strip().strip("`").removeprefix("python").strip()
     if not text or "\n" in text or text.startswith("result"):
         return text
@@ -317,25 +288,16 @@ YEAR_RE = re.compile(r"(?<!\d)20\d{2}(?!\d)")
 
 
 def _high_arity(question: str, docs: list[str], line_items: list[str]) -> bool:
-    """The gate select_slot_tables.py puts in front of the adaptive append.
-
-    A single-filing, single-item, single-year question keeps the slot selection
-    untouched; only a question with more than one of something gets extra item
-    carriers appended.
-    """
     return len(docs) >= 2 or len(line_items) >= 2 or len(YEAR_RE.findall(question)) >= 2
 
 
 def _salvage_facts(payload: dict | None, metadata: dict) -> list:
-    """Keep the facts a rejected plan got right, dropping everything else."""
     facts = []
     for entry in (payload or {}).get("facts", []):
         if not isinstance(entry, dict):
             continue
         try:
-            # The gate already decided the entity and the years. A planner guess
-            # that contradicts them is wrong by construction, so it is replaced
-            # rather than used to reject an otherwise usable fact.
+            # the gate already fixed entity and years; overwrite a contradicting guess
             tickers = [str(t) for t in metadata.get("tickers", ())]
             entity = str(entry.get("entity") or "")
             if tickers and entity not in tickers:
@@ -383,7 +345,6 @@ Tables:
 
 
 def _cells_used(expression: str, frames: dict[str, pd.DataFrame]) -> list[tuple[str, int, int]]:
-    """Every <df>.iloc[row, column] literal the validated expression reads, in order."""
     cells: list[tuple[str, int, int]] = []
     for node in ast.walk(ast.parse(expression)):
         if not isinstance(node, ast.Subscript) or not isinstance(node.value, ast.Attribute):
@@ -406,14 +367,12 @@ def _cells_used(expression: str, frames: dict[str, pd.DataFrame]) -> list[tuple[
 def _apply_unit_scale(
     expression: str, question: str, frames: dict[str, pd.DataFrame]
 ) -> str:
-    """Recompile a single-cell lookup so the table's own unit reaches the asked-for unit."""
     validate_generated_query(expression, set(frames))
     cells = _cells_used(expression, frames)
     for variable, row, column in cells:
         frame = frames[variable]
         if not (0 <= row < len(frame.index) and 0 <= column < len(frame.columns)):
-            # Say which coordinate is wrong and what the real range is; the one
-            # repair attempt gets this text, and a raw IndexError wastes it.
+            # the single repair attempt sees this message
             raise GeneratedQueryError(
                 f"{variable}.iloc[{row}, {column}] does not exist; "
                 f"{variable} has rows 0-{len(frame.index) - 1} and columns 0-{len(frame.columns) - 1}"
@@ -427,7 +386,6 @@ def _apply_unit_scale(
 def _citations_for(
     expression: str, frames: dict[str, pd.DataFrame], sources: dict[str, dict]
 ) -> tuple[list[dict], dict[str, dict]]:
-    """Cite the cells the executed query actually read - never any other cell."""
     citations, evidence = [], {}
     for position, (variable, row, column) in enumerate(_cells_used(expression, frames), 1):
         frame = frames[variable]
@@ -437,8 +395,6 @@ def _citations_for(
         citation["row_label"] = str(frame.iloc[row, 0])
         citation["column_label"] = str(frame.columns[column])
         citations.append(citation)
-        # The drawer renders the whole source table and highlights the cited cell,
-        # so the presenter can see the number in its own row and period column.
         evidence[citation["id"]] = {
             **citation,
             "headers": [str(name) for name in frame.columns],
@@ -450,7 +406,6 @@ def _citations_for(
 
 
 def _yes_probability(top_logprobs: dict) -> float:
-    """The reranker's score: how much likelier "yes" is than "no" at one position."""
     yes = no = None
     for token, logprob in (top_logprobs or {}).items():
         stripped = token.strip().lower()
@@ -460,8 +415,7 @@ def _yes_probability(top_logprobs: dict) -> float:
             no = logprob if no is None else max(no, logprob)
     if yes is None and no is None:
         return 0.0
-    # One of the pair can fall outside the returned top-k when the other is
-    # overwhelming, which is a confident answer rather than a missing one.
+    # a missing side of the pair means the other one dominated the top-k
     if yes is None:
         return 0.0
     if no is None:
@@ -470,7 +424,6 @@ def _yes_probability(top_logprobs: dict) -> float:
 
 
 class DemoPipeline:
-    """One-question facade used by the HTML demo and nothing else."""
 
     def __init__(self, config: DemoConfig):
         self.config = config
@@ -524,7 +477,6 @@ class DemoPipeline:
         }
 
     def _dense_coverage(self) -> dict:
-        """How much of the corpus the stored embedding index actually covers."""
         index = self._load_dense()
         if index is None:
             return {"enabled": False}
@@ -540,12 +492,6 @@ class DemoPipeline:
         }
 
     async def _probe_endpoints(self) -> dict[str, str]:
-        """One cheap GET per serving endpoint, distinguishing down from busy.
-
-        A single-threaded model server mid-inference cannot answer a probe, so a
-        timeout means "working", not "gone". Reporting both as an outage sends a
-        presenter chasing a problem that does not exist.
-        """
         import httpx
 
         probes = {
@@ -598,13 +544,6 @@ class DemoPipeline:
         return _validate_plan(verified, metadata)
 
     async def _plan_or_facts(self, question: str, metadata: dict) -> tuple[Plan, bool]:
-        """Fall back to a facts-only plan when the model cannot produce valid steps.
-
-        Only `facts` drives retrieval, reranking and slot selection; `steps` is
-        narration for the prompt and the trace. Losing the steps is a worse
-        answer, losing the facts is no answer, so a malformed step list must not
-        take the question down with it.
-        """
         try:
             return await self._plan(question, metadata), False
         except Exception as error:
@@ -627,9 +566,7 @@ class DemoPipeline:
             "scope": parsed.scope,
         }
         if not docs:
-            # `report_ids=None` means "search every report", which is a
-            # corpus-wide scan (~100s) and never the right answer for a question
-            # whose company could not be identified.
+            # report_ids=None would scan the whole corpus
             raise ValueError("No filing matches this company, year, and scope")
         depth = self._pool_depth(len(docs))
         queries = list(dict.fromkeys(
@@ -673,19 +610,12 @@ class DemoPipeline:
         }
 
     def _pool_depth(self, report_count: int) -> int:
-        """Candidates to rerank, scaled to the gate.
-
-        The graded build used a flat `--depth 50`, which is the default here so
-        the demo reproduces it. Setting `depth_per_report` opts into scaling the
-        pool with the gate instead, bounded by `max_candidates`.
-        """
         if self.config.depth_per_report <= 0:
             return self.config.candidate_depth
         scaled = self.config.depth_per_report * max(report_count, 1)
         return min(self.config.max_candidates, max(self.config.candidate_depth, scaled))
 
     def _table_by_id(self, table_id: str) -> dict | None:
-        """Expand a dense-only hit into the same candidate shape the sparse arm returns."""
         report_id, _, _ = table_id.partition("|")
         report = self._report_meta.get(report_id)
         if report is None:
@@ -707,13 +637,9 @@ class DemoPipeline:
         return None
 
     def _labels(self) -> tuple[str, ...]:
-        """The corpus line-item lexicon the graded selector matched against."""
         if self._line_items is None:
             path = self.config.line_items_path or (self.config.data_root.parent.parent / "derived" / "line_items.json")
-            # load_line_items normalises and sorts longest-first, which is what
-            # makes named_line_items drop a label that is a substring of one it
-            # already kept. Reading the JSON directly loses that ordering and
-            # returns redundant items.
+            # named_line_items relies on load_line_items' longest-first order
             try:
                 self._line_items = load_line_items(Path(path))
             except (OSError, ValueError):
@@ -725,7 +651,6 @@ class DemoPipeline:
         return None if report is None else report_text(str(report.path))
 
     def _graph_tables(self, record: dict, docs: list[str], items: list[str]) -> list[str]:
-        """The graded graph hop: follow a named row to the table its note points at."""
         if not items or not docs:
             return []
         order = [candidate["table_id"] for candidate in record["candidates"]][: self.config.graph_depth]
@@ -757,15 +682,6 @@ class DemoPipeline:
     def _materialize_order(
         self, question: str, parsed: Any, docs: list[str], order: list[str], record: dict,
     ) -> list[str]:
-        """Reproduce `run.py --table-top-k ranking` when turning a ranking into tables.
-
-        Packaging is not a pass-through. The frozen best re-retrieves at
-        `--rerank-depth`, keeps that deeper set, promotes only ranking tables the
-        gate missed that a sidecar can resolve, sorts by ranking position with
-        unranked tables last, and cuts to the ranking's own length. A ranking
-        table the deep retrieval never returned is dropped, and a deep-retrieval
-        table the ranking never mentions takes the vacated slot.
-        """
         if not order:
             return order
         top_k = len(order)
@@ -796,7 +712,6 @@ class DemoPipeline:
         return [table["table_id"] for table in chosen]
 
     def _note_links(self, record: dict, prefix: list[str], items: list[str]) -> list[str]:
-        """The graded note-link hop, followed only from the tables actually submitted."""
         if not items or self.config.note_max_links <= 0:
             return []
         by_id = {candidate["table_id"]: candidate for candidate in record["candidates"]}
@@ -822,7 +737,6 @@ class DemoPipeline:
         return links
 
     def _load_dense(self) -> tuple[Any, list[list[str]]] | None:
-        """Memory-map the stored 4B table index once; None when dense is switched off."""
         if not (self.config.embedding_url and self.config.dense_root):
             return None
         if self._dense is None:
@@ -839,7 +753,6 @@ class DemoPipeline:
         return self._dense
 
     async def _embed_query(self, question: str) -> Any:
-        """Embed one fresh question the same way the stored corpus index was built."""
         import numpy as np
         from openai import AsyncOpenAI
 
@@ -860,13 +773,11 @@ class DemoPipeline:
         vector = np.asarray(response.data[0].embedding, dtype="float32")
         if vector.shape[0] < DENSE_DIMS:
             raise RuntimeError(f"embedding has {vector.shape[0]} dims, need at least {DENSE_DIMS}")
-        # Truncate the Matryoshka prefix first, then renormalise - a prefix of a
-        # unit vector is not itself a unit vector.
+        # truncate before normalising; a Matryoshka prefix is not unit length
         vector = vector[:DENSE_DIMS]
         return vector / (float(np.linalg.norm(vector)) or 1.0)
 
     async def _dense_candidates(self, question: str, docs: list[str]) -> list[str]:
-        """Table ids the embedding index ranks highest inside the gate's own triples."""
         index = self._load_dense()
         if index is None or not docs:
             return []
@@ -883,14 +794,6 @@ class DemoPipeline:
         return [ids[rows[int(position)]][1] for position in best]
 
     async def _rerank(self, question: str, plan: Plan, record: dict) -> dict[str, float]:
-        """Score each candidate the way the frozen run scored it.
-
-        Not vLLM's /rerank route: that applies its own generic instruction and
-        offers no way to pass ours, which ranks a filing's own note below
-        unrelated tables. The frozen scorer reads the yes and no logits under
-        the instruction in rerank_prompt, so this asks for one token with
-        logprobs and takes the same ratio.
-        """
         import httpx
 
         scores: dict[str, float] = {}
@@ -933,12 +836,11 @@ class DemoPipeline:
         return Table(
             table["table_id"], table["report_id"], table.get("page"),
             table["start_line"], tuple(tuple(row) for row in table["rows"]),
-            table.get("title", ""), tuple(), tuple(),
+            table.get("title", ""), (), (),
             tuple(table.get("periods", ())), table.get("unit", ""),
         )
 
     def _answer_frames(self, row: dict, order: list[str]) -> tuple[dict[str, pd.DataFrame], dict[str, dict]]:
-        """Materialise the selected tables as frames, keeping each frame's source table."""
         candidates = {table["table_id"]: table for table in row["candidates"]}
         frames: dict[str, pd.DataFrame] = {}
         sources: dict[str, dict] = {}
@@ -980,7 +882,6 @@ class DemoPipeline:
     async def _solve(
         self, prompt: str, question: str, frames: dict[str, pd.DataFrame]
     ) -> tuple[str, float, bool]:
-        """Ask for an expression, then allow exactly one repair attempt."""
         attempt = prompt
         for repaired in (False, True):
             payload = await self._chat(self.config.planner_url, attempt, self.config.planner_model)
@@ -1044,10 +945,7 @@ class DemoPipeline:
             fused = fuse(record["candidates"], scores, mode="fuse",
                          weight=self.config.fusion_weight, arm=arm)
             budget = table_budget(len(retrieval["docs"]))
-            # select_slot_tables.py runs the slot selection first and only then
-            # appends, and it appends on complex questions alone. Starting from a
-            # raw fused prefix and appending unconditionally submits ~1.4 tables
-            # per question more than the frozen best did.
+            # same order as select_slot_tables.py: slots first, append on complex questions only
             base, _slots = select_slot_tables(record, fused, line_items, budget)
             selected = (
                 append_confidence_item_tables(
@@ -1069,8 +967,7 @@ class DemoPipeline:
             result["latency_seconds"] = round(time.perf_counter() - started, 2)
             yield {"type": "result", "stage": "answer", "status": "done", "message": "Answer executed from source evidence", "data": result}
         except Exception as error:
-            # Timeouts stringify to "", and an empty message leaves the presenter
-            # with a generic "pipeline error"; the log gets the traceback.
+            # timeouts stringify to ""
             logging.getLogger(__name__).exception("demo pipeline failed for %r", request_id)
             yield {
                 "type": "error", "stage": "pipeline", "status": "failed",
@@ -1082,21 +979,17 @@ class DemoPipeline:
         return self._evidence.get(request_id, {}).get(citation_id)
 
     def _remember_tables(self, request_id: str, candidates: list[dict]) -> None:
-        """Keep every candidate a question has touched, so a trace-panel click
-        can show the real table instead of only the final cited cell."""
         store = self._request_tables.setdefault(request_id, {})
         for candidate in candidates:
             store[candidate["table_id"]] = candidate
 
     def _table_card(self, table: dict, score: float | None = None) -> dict:
-        """The compact descriptor the trace renders as an evidence card."""
         card = {"table_id": table["table_id"], "report_id": table["report_id"], "title": table.get("title", "")}
         if score is not None:
             card["score"] = round(float(score), 4)
         return card
 
     def table_preview(self, request_id: str, table_id: str) -> dict | None:
-        """The full table behind one pipeline-trace chip: headers, rows, source."""
         table = self._request_tables.get(request_id, {}).get(table_id)
         if table is None:
             return None

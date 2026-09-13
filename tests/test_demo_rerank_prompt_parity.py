@@ -1,13 +1,3 @@
-"""The reranker prompt exists twice; this pins the copies together.
-
-kaggle/rerank_qwen_8b.py is pasted into a notebook and cannot import from the
-package, so its INSTRUCTION, PREFIX and SUFFIX are duplicated in
-demo/rerank_prompt.py. A change to one and not the other scores the model on a
-prompt it was never asked to apply.
-"""
-
-from __future__ import annotations
-
 import re
 from pathlib import Path
 
@@ -26,12 +16,12 @@ def _literal(name: str) -> str:
 
 
 def test_instruction_matches_the_off_box_scorer():
-    assert INSTRUCTION == _literal("INSTRUCTION")
+    assert _literal("INSTRUCTION") == INSTRUCTION
 
 
 def test_prefix_and_suffix_match_the_off_box_scorer():
-    assert PREFIX == _literal("PREFIX")
-    assert SUFFIX == _literal("SUFFIX")
+    assert _literal("PREFIX") == PREFIX
+    assert _literal("SUFFIX") == SUFFIX
 
 
 def test_prompt_places_query_and_document_in_their_slots():

@@ -1,5 +1,4 @@
-"""Write one passage per corpus table for the dense index."""
-
+# Write one passage per corpus table for the dense index.
 import argparse
 import json
 from pathlib import Path

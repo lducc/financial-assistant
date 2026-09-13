@@ -1,5 +1,4 @@
-"""Static validator for a ViFinQA submission package directory."""
-
+# Static validator for a ViFinQA submission package directory.
 import argparse
 import json
 import math

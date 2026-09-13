@@ -98,8 +98,7 @@ def test_plan_average_over_a_year_span():
 
 
 def test_company_boilerplate_does_not_read_as_an_operator():
-    # "công ty" folds to "cong ty"; before the boilerplate strip its "cong"
-    # triggered the sum branch on a plain lookup.
+    # "cong" in "công ty" must not trigger the sum branch
     lookup = ("Số dư cho vay khách hàng ngành Thương mại của công ty mẹ "
               "Ngân hàng TMCP Á Châu (ACB) cuối năm 2022 là bao nhiêu triệu đồng?")
     answer, expression = answer_plan(lookup, [value()])
@@ -108,8 +107,7 @@ def test_company_boilerplate_does_not_read_as_an_operator():
 
 
 def test_plan_emits_the_same_source_unit_conversion_it_uses_for_the_answer():
-    # The CSV cell contains 2,500 while its source table declares triệu đồng.
-    # EvidenceValue.value is canonical VND; the emitted query must reconstruct it.
+    # the CSV holds 2,500 in triệu đồng; the query must rebuild the VND value
     scaled = EvidenceValue("df0", 1, 1, 2_500_000_000.0, "R|1", source_scale=1e6)
     answer, expression = answer_plan("Doanh thu là bao nhiêu tỷ đồng?", [scaled])
     assert answer == 2.5

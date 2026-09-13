@@ -1,5 +1,4 @@
-"""Validate the candidate pool before reranking."""
-
+# Validate the candidate pool before reranking.
 import argparse
 import hashlib
 import json
@@ -105,7 +104,7 @@ def validate(records: list[dict], questions: list[dict], reports: dict,
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser()
     parser.add_argument("--pairs", type=Path, required=True)
     parser.add_argument("--extra-tables", type=Path, required=True)
     parser.add_argument("--graph-trace", type=Path, required=True)
